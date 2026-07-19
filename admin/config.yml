@@ -1,0 +1,22 @@
+backend:
+  name: github
+  # УВАГА: Замініть на свій логін та репозиторій!
+  repo: ВАШ_ЛОГІН/ВАШ_РЕПОЗИТОРІЙ 
+  branch: main
+  
+  # Використовуємо PKCE для авторизації без сервера!
+  auth_type: pkce
+  app_id: ВАШ_GITHUB_CLIENT_ID # Створіть OAuth App в GitHub і вставте сюди Client ID
+
+media_folder: "images"
+public_folder: "/images"
+
+collections:
+  - name: "pages"
+    label: "Сторінки"
+    folder: "" # Всі ваші HTML файли лежать в корені
+    extension: "html"
+    format: "raw" # Зберігаємо чистий HTML
+    create: true
+    fields:
+      - { label: "Тіло сторінки (HTML)", name: "body", widget: "text" }

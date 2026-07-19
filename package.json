@@ -1,0 +1,14 @@
+{
+  "name": "tgroup-static",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "mkdir -p dist && for i in *; do if [ \"$i\" != \"dist\" ] && [ \"$i\" != \"node_modules\" ]; then cp -r \"$i\" dist/; fi; done",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "decap-cms": "^3.14.1",
+    "express": "^4.18.2",
+    "iconv-lite": "^0.7.3"
+  }
+}

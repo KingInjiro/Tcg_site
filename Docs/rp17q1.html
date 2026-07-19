@@ -1,0 +1,72 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>404 Not Found</title>
+
+<link rel="manifest" href="/manifest.json">
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(err => {
+                console.log('SW registration failed: ', err);
+            });
+        });
+    }
+</script>
+
+
+
+
+
+
+<style>
+  /* Safe font increase */
+  body, p, td, span, div, a, font, li {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  font[size="1"] { font-size: 14px; }
+  font[size="2"] { font-size: 16px; }
+  font[size="3"] { font-size: 18px; }
+  
+  .left-nav-icon {
+    width: 165px !important; /* increased from 132px */
+    height: auto !important;
+    margin-bottom: 5px;
+  }
+  .top-nav-icon {
+    width: 100px !important; /* slightly increased from 90 */
+    height: auto !important;
+  }
+  
+  /* Ad containers */
+  .ad-left, .ad-right {
+    position: fixed;
+    top: 150px;
+    width: 160px;
+    height: 600px;
+    background-color: transparent;
+    border: 1px dashed #ccc;
+    text-align: center;
+    padding: 10px;
+    color: #666;
+    font-size: 12px;
+    z-index: 100;
+  }
+  .ad-left { left: 5px; }
+  .ad-right { right: 5px; }
+  @media (max-width: 1300px) {
+    .ad-left, .ad-right { display: none !important; }
+  }
+</style>
+
+</head><body>
+<h1>Not Found</h1>
+<p>The requested URL was not found on this server.</p>
+<p>Additionally, a 404 Not Found
+error was encountered while trying to use an ErrorDocument to handle the request.</p>
+
+<div class="ad-left">Место для рекламы (Л)</div>
+<div class="ad-right">Место для рекламы (П)</div>
+
+</body></html>
