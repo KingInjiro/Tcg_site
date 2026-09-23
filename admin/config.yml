@@ -1,22 +1,306 @@
 backend:
   name: github
-  # УВАГА: Замініть на свій логін та репозиторій!
-  repo: ВАШ_ЛОГІН/ВАШ_РЕПОЗИТОРІЙ 
+  repo: KingInjiro/Tcg_site
   branch: main
-  
-  # Використовуємо PKCE для авторизації без сервера!
-  auth_type: pkce
-  app_id: ВАШ_GITHUB_CLIENT_ID # Створіть OAuth App в GitHub і вставте сюди Client ID
+  auth_endpoint: api/auth
+  auth_scope: public_repo
+# base_url is set to the current site's origin in cms.js.
 
-media_folder: "images"
-public_folder: "/images"
+locale: uk
+media_folder: images
+public_folder: /images
+publish_mode: simple
 
 collections:
-  - name: "pages"
-    label: "Сторінки"
-    folder: "" # Всі ваші HTML файли лежать в корені
-    extension: "html"
-    format: "raw" # Зберігаємо чистий HTML
-    create: true
-    fields:
-      - { label: "Тіло сторінки (HTML)", name: "body", widget: "text" }
+  - name: pages
+    label: Сторінки
+    format: raw
+    extension: html
+    delete: false
+    editor:
+      preview: false
+    files:
+      - name: index
+        label: "Головна"
+        file: index.html
+        fields: &html_fields
+          - label: HTML сторінки
+            name: body
+            widget: text
+            hint: Змінюйте текст, зберігаючи HTML-теги та посилання.
+      - name: 1Cabon
+        label: "1Cabon.html"
+        file: 1Cabon.html
+        fields: *html_fields
+      - name: 1Ccrypt
+        label: "1Ccrypt.html"
+        file: 1Ccrypt.html
+        fields: *html_fields
+      - name: 1CDisitc
+        label: "1CDisitc.html"
+        file: 1CDisitc.html
+        fields: *html_fields
+      - name: 1Citc
+        label: "1Citc.html"
+        file: 1Citc.html
+        fields: *html_fields
+      - name: 1Cobslug
+        label: "1Cobslug.html"
+        file: 1Cobslug.html
+        fields: *html_fields
+      - name: 1Complex
+        label: "1Complex.html"
+        file: 1Complex.html
+        fields: *html_fields
+      - name: 1Config
+        label: "1Config.html"
+        file: 1Config.html
+        fields: *html_fields
+      - name: 1CPrice
+        label: "1CPrice.html"
+        file: 1CPrice.html
+        fields: *html_fields
+      - name: AntiRoot
+        label: "AntiRoot.html"
+        file: AntiRoot.html
+        fields: *html_fields
+      - name: AntiTipi
+        label: "AntiTipi.html"
+        file: AntiTipi.html
+        fields: *html_fields
+      - name: complex
+        label: "complex.html"
+        file: complex.html
+        fields: *html_fields
+      - name: contacts
+        label: "Контакти"
+        file: contacts.html
+        fields: *html_fields
+      - name: Download
+        label: "Завантаження"
+        file: Download.html
+        fields: *html_fields
+      - name: feedback
+        label: "Зворотний зв’язок"
+        file: feedback.html
+        fields: *html_fields
+      - name: For_as
+        label: "For_as.html"
+        file: For_as.html
+        fields: *html_fields
+      - name: header
+        label: "Шапка сайту"
+        file: header.html
+        fields: *html_fields
+      - name: ListPage_www_tcg_com_ua
+        label: "ListPage_www_tcg_com_ua.html"
+        file: ListPage_www_tcg_com_ua.html
+        fields: *html_fields
+      - name: Net
+        label: "Net.html"
+        file: Net.html
+        fields: *html_fields
+      - name: news
+        label: "Новини"
+        file: news.html
+        fields: *html_fields
+      - name: News0
+        label: "News0.html"
+        file: News0.html
+        fields: *html_fields
+      - name: News1
+        label: "News1.html"
+        file: News1.html
+        fields: *html_fields
+      - name: PCTarf
+        label: "PCTarf.html"
+        file: PCTarf.html
+        fields: *html_fields
+      - name: price01
+        label: "Ціни"
+        file: price01.html
+        fields: *html_fields
+      - name: price1C
+        label: "price1C.html"
+        file: price1C.html
+        fields: *html_fields
+      - name: priceMS
+        label: "priceMS.html"
+        file: priceMS.html
+        fields: *html_fields
+      - name: prod01
+        label: "prod01.html"
+        file: prod01.html
+        fields: *html_fields
+      - name: prod01My
+        label: "prod01My.html"
+        file: prod01My.html
+        fields: *html_fields
+      - name: prodMy01
+        label: "prodMy01.html"
+        file: prodMy01.html
+        fields: *html_fields
+      - name: prodMy02
+        label: "prodMy02.html"
+        file: prodMy02.html
+        fields: *html_fields
+      - name: prodMy03
+        label: "prodMy03.html"
+        file: prodMy03.html
+        fields: *html_fields
+      - name: products
+        label: "Продукти"
+        file: products.html
+        fields: *html_fields
+      - name: reglament
+        label: "reglament.html"
+        file: reglament.html
+        fields: *html_fields
+      - name: script5445
+        label: "script5445.html"
+        file: script5445.html
+        fields: *html_fields
+      - name: search
+        label: "search.html"
+        file: search.html
+        fields: *html_fields
+      - name: serv01
+        label: "serv01.html"
+        file: serv01.html
+        fields: *html_fields
+      - name: serv02
+        label: "serv02.html"
+        file: serv02.html
+        fields: *html_fields
+      - name: serv04
+        label: "serv04.html"
+        file: serv04.html
+        fields: *html_fields
+      - name: serv0401
+        label: "serv0401.html"
+        file: serv0401.html
+        fields: *html_fields
+      - name: serv0402
+        label: "serv0402.html"
+        file: serv0402.html
+        fields: *html_fields
+      - name: services
+        label: "Послуги"
+        file: services.html
+        fields: *html_fields
+      - name: ssilki
+        label: "ssilki.html"
+        file: ssilki.html
+        fields: *html_fields
+      - name: TEconom
+        label: "TEconom.html"
+        file: TEconom.html
+        fields: *html_fields
+      - name: toc
+        label: "toc.html"
+        file: toc.html
+        fields: *html_fields
+      - name: TStand
+        label: "TStand.html"
+        file: TStand.html
+        fields: *html_fields
+      - name: TVip
+        label: "TVip.html"
+        file: TVip.html
+        fields: *html_fields
+  - name: articles
+    label: Статті
+    format: raw
+    extension: html
+    delete: false
+    editor:
+      preview: false
+    files:
+      - name: Pege01
+        label: "Pege01.html"
+        file: ListPage/Pege01.html
+        fields: *html_fields
+      - name: Pege02
+        label: "Pege02.html"
+        file: ListPage/Pege02.html
+        fields: *html_fields
+      - name: Pege03
+        label: "Pege03.html"
+        file: ListPage/Pege03.html
+        fields: *html_fields
+      - name: Pege04
+        label: "Pege04.html"
+        file: ListPage/Pege04.html
+        fields: *html_fields
+      - name: Pege05
+        label: "Pege05.html"
+        file: ListPage/Pege05.html
+        fields: *html_fields
+      - name: Pege06
+        label: "Pege06.html"
+        file: ListPage/Pege06.html
+        fields: *html_fields
+  - name: documents
+    label: Документи
+    format: raw
+    extension: html
+    delete: false
+    editor:
+      preview: false
+    files:
+      - name: rp06q1
+        label: "rp06q1.html"
+        file: Docs/rp06q1.html
+        fields: *html_fields
+      - name: rp16q1
+        label: "rp16q1.html"
+        file: Docs/rp16q1.html
+        fields: *html_fields
+      - name: rp16q2
+        label: "rp16q2.html"
+        file: Docs/rp16q2.html
+        fields: *html_fields
+      - name: rp16q3
+        label: "rp16q3.html"
+        file: Docs/rp16q3.html
+        fields: *html_fields
+      - name: rp16q4
+        label: "rp16q4.html"
+        file: Docs/rp16q4.html
+        fields: *html_fields
+      - name: rp17q1
+        label: "rp17q1.html"
+        file: Docs/rp17q1.html
+        fields: *html_fields
+      - name: rp17q2
+        label: "rp17q2.html"
+        file: Docs/rp17q2.html
+        fields: *html_fields
+      - name: rp18q2
+        label: "rp18q2.html"
+        file: Docs/rp18q2.html
+        fields: *html_fields
+      - name: rp18q3
+        label: "rp18q3.html"
+        file: Docs/rp18q3.html
+        fields: *html_fields
+      - name: rp18q4
+        label: "rp18q4.html"
+        file: Docs/rp18q4.html
+        fields: *html_fields
+      - name: rp19q3
+        label: "rp19q3.html"
+        file: Docs/rp19q3.html
+        fields: *html_fields
+      - name: rp20q1
+        label: "rp20q1.html"
+        file: Docs/rp20q1.html
+        fields: *html_fields
+      - name: rp21q1
+        label: "rp21q1.html"
+        file: Docs/rp21q1.html
+        fields: *html_fields
+      - name: Sno_for_Buh_ua
+        label: "Sno_for_Buh_ua.html"
+        file: Docs/Sno_for_Buh_ua.html
+        fields: *html_fields
