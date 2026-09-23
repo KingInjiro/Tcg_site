@@ -1,50 +1,57 @@
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
+const path = require('node:path');
+const fs = require('node:fs');
+const { publicEntries } = require('./lib/site-files');
+const { createOAuth } = require('./lib/github-oauth');
 
-const app = express();
-const port = process.env.PORT || 3000;
-const publicPath = path.join(__dirname, 'dist'); // we serve from dist
-
-// Custom middleware for case-insensitive static file serving and .htm/.html alias
-app.use((req, res, next) => {
-    let reqPath = req.path;
-    if (reqPath === '/') reqPath = '/index.html';
-    
-    // Check if the exact file exists
-    if (fs.existsSync(path.join(publicPath, reqPath))) {
-        return next();
-    }
-    
-    // Fallback: Case-insensitive search and .htm <-> .html
-    const dir = path.dirname(reqPath);
-    let base = path.basename(reqPath).toLowerCase();
-    
-    const absDir = path.join(publicPath, dir);
-    if (fs.existsSync(absDir)) {
-        try {
-            const files = fs.readdirSync(absDir);
-            let match = files.find(f => f.toLowerCase() === base);
-            
-            // If not found, try mapping .htm to .html
-            if (!match && base.endsWith('.htm')) {
-                const baseHtml = base + 'l';
-                match = files.find(f => f.toLowerCase() === baseHtml);
-            }
-            
-            if (match) {
-                req.url = path.join(dir, match);
-            }
-        } catch (e) {
-            // ignore
+function createApp({ dev = false, oauth = createOAuth() } = {}) {
+    const app = express();
+    const publicPath = path.join(__dirname, 'dist');
+    const contentPath = dev ? __dirname : publicPath;
+    const allowed = new Set(publicEntries(contentPath));
+    app.disable('x-powered-by');
+    app.get('/api/auth', oauth.auth);
+    app.get('/api/callback', oauth.callback);
+    app.use('/api', (_req, res) => res.sendStatus(404));
+    app.use('/admin', (_req, res, next) => {
+        res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer' });
+        next();
+    });
+    app.use((req, res, next) => {
+        let reqPath;
+        try { reqPath = decodeURIComponent(req.path); }
+        catch { return res.sendStatus(400); }
+        if (reqPath === '/') reqPath = '/index.html';
+        // Keep legacy .htm links and case-insensitive filenames working.
+        const absolute = path.resolve(contentPath, '.' + reqPath);
+        if (!absolute.startsWith(contentPath + path.sep)) return res.sendStatus(404);
+        if (!fs.existsSync(absolute)) {
+            const directory = path.dirname(absolute);
+            try {
+                const base = path.basename(reqPath).toLowerCase();
+                const match = fs.readdirSync(directory).find(file =>
+                    file.toLowerCase() === base || (base.endsWith('.htm') && file.toLowerCase() === base + 'l'));
+                if (match) reqPath = path.posix.join(path.posix.dirname(reqPath), match);
+            } catch { /* Let the static server return 404. */ }
         }
-    }
-    
-    next();
-});
+        if (!allowed.has(reqPath.split('/')[1])) return res.sendStatus(404);
+        const queryIndex = req.url.indexOf('?');
+        req.url = reqPath + (queryIndex < 0 ? '' : req.url.slice(queryIndex));
+        if (reqPath === '/sw.js') res.set('Cache-Control', 'no-cache');
+        next();
+    });
+    // In local editing mode, serve changed source content immediately.
+    if (dev) app.use(express.static(contentPath, { dotfiles: 'deny' }));
+    app.use(express.static(publicPath, { dotfiles: 'deny' }));
+    return app;
+}
 
-app.use(express.static(publicPath));
-
-app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-});
+if (require.main === module) {
+    const dev = process.argv.includes('--dev');
+    const port = process.env.PORT || 3000;
+    createApp({ dev }).listen(port, dev ? '127.0.0.1' : '0.0.0.0', () => {
+        console.log(`Server listening on http://localhost:${port}`);
+    });
+}
+module.exports = { createApp };

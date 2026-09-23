@@ -1,20 +1,113 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# TCG — сайт і адмінпанель
 
-# Run and deploy your AI Studio app
+Статичний HTML-сайт. Адмінпанель `/admin/` використовує Decap CMS і зберігає
+зміни у `KingInjiro/Tcg_site`, гілка `main`. Вхід дозволений GitHub-користувачам
+із правом запису в цей репозиторій.
 
-This contains everything you need to run your app locally.
+## Локальний запуск
 
-View your app in AI Studio: https://ai.studio/apps/902c5735-d4ec-446f-8901-4ff6f28a6d5e
+Потрібен Node.js 24.
 
-## Run Locally
+```sh
+npm ci
+npm run dev
+```
 
-**Prerequisites:**  Node.js
+Сайт: <http://localhost:3000/>. `npm run dev` сам створює публічну збірку.
+Для перевірки редактора без GitHub OAuth запустіть у другому терміналі:
 
+```sh
+npm run cms:local
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Відкрийте <http://localhost:3000/admin/?local=true> і натисніть **Увійти**.
+Виберіть сторінку, змініть HTML, натисніть **Опублікувати** → **Опублікувати**.
+У цьому режимі зміни записуються у локальні HTML-файли та відразу видимі на
+локальному сайті. Вони не надсилаються в GitHub автоматично.
+
+Локальний редактор працює лише на `127.0.0.1:8081`. Не використовуйте його
+на публічному сервері. Звичайна адреса `/admin/` завжди використовує GitHub-вхід;
+`?local=true` враховується лише на `localhost` та `127.0.0.1`.
+
+## Налаштування входу на Vercel
+
+`vercel.json` задає `npm run build`, каталог `dist` і заголовки адмінпанелі.
+`api/auth.js` та `api/callback.js` виконуються як серверні функції Vercel.
+Окремий сервер авторизації не потрібен.
+
+1. У [GitHub → Settings → Developer settings → OAuth Apps](https://github.com/settings/developers)
+   створіть **New OAuth App**.
+2. Вкажіть фактичний основний домен сайту:
+   - **Homepage URL:** `https://ВАШ-ДОМЕН`
+   - **Authorization callback URL:** `https://ВАШ-ДОМЕН/api/callback`
+3. Скопіюйте **Client ID** і створіть **Client Secret**.
+4. У Vercel → проєкт `tcg-site` → Settings → Environment Variables додайте:
+
+   | Змінна | Значення |
+   | --- | --- |
+   | `CMS_ORIGIN` | `https://ВАШ-ДОМЕН` без `/admin` та інших шляхів |
+   | `GITHUB_CLIENT_ID` | Client ID OAuth-застосунку |
+   | `GITHUB_CLIENT_SECRET` | Client Secret OAuth-застосунку |
+
+5. Застосуйте змінні до **Production** і виконайте нове розгортання.
+6. Відкрийте `https://ВАШ-ДОМЕН/admin/`, натисніть вхід через GitHub і використайте
+   обліковий запис із правом запису в `KingInjiro/Tcg_site`.
+
+Секрет задається лише в налаштуваннях сервера, не в `admin/config.yml`, HTML
+чи комітах. Запитується scope `public_repo`, оскільки цей репозиторій публічний.
+GitHub OAuth із цим scope не обмежується одним публічним репозиторієм.
+Якщо перевіряєте вхід на Preview-домені, використайте окремий OAuth App,
+точний Preview-домен і відповідні Preview-змінні. Production OAuth-налаштування
+не є універсальним входом для всіх Preview-адрес.
+
+## Як редагувати сайт
+
+У колекціях **Сторінки**, **Статті** та **Документи** виберіть наявний файл.
+Редактор показує його повний HTML. Змінюйте текст, зберігаючи теги й посилання.
+Наявний сайт не переводиться у Markdown: формат `raw` читає і зберігає HTML
+без додавання YAML-заголовків. Якщо файл не закінчується переносом рядка,
+Decap додає його під час збереження. Створення та видалення сторінок у цій конфігурації
+вимкнені; список файлів знаходиться в `admin/config.yml`.
+
+На опублікованому сайті **Опублікувати** створює коміт у `main`.
+За наявності активної Git-інтеграції Vercel сайт оновиться після успішної збірки
+цього коміту. Локальний Express-сервер у production-режимі потребує окремого
+оновлення коду та перезапуску після публікації через GitHub.
+
+## Запуск на Node.js сервері
+
+Скопіюйте `.env.example` у `.env`, задайте ті самі три OAuth-змінні та запустіть:
+
+```sh
+npm ci
+npm start
+```
+
+`npm start` створює `dist` перед запуском. Порт — `PORT` або `3000`.
+HTTPS має завершуватися на вашому reverse proxy. Для локального OAuth-тесту
+можна задати `CMS_ORIGIN=http://localhost:3000` та відповідний callback URL
+у окремому тестовому OAuth App.
+
+## Перевірки та діагностика
+
+```sh
+npm test
+npm run build
+```
+
+Тести перевіряють OAuth state/PKCE, відмову без налаштувань і прав запису,
+безпечну передачу результату до CMS, збереження всіх налаштованих HTML-файлів
+без зміни байтів та відсутність серверних файлів у публічній збірці.
+Тести OAuth використовують імітацію відповідей GitHub; вони не замінюють
+перевірку реального входу після налаштування OAuth App.
+
+- **«Вхід ще не налаштовано»**: перевірте три змінні та повторне розгортання.
+- **Сеанс входу недійсний**: відкрийте CMS на домені з `CMS_ORIGIN` та почніть
+  вхід повторно; дозвольте cookies й спливне вікно для цього сайту.
+- **Немає права редагувати**: перевірте GitHub-акаунт і його доступ до репозиторію.
+- **Зміни опубліковані, але їх ще немає на сайті**: перевірте коміт у `main`
+  та завершення пов'язаного deployment у Vercel.
+
+Офіційні джерела: [Decap: GitHub backend](https://decapcms.org/docs/github-backend/),
+[локальний режим](https://decapcms.org/docs/decap-proxy/),
+[GitHub OAuth](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps).

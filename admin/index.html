@@ -1,21 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Админ Панель - Управление контентом</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Керування сайтом — TCG</title>
     <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
     <style>
-      #error-log { color: red; font-family: monospace; padding: 20px; white-space: pre-wrap; }
+      #cms-status { font: 16px/1.5 system-ui, sans-serif; padding: 24px; white-space: pre-wrap; }
+      #cms-status[role="alert"] { color: #a11; }
     </style>
-    <script>
-      window.onerror = function(message, source, lineno, colno, error) {
-        document.body.innerHTML += '<div id="error-log">CMS Error: ' + message + '\n' + (error ? error.stack : '') + '</div>';
-      };
-    </script>
-    <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <script src="/admin/bootstrap.js" defer></script>
+    <script src="/admin/vendor/decap-cms.js" defer></script>
+    <script src="/admin/raw-format.js" defer></script>
+    <script src="/admin/cms.js" defer></script>
   </head>
   <body>
-    <!-- Decap CMS will render here -->
+    <div id="cms-status" role="status">Завантаження редактора…</div>
+    <noscript>Для роботи редактора увімкніть JavaScript.</noscript>
   </body>
 </html>
