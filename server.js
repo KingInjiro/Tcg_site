@@ -3,15 +3,17 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { publicEntries } = require('./lib/site-files');
 const { createOAuth } = require('./lib/github-oauth');
+const { createLocalEditor } = require('./lib/editor-local');
 
-function createApp({ dev = false, oauth = createOAuth() } = {}) {
+function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}) {
     const app = express();
-    const publicPath = path.join(__dirname, 'dist');
-    const contentPath = dev ? __dirname : publicPath;
+    const publicPath = path.join(root, 'dist');
+    const contentPath = dev ? root : publicPath;
     const allowed = new Set(publicEntries(contentPath));
     app.disable('x-powered-by');
     app.get('/api/auth', oauth.auth);
     app.get('/api/callback', oauth.callback);
+    if (dev) app.use('/api/editor-local', express.json({ limit: '12mb' }), createLocalEditor(root));
     app.use('/api', (_req, res) => res.sendStatus(404));
     app.use('/admin', (_req, res, next) => {
         res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
@@ -35,7 +37,7 @@ function createApp({ dev = false, oauth = createOAuth() } = {}) {
                 if (match) reqPath = path.posix.join(path.posix.dirname(reqPath), match);
             } catch { /* Let the static server return 404. */ }
         }
-        if (!allowed.has(reqPath.split('/')[1])) return res.sendStatus(404);
+        if (!allowed.has(reqPath.split('/')[1]) && !(dev && publicEntries(contentPath).includes(reqPath.split('/')[1]))) return res.sendStatus(404);
         const queryIndex = req.url.indexOf('?');
         req.url = reqPath + (queryIndex < 0 ? '' : req.url.slice(queryIndex));
         if (reqPath === '/sw.js') res.set('Cache-Control', 'no-cache');

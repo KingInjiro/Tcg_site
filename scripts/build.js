@@ -21,6 +21,10 @@ function build(root = path.resolve(__dirname, '..')) {
             fs.copyFileSync(path.join(cms, name), path.join(vendor, name));
         }
     }
+    const grapes = path.dirname(require.resolve('grapesjs'));
+    fs.copyFileSync(path.join(grapes, 'grapes.min.js'), path.join(vendor, 'grapes.min.js'));
+    fs.copyFileSync(path.join(grapes, 'css', 'grapes.min.css'), path.join(vendor, 'grapes.min.css'));
+    fs.copyFileSync(path.join(grapes, '..', 'LICENSE'), path.join(vendor, 'grapes.LICENSE.txt'));
     console.log('Website built in dist/');
     return output;
 }
