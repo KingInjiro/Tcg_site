@@ -1,22 +1,57 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex, nofollow">
-    <title>Керування сайтом — TCG</title>
-    <link href="/admin/config.yml" type="text/yaml" rel="cms-config-url">
-    <style>
-      #cms-status { font: 16px/1.5 system-ui, sans-serif; padding: 24px; white-space: pre-wrap; }
-      #cms-status[role="alert"] { color: #a11; }
-    </style>
-    <script src="/admin/bootstrap.js" defer></script>
-    <script src="/admin/vendor/decap-cms.js" defer></script>
-    <script src="/admin/raw-format.js" defer></script>
-    <script src="/admin/cms.js" defer></script>
-  </head>
-  <body>
-    <div id="cms-status" role="status">Завантаження редактора…</div>
-    <noscript>Для роботи редактора увімкніть JavaScript.</noscript>
-  </body>
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>TCG — редактор сайту</title>
+  <link rel="stylesheet" href="/admin/vendor/grapes.min.css"><link rel="stylesheet" href="/admin/builder.css">
+  <script defer src="/admin/vendor/grapes.min.js"></script><script defer src="/admin/repository.js"></script><script defer src="/admin/document.js"></script><script defer src="/admin/builder.js"></script>
+</head>
+<body>
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="brand-mark">T</div><p class="eyebrow">TORNADO COMPUTERS GROUP</p><h1>Ваш сайт.<br>Ваші зміни.</h1>
+      <p class="login-description">Редагуйте текст прямо на сторінці, додавайте зображення та збирайте нові сторінки з готових блоків.</p>
+      <button class="primary" id="login">Увійти через GitHub <span aria-hidden="true">↗</span></button>
+      <p class="quiet" id="login-note">Доступ для редакторів сайту TCG</p><p id="login-status" role="status"></p>
+    </div>
+    <div class="login-preview" aria-hidden="true"><div class="preview-bar"><i></i><i></i><i></i></div><div class="preview-content"><small>СТВОРЮЙТЕ БЕЗ КОДУ</small><h2>Від ідеї<br>до сторінки.</h2><div class="preview-selection">Натисніть. Змініть. Готово.<span>Текст</span></div><div class="preview-tiles"><div>Заголовок</div><div>Зображення</div><div>Кнопка</div></div></div></div>
+  </div>
+  <div id="app" hidden>
+    <header class="topbar">
+      <a class="brand" href="/" target="_blank" rel="noopener" aria-label="Відкрити сайт TCG"><span class="brand-mark">T</span><strong>TCG</strong></a><div class="topbar-divider"></div><span class="editor-label">Редактор сайту</span><div class="topbar-spacer"></div>
+      <button id="backup" class="subtle" title="Завантажити неопубліковані правки">Резервна копія</button><button id="restore" class="subtle">Відновити</button><input id="restore-file" type="file" accept="application/json,.json" hidden>
+      <button id="preview" class="secondary">Перегляд</button><button id="publish" class="primary" disabled>Опублікувати</button><button id="logout" class="subtle">Вийти</button>
+    </header>
+    <div class="workspace">
+      <aside class="left-sidebar">
+        <div class="sidebar-heading"><h2>Сторінки</h2><button id="new-page" class="add-button" aria-label="Нова сторінка" title="Нова сторінка">+</button></div>
+        <input id="page-search" class="search" type="search" placeholder="Знайти сторінку…" aria-label="Пошук сторінок"><nav id="page-list" aria-label="Сторінки сайту"></nav>
+        <div class="sidebar-heading block-heading"><h2>Додати блок</h2><span class="quiet">перетягніть →</span></div><div id="blocks"></div><p class="sidebar-tip">Двічі натисніть на текст, щоб його змінити. Блоки можна перетягувати на сторінку.</p>
+      </aside>
+      <main class="canvas-column">
+        <div class="canvas-toolbar"><div class="page-address"><span aria-hidden="true">◧</span><span id="current-path">Оберіть сторінку</span><span id="dirty-badge" hidden>Чернетка</span></div><div class="canvas-actions"><button id="undo" aria-label="Скасувати дію" title="Скасувати (Ctrl+Z)">↶</button><button id="redo" aria-label="Повторити дію" title="Повторити (Ctrl+Shift+Z)">↷</button><span class="toolbar-divider"></span><button id="desktop" class="active" aria-label="Вигляд на комп’ютері" title="Комп’ютер">▱</button><button id="mobile" aria-label="Вигляд на телефоні" title="Телефон">▯</button></div></div>
+        <div id="editor"></div><footer class="statusbar"><span id="status" role="status">Завантаження…</span><a id="publication" hidden target="_blank" rel="noopener">Збережені зміни ↗</a></footer>
+      </main>
+      <aside class="right-sidebar">
+        <div class="sidebar-heading"><h2>Налаштування</h2><span class="tiny-dot"></span></div><div class="page-settings"><label for="page-title">Назва сторінки</label><input id="page-title" placeholder="Назва сторінки"><small>Відображається у вкладці браузера</small></div>
+        <div class="inspector-tabs"><button id="style-tab" class="active">Оформлення</button><button id="layers-tab">Структура</button></div>
+        <div id="inspector"><p id="selection-hint">Виберіть елемент на сторінці, щоб змінити його оформлення.</p><div id="selection-name"></div><div id="traits"></div><div id="link-control" hidden><label for="link-page">Посилання на сторінку</label><select id="link-page"><option value="">Виберіть сторінку…</option></select></div><button id="choose-image" class="secondary wide" hidden>Вибрати зображення</button><div id="styles"></div></div><div id="layers" hidden></div>
+      </aside>
+    </div>
+  </div>
+  <dialog id="new-dialog"><form id="new-form">
+    <div class="dialog-heading"><div><p class="eyebrow">РОЗШИРЮЙТЕ СВІЙ САЙТ</p><h2>Нова сторінка</h2></div><button type="button" class="close-dialog" aria-label="Закрити">×</button></div>
+    <label for="new-title">Назва</label><input id="new-title" required maxlength="120" placeholder="Наприклад, Наші послуги">
+    <label for="new-slug">Адреса сторінки</label><div class="slug-input"><span>/</span><input id="new-slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="70" placeholder="nashi-posluhy"><span>.html</span></div><small>Латинські літери, цифри й дефіс. Адресу можна змінити перед створенням.</small>
+    <label for="new-template">Почати з</label><select id="new-template"><option value="simple">Проста сторінка</option><option value="services">Сторінка послуг</option><option value="copy">Копія поточної сторінки</option></select>
+    <label class="check-label"><input type="checkbox" id="new-link" checked> Додати посилання внизу поточної сторінки</label><p id="new-error" class="error" role="alert"></p>
+    <div class="dialog-actions"><button type="button" class="secondary close-dialog">Скасувати</button><button class="primary" type="submit">Створити сторінку</button></div>
+  </form></dialog>
+  <dialog id="asset-dialog">
+    <div class="dialog-heading"><div><p class="eyebrow">МЕДІАТЕКА</p><h2>Виберіть зображення</h2></div><button class="close-dialog" aria-label="Закрити">×</button></div>
+    <div class="asset-actions"><input id="asset-search" type="search" placeholder="Пошук за назвою…" aria-label="Пошук зображень"><label class="primary upload-label">Завантажити<input id="asset-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label></div>
+    <p class="quiet">PNG, JPG, WebP або GIF до 2 МБ. Нове зображення з’явиться на сайті після публікації.</p><div id="asset-grid"></div><p id="asset-error" class="error" role="alert"></p><button id="more-assets" class="secondary">Показати ще</button>
+  </dialog>
+  <noscript>Для роботи редактора увімкніть JavaScript.</noscript>
+</body>
 </html>
