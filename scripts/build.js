@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { publicEntries } = require('../lib/site-files');
+const { publicEntries, isPublicContent } = require('../lib/site-files');
 
 function build(root = path.resolve(__dirname, '..')) {
     const output = path.join(root, 'dist');
@@ -9,7 +9,7 @@ function build(root = path.resolve(__dirname, '..')) {
     for (const name of publicEntries(root)) {
         fs.cpSync(path.join(root, name), path.join(output, name), {
             recursive: true,
-            filter: source => !fs.lstatSync(source).isSymbolicLink() && !path.basename(source).startsWith('.'),
+            filter: source => !fs.lstatSync(source).isSymbolicLink() && !path.basename(source).startsWith('.') && isPublicContent(source),
         });
     }
     // Include the pinned CMS bundle and its lazy-loaded chunks on this site.

@@ -15,7 +15,23 @@
     },
     {
       "source": "/sw.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/Docs/Sno_for_Buh_ua.ert",
+      "headers": [
+        { "key": "Content-Type", "value": "application/octet-stream" },
+        { "key": "Content-Disposition", "value": "attachment; filename=\"Sno_for_Buh_ua.ert\"" }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/Docs/Sno_for_Buh_ua.html",
+      "destination": "/Docs/Sno_for_Buh_ua.ert",
+      "permanent": true
     }
   ]
 }

@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs');
-const { publicEntries } = require('./lib/site-files');
+const { publicEntries, isPublicContent } = require('./lib/site-files');
 const { createOAuth } = require('./lib/github-oauth');
 const { createLocalEditor } = require('./lib/editor-local');
 
@@ -13,6 +13,7 @@ function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}
     app.disable('x-powered-by');
     app.get('/api/auth', oauth.auth);
     app.get('/api/callback', oauth.callback);
+    app.get('/Docs/Sno_for_Buh_ua.html', (_req, res) => res.redirect(308, '/Docs/Sno_for_Buh_ua.ert'));
     if (dev) app.use('/api/editor-local', express.json({ limit: '12mb' }), createLocalEditor(root));
     app.use('/api', (_req, res) => res.sendStatus(404));
     app.use('/admin', (_req, res, next) => {
@@ -38,6 +39,9 @@ function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}
             } catch { /* Let the static server return 404. */ }
         }
         if (!allowed.has(reqPath.split('/')[1]) && !(dev && publicEntries(contentPath).includes(reqPath.split('/')[1]))) return res.sendStatus(404);
+        const file = path.join(contentPath, reqPath);
+        if (fs.existsSync(file) && !isPublicContent(file)) return res.sendStatus(404);
+        if (reqPath === '/Docs/Sno_for_Buh_ua.ert') res.attachment('Sno_for_Buh_ua.ert');
         const queryIndex = req.url.indexOf('?');
         req.url = reqPath + (queryIndex < 0 ? '' : req.url.slice(queryIndex));
         if (reqPath === '/sw.js') res.set('Cache-Control', 'no-cache');

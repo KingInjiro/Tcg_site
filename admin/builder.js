@@ -153,9 +153,10 @@
         const page = state.pages.get(path);
         status('Відкриваю сторінку…');
         try {
-            if (!page.html) {
-                const [html, saved] = await Promise.all([state.repo.read(path), state.repo.read(R.projectPath(path))]);
+            if (!page.meta) {
+                const [html, saved] = await Promise.all([page.html ?? state.repo.read(path), state.repo.read(R.projectPath(path))]);
                 if (html === null) throw new Error('Сторінку не знайдено. Оновіть список сторінок.');
+                if (R.pageProblem(html)) throw new Error(R.pageProblem(html));
                 page.html = html;
                 page.meta = D.importHTML(html, path).meta;
                 if (saved) {
@@ -184,9 +185,11 @@
     async function start(repo) {
         $('login-status').textContent = 'Завантаження сторінок…';
         const listing = await repo.list();
-        if (!listing.files.some(file => R.isPage(file.path))) throw new Error('У репозиторії немає сторінок для редагування.');
+        const pages = await R.loadPages(repo, listing.files, (done, total) => { $('login-status').textContent = 'Перевірка сторінок… ' + done + '/' + total; });
+        if (!pages.length) throw new Error('У репозиторії немає справних HTML-сторінок для редагування.');
         state.repo = repo;
-        for (const file of listing.files.filter(file => R.isPage(file.path))) state.pages.set(file.path, { path: file.path, dirty: false });
+        state.paths = new Set(listing.files.map(file => file.path.toLowerCase().replace(/\.html?$/i, '')));
+        for (const page of pages) state.pages.set(page.path, page);
         state.assets = listing.files.filter(file => R.isImage(file.path)).map(file => file.path);
         $('login-screen').hidden = true; $('app').hidden = false;
         renderPageList();
@@ -250,7 +253,7 @@
         event.preventDefault();
         const title = $('new-title').value.trim(), slug = $('new-slug').value.trim(), path = slug + '.html';
         if (!title || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || !R.isPage(path)) { $('new-error').textContent = 'Вкажіть назву й коректну адресу сторінки.'; return; }
-        if ([...state.pages.keys()].some(existing => existing.toLowerCase().replace(/\.html?$/i, '') === slug)) { $('new-error').textContent = 'Така адреса вже зайнята. Виберіть іншу.'; return; }
+        if (state.paths.has(slug) || [...state.pages.keys()].some(existing => existing.toLowerCase().replace(/\.html?$/i, '') === slug)) { $('new-error').textContent = 'Така адреса вже зайнята. Виберіть іншу.'; return; }
         capture();
         const source = state.pages.get(state.current), kind = $('new-template').value;
         const page = { path, html: kind === 'copy' ? D.rebaseCopy(D.exportHTML(state.editor, source.meta), source.path) : D.template(title, kind), dirty: true };

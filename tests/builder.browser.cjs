@@ -45,6 +45,8 @@ const screenshot = async (page, name) => {
         await login();
         await screenshot(page, 'builder-existing-page');
         const entries = yaml.load(read('admin/config.yml')).collections.flatMap(collection => collection.files).map(file => file.file);
+        const listed = await page.locator('#page-list [data-path]').evaluateAll(nodes => nodes.map(node => node.dataset.path));
+        assert.deepEqual(listed.sort(), [...entries].sort(), 'only real pages are offered, never binary documents or saved 404 responses');
         for (const name of entries) {
             if (name !== 'index.html') await open(name);
             const result = await page.evaluate(({ html, name }) => {
@@ -61,8 +63,14 @@ const screenshot = async (page, name) => {
                 return { differences, dirty: !document.getElementById('publish').disabled };
             }, { html: read(name), name });
             assert.deepEqual(result, { differences: [], dirty: false }, name);
+            const broken = await page.frameLocator('.gjs-frame').locator('body').evaluate(async body => {
+                const images = [...body.querySelectorAll('img')].filter(img => new URL(img.src, document.baseURI).origin === new URL(document.baseURI).origin || img.src.startsWith('data:'));
+                await Promise.all(images.map(img => img.decode().catch(() => {})));
+                return images.filter(img => !img.complete || !img.naturalWidth).map(img => img.getAttribute('src'));
+            });
+            assert.deepEqual(broken, [], name + ': every local image must decode in the editor');
         }
-        console.log(`PASS ${entries.length} existing pages: text, links, images, scripts and clean opening`);
+        console.log(`PASS ${entries.length} real pages: clean round trip, preserved contents and decoded editor images; invalid imports excluded`);
         const originalContacts = read('contacts.html');
         await open('contacts.html'); await page.locator('#page-title').fill('Контакти — перевірено');
         await page.locator('#new-page').click(); await page.locator('#new-title').fill('Нова тест сторінка');

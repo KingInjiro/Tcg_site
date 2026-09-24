@@ -146,7 +146,15 @@ test('build serves the CMS, website and legacy links without exposing server fil
         assert.equal(fs.existsSync(path.join(output, name)), false, name);
     }
     assert.ok(fs.existsSync(path.join(output, 'admin/vendor/decap-cms.js')));
+    for (const name of ['Docs/Sno_for_Buh_ua.html', 'Docs/rp21q1.html', 'script5445.html', '1Cabon.files/image001.html', 'derived/FOR_AS.HTM_CMP_-1-010_VBTN.HTML']) {
+        assert.equal(fs.existsSync(path.join(output, name)), false, 'invalid imported file: ' + name);
+    }
+    assert.deepEqual(fs.readFileSync(path.join(output, 'Docs/Sno_for_Buh_ua.ert')).subarray(0, 8), Buffer.from('d0cf11e0a1b11ae1', 'hex'));
     const origin = await serve(t, createApp());
+    const download = await fetch(origin + '/Docs/Sno_for_Buh_ua.html');
+    assert.equal(download.status, 200);
+    assert.match(download.headers.get('content-disposition'), /attachment.*Sno_for_Buh_ua\.ert/);
+    assert.equal((await fetch(origin + '/Docs/rp21q1.html')).status, 404);
     for (const name of ['/', '/admin/', '/admin/config.yml', '/admin/vendor/decap-cms.js', '/CONTACTS.HTM?from=test']) {
         assert.equal((await fetch(origin + name)).status, 200, name);
     }

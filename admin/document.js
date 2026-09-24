@@ -4,6 +4,8 @@
     const parse = html => new DOMParser().parseFromString(html, 'text/html');
     const attrs = node => Object.fromEntries([...node.attributes].map(attr => [attr.name, attr.value]));
     function importHTML(html, path) {
+        const problem = window.TCGRepository.pageProblem(html);
+        if (problem) throw new Error(problem);
         const doc = parse(html);
         const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head\s*>/i)?.[1] || doc.head.innerHTML;
         const meta = {
