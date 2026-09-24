@@ -13,7 +13,8 @@
     "dev": "node --env-file-if-exists=.env server.js --dev",
     "cms:local": "node scripts/cms-local.js",
     "test": "node --test tests/*.test.js",
-    "test:browser": "node tests/builder.browser.cjs"
+    "test:browser": "node tests/builder.browser.cjs",
+    "test:content": "node tests/content.browser.cjs"
   },
   "dependencies": {
     "decap-cms": "3.14.1",

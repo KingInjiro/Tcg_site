@@ -156,10 +156,6 @@ collections:
         label: "reglament.html"
         file: reglament.html
         fields: *html_fields
-      - name: script5445
-        label: "script5445.html"
-        file: script5445.html
-        fields: *html_fields
       - name: search
         label: "search.html"
         file: search.html
@@ -239,68 +235,4 @@ collections:
       - name: Pege06
         label: "Pege06.html"
         file: ListPage/Pege06.html
-        fields: *html_fields
-  - name: documents
-    label: Документи
-    format: raw
-    extension: html
-    delete: false
-    editor:
-      preview: false
-    files:
-      - name: rp06q1
-        label: "rp06q1.html"
-        file: Docs/rp06q1.html
-        fields: *html_fields
-      - name: rp16q1
-        label: "rp16q1.html"
-        file: Docs/rp16q1.html
-        fields: *html_fields
-      - name: rp16q2
-        label: "rp16q2.html"
-        file: Docs/rp16q2.html
-        fields: *html_fields
-      - name: rp16q3
-        label: "rp16q3.html"
-        file: Docs/rp16q3.html
-        fields: *html_fields
-      - name: rp16q4
-        label: "rp16q4.html"
-        file: Docs/rp16q4.html
-        fields: *html_fields
-      - name: rp17q1
-        label: "rp17q1.html"
-        file: Docs/rp17q1.html
-        fields: *html_fields
-      - name: rp17q2
-        label: "rp17q2.html"
-        file: Docs/rp17q2.html
-        fields: *html_fields
-      - name: rp18q2
-        label: "rp18q2.html"
-        file: Docs/rp18q2.html
-        fields: *html_fields
-      - name: rp18q3
-        label: "rp18q3.html"
-        file: Docs/rp18q3.html
-        fields: *html_fields
-      - name: rp18q4
-        label: "rp18q4.html"
-        file: Docs/rp18q4.html
-        fields: *html_fields
-      - name: rp19q3
-        label: "rp19q3.html"
-        file: Docs/rp19q3.html
-        fields: *html_fields
-      - name: rp20q1
-        label: "rp20q1.html"
-        file: Docs/rp20q1.html
-        fields: *html_fields
-      - name: rp21q1
-        label: "rp21q1.html"
-        file: Docs/rp21q1.html
-        fields: *html_fields
-      - name: Sno_for_Buh_ua
-        label: "Sno_for_Buh_ua.html"
-        file: Docs/Sno_for_Buh_ua.html
         fields: *html_fields

@@ -10,9 +10,31 @@
     function isPage(path) {
         return typeof path === 'string' && /^(?:(?:Docs|ListPage)\/)?[\w-]+\.html?$/i.test(path) && !/^(test_|temp\.)/i.test(path);
     }
+    // An .html extension alone does not make an imported file a web page.
+    function pageProblem(html) {
+        if (typeof html !== 'string' || /[\x00-\x08\x0b\x0e-\x1f\ufffd]/.test(html)) return 'Файл пошкоджений або має неправильне кодування.';
+        if (!/<(?:html|head|body)(?:\s|>)/i.test(html)) return 'Це не HTML-сторінка.';
+        if (/<title>\s*404 Not Found\s*<\/title>/i.test(html) && /The requested URL[\s\S]*was not found/i.test(html)) return 'Це збережена відповідь сервера про відсутній файл.';
+        return null;
+    }
+    async function loadPages(repo, files, progress = () => {}) {
+        const candidates = files.filter(file => isPage(file.path));
+        const pages = new Array(candidates.length);
+        let next = 0, completed = 0;
+        // Limit GitHub requests and keep the HTML from this exact repository snapshot.
+        await Promise.all(Array.from({ length: Math.min(6, candidates.length) }, async () => {
+            while (next < candidates.length) {
+                const index = next++, file = candidates[index];
+                const html = await repo.read(file.path);
+                if (!pageProblem(html)) pages[index] = { path: file.path, html, dirty: false };
+                progress(++completed, candidates.length);
+            }
+        }));
+        return pages.filter(Boolean);
+    }
     function isImage(path) {
         return typeof path === 'string' && !path.includes('..') && !path.includes('\\') &&
-            /^(?:images|derived|[\w.-]+\.files)\/[\w./ -]+\.(?:png|jpe?g|gif|webp)$/i.test(path);
+            /^(?:images|derived|[\w.-]+\.files)\/[\w!./ -]+\.(?:png|jpe?g|gif|webp)$/i.test(path);
     }
     function projectPath(path) {
         if (!isPage(path)) throw new Error('Некоректна адреса сторінки.');
@@ -31,6 +53,7 @@
             const image = /^images\/editor\/[a-z0-9-]+\.(png|jpg|jpeg|gif|webp)$/.test(file.path);
             if (!(isPage(file.path) || isProject(file.path) || image)) throw new Error('Цей файл не можна змінювати через редактор.');
             if (file.encoding !== (image ? 'base64' : 'utf-8')) throw new Error('Некоректний формат файлу.');
+            if (isPage(file.path) && pageProblem(file.content)) throw new Error(file.path + ': ' + pageProblem(file.content));
             if (image && (!/^[A-Za-z0-9+/]*={0,2}$/.test(file.content) || file.content.length > 2800000)) throw new Error('Зображення завелике або пошкоджене.');
             size += new TextEncoder().encode(file.content).byteLength;
         }
@@ -111,5 +134,5 @@
         async read(path) { return (await this.request('?action=read&path=' + encodeURIComponent(path))).content; }
         async publish(changes) { validateChanges(changes); const data = await this.request('', { head: this.head, changes }); this.head = data.head; return data; }
     }
-    return { GitHub, Local, isPage, isImage, isProject, projectPath, validateChanges, conflict };
+    return { GitHub, Local, isPage, pageProblem, loadPages, isImage, isProject, projectPath, validateChanges, conflict };
 });

@@ -4,11 +4,31 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const express = require('express');
-const { GitHub, isPage, isProject, validateChanges } = require('../admin/repository');
+const { GitHub, isPage, isProject, pageProblem, loadPages, validateChanges } = require('../admin/repository');
 const { createLocalEditor } = require('../lib/editor-local');
 const { createApp } = require('../server');
 const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
 const changes = [{ path: 'hello.html', content: '<html><body>Привіт</body></html>', encoding: 'utf-8' }, { path: '.tcg-editor/hello.html.json', content: '{"version":1}', encoding: 'utf-8' }];
+
+test('editor identifies HTML by its contents and rejects damaged documents before publishing', async () => {
+    const content = new Map([
+        ['index.html', '<!doctype html><html><body>Український текст ©</body></html>'],
+        ['Docs/new-page.html', '<html><body>Нова сторінка</body></html>'],
+        ['Docs/document.html', '\ufffd\ufffd\x11\x00Root Entry'],
+        ['Docs/missing.html', '<html><head><title>404 Not Found</title></head><body>The requested URL /Docs/report.zip was not found on this server.</body></html>'],
+        ['broken.html', '<html><body>Пошкоджений \ufffd текст</body></html>'],
+        ['plain.html', 'Not an HTML document'],
+    ]);
+    const files = [...content.keys()].map(path => ({ path }));
+    const pages = await loadPages({ read: async path => content.get(path) }, files);
+    assert.deepEqual(pages.map(page => page.path), ['index.html', 'Docs/new-page.html']);
+    assert.equal(pages[1].html, content.get('Docs/new-page.html'));
+    assert.equal(pageProblem('<html><head><title>404 Not Found</title></head><body>Our custom error page</body></html>'), null);
+    for (const name of ['Docs/document.html', 'Docs/missing.html', 'broken.html', 'plain.html']) {
+        assert.throws(() => validateChanges([{ path: name, content: content.get(name), encoding: 'utf-8' }]));
+    }
+    await assert.rejects(loadPages({ read: async () => { throw new Error('GitHub unavailable'); } }, files), /GitHub unavailable/);
+});
 
 test('editor limits writes to pages, project metadata and uploaded raster images', () => {
     for (const name of ['hello.html', 'Docs/rp21q1.html', 'ListPage/Pege01.html']) assert.ok(isPage(name));
