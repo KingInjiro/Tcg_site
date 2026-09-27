@@ -47,6 +47,84 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
   box-sizing: border-box;
 }
 
+/* Text buttons keep the original Verdana and yellow palette without scaling GIF lettering. */
+.site-page .site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 4px 6px;
+  margin: 6px 0;
+  padding: 0;
+  max-width: 100%;
+}
+
+.site-page .site-nav-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 34px;
+  max-width: 100%;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  color: #000;
+  background-color: transparent;
+  font: 16px/1.5 Verdana, Arial, Helvetica, sans-serif;
+  text-align: center;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.site-page .site-nav--utility {
+  margin-top: 8px;
+}
+
+.site-page .site-nav--utility .site-nav-link {
+  background-color: #f4eda6;
+}
+
+.site-page .site-nav-link[aria-current="page"] {
+  border-bottom-color: #b26b00;
+}
+
+.site-page a.site-nav-link:hover,
+.site-page a.site-nav-link:focus-visible {
+  color: #000;
+  background-color: #f4eda6;
+  background-image: linear-gradient(#fffef3, #f4eda6);
+}
+
+.site-page a.site-nav-link:focus-visible {
+  outline: 2px solid #b26b00;
+  outline-offset: 1px;
+}
+
+.site-page .site-nav--side {
+  flex-direction: column;
+  margin: 12px 0;
+}
+
+.site-page .site-nav--side .site-nav-link {
+  width: 100%;
+  padding-inline: 6px;
+}
+
+.site-page .site-page-title {
+  margin: 14px 0 10px;
+  color: #000;
+  font: bold 20px/1.4 Verdana, Arial, Helvetica, sans-serif;
+}
+
+.site-header-rule {
+  margin: 0 0 8px;
+}
+
+/* Invisible legacy construction images must not leave a blank line above the side menu. */
+.site-layout > tbody > tr > td:first-child > p:has(> img[width="0"]) {
+  display: none;
+}
+
 .site-layout,
 .site-layout > tbody {
   display: block;
@@ -253,10 +331,9 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
     height: auto !important;
   }
 
-  .site-layout > tbody > tr > td:first-child > p:has(.left-nav-icon) {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+  .site-page .site-nav--side {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   }
 
   .site-layout > tbody > tr > td:first-child br {
