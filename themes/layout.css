@@ -1,0 +1,242 @@
+/* Geometry only: the original theme owns colours, fonts, images and borders. */
+.site-page {
+  width: calc(100% - 16px);
+  max-width: 1600px;
+  margin: 8px auto;
+  overflow-wrap: anywhere;
+}
+
+/* The editor renders the page body as a wrapper inside its own iframe body. */
+body:has(> [data-gjs-type="wrapper"].site-page) {
+  margin: 0;
+}
+
+.site-page #table2 {
+  width: 100%;
+}
+
+.site-page p {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.site-layout,
+.site-layout > tbody {
+  display: block;
+  width: 100%;
+}
+
+.site-layout > tbody > tr {
+  display: grid;
+  grid-template-columns: 165px 24px minmax(0, 1fr);
+  align-items: start;
+}
+
+.site-layout > tbody > tr > td {
+  display: block;
+  width: auto;
+  min-width: 0;
+}
+
+.site-layout > tbody > tr > .site-content {
+  width: 100%;
+  max-width: 1000px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.site-layout > tbody > tr > .site-content--wide {
+  max-width: none;
+}
+
+.site-content > table,
+.site-price-table {
+  width: 100%;
+}
+
+.site-price-table td:first-child {
+  width: auto;
+}
+
+.site-price-table td:last-child {
+  width: 20%;
+}
+
+.site-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.site-page .WordSection1 {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 34%);
+  align-items: start;
+  gap: 12px 20px;
+  height: auto;
+}
+
+.home-columns > tbody,
+.home-columns > tbody > tr {
+  display: contents;
+}
+
+.home-columns > tbody > tr > td {
+  display: block;
+  width: auto;
+  min-width: 0;
+}
+
+.home-intro {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.home-tools {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.home-search {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.home-search table {
+  width: 100%;
+}
+
+.home-search input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Keep the existing widget link colours when the editor moves inline styles into classes. */
+.home-tools #currency-widget > a,
+.home-tools #news-widget > a {
+  color: #000;
+}
+
+.home-tools .meta > div:last-of-type > a {
+  color: #b26b00;
+}
+
+.backup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  align-items: start;
+  gap: 24px;
+}
+
+.backup-article {
+  min-width: 0;
+}
+
+/* New controls use the same plain fields, yellow fill and grey border as the currency block. */
+.site-calculator {
+  box-sizing: border-box;
+}
+
+.backup-calculator {
+  padding: 10px;
+  border: 1px solid #ccc;
+  background-color: #FFFFCC;
+  font-family: Arial;
+}
+
+.site-calculator fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.calculator-field {
+  margin-top: 8px;
+}
+
+.calculator-field label,
+.calculator-field input,
+.calculator-field select {
+  display: block;
+}
+
+.site-calculator input,
+.site-calculator select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.calculator-currencies {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.calculator-result {
+  display: block;
+  margin-top: 10px;
+  font: inherit;
+  font-weight: bold;
+}
+
+.calculator-note {
+  margin: 8px 0 0;
+}
+
+@media (max-width: 1100px) {
+  .home-columns,
+  .backup-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-intro,
+  .home-tools,
+  .home-search {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .backup-calculator {
+    grid-row: 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .site-layout > tbody > tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-layout > tbody > tr > td:nth-child(2) {
+    display: none;
+  }
+
+  .site-layout > tbody > tr > td:first-child > p {
+    width: auto !important;
+    height: auto !important;
+  }
+
+  .site-layout > tbody > tr > td:first-child > p:has(.left-nav-icon) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .site-layout > tbody > tr > td:first-child br {
+    display: none;
+  }
+
+  .site-content,
+  .backup-article,
+  .site-page .WordSection1 {
+    overflow-x: auto;
+  }
+}
