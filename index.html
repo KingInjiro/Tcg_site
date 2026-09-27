@@ -48,7 +48,10 @@
 </style>
 
 <link rel="stylesheet" href="/themes/banner.css">
-</head><body><!--msnavigation--><table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td>
+<link rel="stylesheet" href="/themes/layout.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/themes/calculators.js" defer></script>
+</head><body class="site-page"><!--msnavigation--><table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td>
 
 <table border="0" width="89%" id="table2" style="margin-bottom: 0">
 				<tr>
@@ -99,7 +102,7 @@ google_ad_height = 90;
 </p>
 <hr>
 
-</td></tr><!--msnavigation--></table><!--msnavigation--><table dir="ltr" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td valign="top" width="1%">
+</td></tr><!--msnavigation--></table><!--msnavigation--><table class="site-layout" dir="ltr" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td valign="top" width="1%">
 <p>
 <img src="/images/undercon.gif" alt="[В стадии разработки]" border="0" width="0" height="0"></p>
 <p align="left" style="height: 284px; width: 136px; margin-right: 7px;">
@@ -125,7 +128,7 @@ if(MSFPhover) { MSFPnav4n=MSFPpreload("/derived/SERVICES.HTM_CMP_-1-010_VBTN.GIF
 if(MSFPhover) { MSFPnav5n=MSFPpreload("/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_VBTN.GIF"); MSFPnav5h=MSFPpreload("/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_VBTN_A.GIF"); }
 // --></script><a href="ListPage_www_tcg_com_ua.html"><img src="/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_VBTN.GIF" border="0" alt="Статьи" class="left-nav-icon"></a></p>
 
-</td><td valign="top" width="24"></td><!--msnavigation--><td valign="top"><table border="0" width="761" id="table1" height="1144"><tr><td width="518" valign="top" rowspan="2">
+</td><td valign="top" width="24"></td><!--msnavigation--><td class="site-content site-content--wide" valign="top"><table border="0" width="100%" id="table1" class="home-columns"><tr><td class="home-intro" valign="top" rowspan="2">
 				<!-- CONTENT_START -->
 <p style="margin-top: 12px;"><b><font size="2">
 	ООО</font></b><font size="2"> <strong>&quot;Т-груп&quot;</strong> основана в 
@@ -176,11 +179,35 @@ if(MSFPhover) { MSFPnav5n=MSFPpreload("/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_
 		+38 (044) <span lang="en-us">4005850, 4004600</span>, +38 (050) 4486958</font></dd><dt><strong><font size="2">
 		Факс</font></strong><font size="2"> </font></dt><dd><font size="2">+38 
 		(044) <span lang="en-us">4004600</span></font></dd><dt>&nbsp;</dt><dt><a href="contacts.html"><font size="2">
-		Контактная информация</font></a></dt></dl></td><td valign="top"><div class="meta">
+		Контактная информация</font></a></dt></dl></td><td class="home-tools" valign="top"><div class="meta">
 
 <div id="currency-widget" style="padding: 10px; background-color: #FFFFCC; border: 1px solid #ccc; margin-bottom: 10px; font-family: Arial; font-size: 12px;">
     <a href="https://bank.gov.ua/ua/markets/exchangerates" target="_blank" style="color: #000; text-decoration: underline;"><b>Курс валют (НБУ):</b></a>
     <div id="currency-rates" style="margin-top: 5px; font-weight: bold;">Загрузка...</div>
+    <div id="currency-date" class="calculator-note"></div>
+    <form id="currency-converter" class="site-calculator">
+        <p class="calculator-note"><b>Конвертер валют</b></p>
+        <fieldset disabled>
+            <div class="calculator-field">
+                <label for="currency-amount">Сумма</label>
+                <input id="currency-amount" name="amount" type="text" inputmode="decimal" value="100" autocomplete="off" aria-describedby="currency-result">
+            </div>
+            <div class="calculator-currencies">
+                <div class="calculator-field">
+                    <label for="currency-from">Из валюты</label>
+                    <select id="currency-from" name="from"><option value="USD">USD</option><option value="EUR">EUR</option><option value="UAH">UAH</option></select>
+                </div>
+                <div class="calculator-field">
+                    <label for="currency-to">В валюту</label>
+                    <select id="currency-to" name="to"><option value="UAH">UAH</option><option value="USD">USD</option><option value="EUR">EUR</option></select>
+                </div>
+            </div>
+        </fieldset>
+        <output id="currency-result" class="calculator-result" aria-live="polite">Ожидание курсов НБУ.</output>
+        <p class="calculator-note">Расчёт по официальному курсу НБУ.</p>
+        <p class="calculator-note"><button id="currency-refresh" type="button">Обновить курс</button></p>
+        <noscript><p>Для расчёта включите JavaScript.</p></noscript>
+    </form>
 </div>
 <div id="news-widget" style="padding: 10px; background-color: #FFFFFF; border: 1px solid #ccc; margin-bottom: 10px; font-family: Arial; font-size: 12px; max-height: 500px; overflow-y: auto;">
     <a href="https://finance.ua/" target="_blank" style="color: #000; text-decoration: underline;"><b>Финансовые новости:</b></a>
@@ -194,25 +221,6 @@ if(MSFPhover) { MSFPnav5n=MSFPpreload("/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_
     </a>
 </div>
 <script>
-    function updateCurrency() {
-        fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json')
-            .then(response => response.json())
-            .then(data => {
-                const usd = data.find(c => c.cc === 'USD');
-                const eur = data.find(c => c.cc === 'EUR');
-                if (usd && eur) {
-                    document.getElementById('currency-rates').innerHTML = 
-                        '<span style="color: green;">USD:</span> ' + usd.rate.toFixed(2) + ' грн<br>' +
-                        '<span style="color: blue;">EUR:</span> ' + eur.rate.toFixed(2) + ' грн';
-                } else {
-                    document.getElementById('currency-rates').innerText = 'Ошибка загрузки';
-                }
-            })
-            .catch(() => {
-                document.getElementById('currency-rates').innerText = 'Недоступно';
-            });
-    }
-
     function updateNews() {
         fetch('https://api.rss2json.com/v1/api.json?rss_url=https://news.finance.ua/rss')
             .then(response => response.json())
@@ -237,10 +245,9 @@ if(MSFPhover) { MSFPnav5n=MSFPpreload("/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_
             });
     }
 
-    updateCurrency();
     updateNews();
 </script>
-</div><center><form method="get" target="google_window" action="https://www.google.com.ua/custom"><input type="hidden" name="hl" value="ru"><input type="hidden" name="cof" value="GALT:#008000;GL:1;DIV:#336699;VLC:663399;AH:center;BGC:FFFFFF;LBGC:FFFF99;ALC:0000FF;LC:0000FF;T:000000;GFNT:0000FF;GIMP:0000FF;FORID:1;"><input type="hidden" name="oe" value="utf-8"><input type="hidden" name="ie" value="utf-8"><input type="hidden" name="forid" value="1"><input type="hidden" name="client" value="pub-7737559393751728"></form></center></td></tr><tr><td valign="top" width="228"><form method="get" target="google_window" action="https://www.google.com.ua/custom"><table border="0" bgcolor="#ffffff" width="228"><tr><td nowrap="nowrap" valign="top" align="left" height="32"><input type="text" name="q" size="42" maxlength="255" value=""><a href="https://www.google.com/"><img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_92x30dp.png" border="0" alt="Google" align="left"></a> <br><input type="hidden" name="domains" value="www.tcg.com.ua">
+</div><center><form method="get" target="google_window" action="https://www.google.com.ua/custom"><input type="hidden" name="hl" value="ru"><input type="hidden" name="cof" value="GALT:#008000;GL:1;DIV:#336699;VLC:663399;AH:center;BGC:FFFFFF;LBGC:FFFF99;ALC:0000FF;LC:0000FF;T:000000;GFNT:0000FF;GIMP:0000FF;FORID:1;"><input type="hidden" name="oe" value="utf-8"><input type="hidden" name="ie" value="utf-8"><input type="hidden" name="forid" value="1"><input type="hidden" name="client" value="pub-7737559393751728"></form></center></td></tr><tr><td class="home-search" valign="top"><form method="get" target="google_window" action="https://www.google.com.ua/custom"><table border="0" bgcolor="#ffffff" width="228"><tr><td nowrap="nowrap" valign="top" align="left" height="32"><input type="text" name="q" size="42" maxlength="255" value=""><a href="https://www.google.com/"><img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_92x30dp.png" border="0" alt="Google" align="left"></a> <br><input type="hidden" name="domains" value="www.tcg.com.ua">
 	&nbsp; <input type="submit" name="sa" value="Найти"></td></tr><tr><td nowrap="nowrap"><table width="218"><tr><td><input type="radio" name="sitesearch" value=""> <font size="-1" color="#000000">
 		Web</font> </td></tr><tr><td><input type="radio" name="sitesearch" value="www.tcg.com.ua" checked> <font size="-1" color="#000000">
 			www.tcg.com.ua</font></td></tr></table><input type="hidden" name="client" value="pub-7737559393751728"><input type="hidden" name="forid" value="1"><input type="hidden" name="ie" value="utf-8"><input type="hidden" name="oe" value="utf-8"><input type="hidden" name="cof" value="GALT:#008000;GL:1;DIV:#336699;VLC:663399;AH:center;BGC:FFFFFF;LBGC:FFFF99;ALC:0000FF;LC:0000FF;T:000000;GFNT:0000FF;GIMP:0000FF;FORID:1;"><input type="hidden" name="hl" value="ru"></td></tr></table></form></td></tr></table><!--msnavigation--></td></tr><!--msnavigation--></table><!--msnavigation--><table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td>
