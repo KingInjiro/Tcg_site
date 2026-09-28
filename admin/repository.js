@@ -133,6 +133,18 @@
         async list() { const data = await this.request('?action=tree'); this.head = data.head; return data; }
         async read(path) { return (await this.request('?action=read&path=' + encodeURIComponent(path))).content; }
         async publish(changes) { validateChanges(changes); const data = await this.request('', { head: this.head, changes }); this.head = data.head; return data; }
+        async export() {
+            const response = await this.fetcher('/api/editor-local?action=export', {
+                method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ head: this.head }),
+            });
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Не вдалося створити архів.');
+            }
+            const filename = response.headers.get('Content-Disposition')?.match(/filename="(tcg-hosting-[\w.-]+\.zip)"/)?.[1];
+            if (!filename || !response.headers.get('Content-Type')?.startsWith('application/zip')) throw new Error('Сервер не повернув ZIP-архів.');
+            return { blob: await response.blob(), filename };
+        }
     }
     return { GitHub, Local, isPage, pageProblem, loadPages, isImage, isProject, projectPath, validateChanges, conflict };
 });
