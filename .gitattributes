@@ -1,0 +1,2 @@
+# Keep Windows launcher line endings in downloaded GitHub ZIP archives.
+START-EDITOR.cmd -text whitespace=cr-at-eol
