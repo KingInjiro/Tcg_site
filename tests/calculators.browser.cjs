@@ -45,7 +45,7 @@ const { build } = require('../scripts/build');
         };
         await page.goto(origin + '/');
         await loaded();
-        await page.locator('.utility-panel > summary').click();
+        await page.getByText('Курс НБУ и конвертер валют', { exact: true }).click();
         assert.equal(await text('#currency-result'), '100,00USD=4200,00UAH');
         assert.match(await page.locator('#currency-date').innerText(), /^Курс на \d{2}\.\d{2}\.\d{4}$/);
         await page.locator('#currency-from').selectOption('UAH');
