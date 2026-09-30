@@ -53,9 +53,13 @@ const routes = require('../themes/routes');
             for (const file of sourcePages(path.resolve(__dirname, '..'))) {
                 await page.goto(origin + routes.url(file));
                 assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), file + ' overflows at ' + width);
+                assert.ok(await page.locator('.site-header').evaluate(el => { const box = el.getBoundingClientRect(); return box.x === 0 && Math.abs(box.width - innerWidth) < 1; }), file + ': banner must reach both viewport edges at ' + width);
             }
         }
-        console.log('PASS all pages fit 390/1024/1440px; larger yellow-hover menu, original top images and mobile navigation');
+        await page.setViewportSize({ width: 1920, height: 1080 });
+        await page.goto(origin + '/');
+        assert.ok(await page.locator('.site-header').evaluate(el => el.getBoundingClientRect().width === innerWidth));
+        console.log('PASS full-width banner including 1920px; all pages fit 390/1024/1440px; larger yellow-hover menu, original top images and mobile navigation');
 
         await page.goto(origin + '/search/?q=' + encodeURIComponent('резерв'));
         await page.locator('#search-results a[href="/articles/backup/"]').waitFor();
