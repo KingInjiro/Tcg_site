@@ -23,6 +23,51 @@
         adapt(); media.addEventListener('change', adapt);
         toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
     }
+    // There is no web API for detecting a dialler. Keep readable text by default;
+    // enable the explicit confirmation flow only when the browser identifies as a phone.
+    const isPhone = navigator.userAgentData?.mobile === true || /Android.*Mobile|iPhone|iPod|Windows Phone/i.test(navigator.userAgent);
+    if (isPhone && typeof HTMLDialogElement !== 'undefined' && HTMLDialogElement.prototype.showModal) {
+        let phoneDialog, phoneOpener;
+        function openPhone(number, label, opener) {
+            if (!phoneDialog) {
+                phoneDialog = document.createElement('dialog');
+                phoneDialog.className = 'phone-dialog';
+                phoneDialog.setAttribute('aria-labelledby', 'phone-dialog-title');
+                phoneDialog.setAttribute('aria-describedby', 'phone-dialog-number');
+                phoneDialog.innerHTML = '<h2 id="phone-dialog-title">Открыть набор номера?</h2><p id="phone-dialog-number"></p><div class="phone-dialog-actions"><button type="button" class="phone-cancel" autofocus>Отмена</button><a class="site-button phone-confirm">Открыть телефон</a></div>';
+                document.body.append(phoneDialog);
+                phoneDialog.querySelector('.phone-cancel').addEventListener('click', () => phoneDialog.close());
+                phoneDialog.querySelector('.phone-confirm').addEventListener('click', event => {
+                    event.preventDefault();
+                    const destination = event.currentTarget.getAttribute('href');
+                    if (!phoneDialog.open || !/^tel:\+\d{8,15}$/.test(destination || '')) return;
+                    phoneDialog.close();
+                    // Handoff only after the second, explicit user action. The OS chooses its tel handler.
+                    window.open(destination, '_self');
+                });
+                phoneDialog.addEventListener('close', () => {
+                    phoneDialog.querySelector('.phone-confirm').removeAttribute('href');
+                    phoneOpener?.focus();
+                });
+            }
+            phoneOpener = opener;
+            phoneDialog.querySelector('#phone-dialog-number').textContent = label;
+            phoneDialog.querySelector('.phone-confirm').setAttribute('href', 'tel:' + number);
+            phoneDialog.showModal();
+        }
+        document.querySelectorAll('.contact-phone[data-phone]').forEach(text => {
+            const number = text.dataset.phone;
+            if (!/^\+\d{8,15}$/.test(number)) return;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = text.className;
+            button.textContent = text.textContent;
+            button.setAttribute('aria-haspopup', 'dialog');
+            button.setAttribute('aria-label', 'Открыть набор номера ' + text.textContent.trim());
+            button.addEventListener('click', () => openPhone(number, button.textContent.trim(), button));
+            text.replaceWith(button);
+        });
+    }
     function revealAnchor() {
         if (!location.hash) return;
         let id; try { id = decodeURIComponent(location.hash.slice(1)); } catch { return; }

@@ -21,15 +21,14 @@
         }).join('');
         const children = sectionLinks.filter(link => link.href !== '/' && !routes.primary.some(name => routes.url(name) === link.href));
         const subnav = children.length ? '<nav class="section-navigation" aria-label="В этом разделе"><p>В этом разделе</p><ul>' + children.map(link => '<li><a href="' + escape(link.href) + '"' + (link.href === current ? ' aria-current="page"' : '') + '>' + escape(link.label) + '</a></li>').join('') + '</ul></nav>' : '';
-        return '<!doctype html>\n<html lang="' + language + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+        return '<!doctype html>\n<html lang="' + language + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="format-detection" content="telephone=no">' +
             '<title>' + escape(title) + ' — Т-груп</title><link rel="canonical" href="' + current + '">' +
             '<link rel="stylesheet" href="/themes/site.css"><script src="/themes/site.js" defer></script>' +
             ((file === 'index.html' || file === 'ListPage/Pege05.html') ? '<script src="/themes/calculators.js" defer></script>' : '') +
             (css ? '<style data-tcg-editor-css>' + css + '</style>' : '') + '</head>\n<body class="site-page' + (current === '/' ? ' page-home' : '') + '">\n' +
             '<a class="skip-link" href="#main-content">Перейти к содержимому</a>' +
             '<header class="site-header"><div class="header-inner"><a class="site-logo" href="/" aria-label="Т-груп — главная"><img src="/images/tcg_log3.gif" alt="TCG — Tornado Computers Group" width="125" height="125"></a>' +
-            '<div class="site-brand"><p>Tornado Computers Group</p><span>Т-груп</span></div>' +
-            '<div class="header-contacts"><a href="tel:+380444004600">+38 (044) 400-46-00</a><a href="tel:+380504486958">+38 (050) 448-69-58</a><a href="/contacts/">Контактная информация</a></div></div></header>' +
+            '<div class="header-contacts"><span class="contact-phone" data-phone="+380444004600">+38 (044) 400-46-00</span><span class="contact-phone" data-phone="+380504486958">+38 (050) 448-69-58</span><a href="/contacts/">Контактная информация</a></div></div></header>' +
             '<nav class="utility-navigation" aria-label="Быстрые переходы"><div class="utility-links">' + utility.map(([name, image, label]) => '<a href="' + routes.url(name) + '" title="' + label + '"><img src="/derived/' + image + '_CMP_-1-010_GBTN.GIF" alt="' + label + '" width="90" height="25"></a>').join('') + '</div></nav>\n' +
             '<div class="site-shell"><aside class="site-sidebar"><p class="sidebar-caption">Разделы сайта</p><button class="menu-toggle" type="button" aria-controls="site-navigation" aria-expanded="true">Разделы сайта <span aria-hidden="true">☰</span></button>' +
             '<nav id="site-navigation" aria-label="Основная навигация"><ul class="main-navigation">' + mainNav + '</ul>' + subnav + '</nav></aside>' +

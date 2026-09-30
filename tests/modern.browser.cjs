@@ -8,6 +8,63 @@ const { build } = require('../scripts/build');
 const { sourcePages } = require('../lib/published-site');
 const routes = require('../themes/routes');
 
+async function checkPhones(browser, origin) {
+    const createPage = async options => {
+        const page = await browser.newPage({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block', ...options });
+        await page.route('**/*', route => new URL(route.request().url()).origin === origin || route.request().url().startsWith('data:') ? route.continue() : route.abort());
+        // Never hand a real number to a native app during a test.
+        await page.addInitScript(() => {
+            window.phoneLaunches = [];
+            window.open = (url, target) => { window.phoneLaunches.push({ url, target }); return null; };
+        });
+        await page.goto(origin + '/');
+        return page;
+    };
+    const desktop = await createPage({ viewport: { width: 1440, height: 1000 } });
+    for (const width of [1440, 390]) {
+        await desktop.setViewportSize({ width, height: 1000 });
+        assert.equal(await desktop.locator('.header-contacts span.contact-phone').count(), 2);
+        assert.equal(await desktop.locator('.header-contacts button, a[href^="tel:"]').count(), 0);
+        await desktop.locator('.contact-phone').first().click();
+        assert.deepEqual(await desktop.evaluate(() => window.phoneLaunches), []);
+    }
+    await desktop.close();
+    for (const userAgent of [
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36',
+    ]) {
+        const phone = await createPage({ userAgent, isMobile: true, hasTouch: true });
+        const numbers = phone.locator('.header-contacts button.contact-phone');
+        assert.equal(await numbers.count(), 2);
+        assert.equal(await phone.locator('a[href^="tel:"]').count(), 0);
+        await numbers.first().click();
+        const dialog = phone.locator('.phone-dialog');
+        assert.equal(await dialog.getAttribute('open'), '');
+        assert.equal(await phone.locator('#phone-dialog-number').innerText(), '+38 (044) 400-46-00');
+        assert.deepEqual(await phone.evaluate(() => window.phoneLaunches), []);
+        assert.ok(await phone.locator('.phone-cancel').evaluate(el => el === document.activeElement));
+        await phone.locator('.phone-cancel').click();
+        await dialog.waitFor({ state: 'hidden' });
+        assert.deepEqual(await phone.evaluate(() => window.phoneLaunches), []);
+        assert.ok(await numbers.first().evaluate(el => el === document.activeElement));
+        await numbers.last().click();
+        await phone.locator('.phone-confirm').click();
+        await dialog.waitFor({ state: 'hidden' });
+        assert.deepEqual(await phone.evaluate(() => window.phoneLaunches), [{ url: 'tel:+380504486958', target: '_self' }]);
+        await numbers.first().click();
+        await phone.keyboard.press('Escape');
+        await dialog.waitFor({ state: 'hidden' });
+        assert.equal(await phone.evaluate(() => window.phoneLaunches.length), 1);
+        await phone.close();
+    }
+    const plain = await createPage({ javaScriptEnabled: false });
+    assert.equal(await plain.locator('.header-contacts span.contact-phone').count(), 2);
+    assert.equal(await plain.locator('a[href^="tel:"]').count(), 0);
+    assert.equal(await plain.locator('meta[name="format-detection"]').getAttribute('content'), 'telephone=no');
+    await plain.close();
+    console.log('PASS desktop phone numbers stay text even in a narrow window; simulated phone browsers confirm/cancel before tel handoff; no native app launched by the test; no-JS fallback');
+}
+
 (async () => {
     const output = build();
     const server = express().use(express.static(output)).listen(0, '127.0.0.1');
@@ -33,6 +90,18 @@ const routes = require('../themes/routes');
         }
         console.log('PASS static-host legacy redirects retain query and fragment, including index.html');
 
+        await checkPhones(browser, origin);
+        await page.goto(origin + '/');
+        assert.equal(await page.locator('.direction-grid > li').count(), 5);
+        assert.equal(await page.locator('.direction-grid > li > a[href]').count(), 5);
+        await page.locator('.direction-grid > li').nth(1).click({ position: { x: 15, y: 15 } });
+        await page.waitForURL(origin + '/services/office/#equipment-supply');
+        assert.match(await page.locator('#equipment-supply').innerText(), /Комплексная поставка оборудования/);
+        await page.goto(origin + '/');
+        await page.locator('.direction-grid > li').nth(4).click({ position: { x: 15, y: 15 } });
+        await page.waitForURL(origin + '/services/audit/');
+        console.log('PASS all five direction cards are clickable; equipment and consulting lead to existing relevant content');
+
         await page.goto(origin + '/services/');
         const menu = page.locator('.main-navigation a').first();
         assert.ok(await menu.evaluate(el => parseFloat(getComputedStyle(el).fontSize) >= 18 && el.getBoundingClientRect().height >= 48));
@@ -56,6 +125,9 @@ const routes = require('../themes/routes');
             await page.setViewportSize({ width, height: 900 });
             for (const file of sourcePages(path.resolve(__dirname, '..'))) {
                 await page.goto(origin + routes.url(file));
+                assert.equal(await page.locator('.site-brand').count(), 0, file + ': duplicate logo text');
+                assert.equal(await page.locator('.header-contacts span.contact-phone').count(), 2, file + ': desktop numbers are plain text');
+                assert.equal(await page.locator('meta[name="format-detection"]').getAttribute('content'), 'telephone=no');
                 assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), file + ' overflows at ' + width);
                 assert.ok(await page.locator('.site-header').evaluate(el => { const box = el.getBoundingClientRect(); return box.x === 0 && Math.abs(box.width - innerWidth) < 1; }), file + ': banner must reach both viewport edges at ' + width);
             }
