@@ -429,3 +429,18 @@ body:has(>[data-gjs-type="wrapper"].site-page) { margin: 0; }
   .site-header { background: none; }
   .page-body, .home-section { padding: 0; border: 0; }
 }
+
+
+/* Original horizontal rollover artwork. */
+.utility-navigation a:hover img[src="/derived/HOME_CMP_-1-010_GBTN.GIF"],
+.utility-navigation a:focus-visible img[src="/derived/HOME_CMP_-1-010_GBTN.GIF"] { content: url("/derived/HOME_CMP_-1-010_GBTN_A.GIF"); }
+.utility-navigation a:hover img[src="/derived/FEEDBACK.HTM_CMP_-1-010_GBTN.GIF"],
+.utility-navigation a:focus-visible img[src="/derived/FEEDBACK.HTM_CMP_-1-010_GBTN.GIF"] { content: url("/derived/FEEDBACK.HTM_CMP_-1-010_GBTN_A.GIF"); }
+.utility-navigation a:hover img[src="/derived/TOC.HTM_CMP_-1-010_GBTN.GIF"],
+.utility-navigation a:focus-visible img[src="/derived/TOC.HTM_CMP_-1-010_GBTN.GIF"] { content: url("/derived/TOC.HTM_CMP_-1-010_GBTN_A.GIF"); }
+.utility-navigation a:hover img[src="/derived/DOWNLOAD.HTM_CMP_-1-010_GBTN.GIF"],
+.utility-navigation a:focus-visible img[src="/derived/DOWNLOAD.HTM_CMP_-1-010_GBTN.GIF"] { content: url("/derived/DOWNLOAD.HTM_CMP_-1-010_GBTN_A.GIF"); }
+.utility-navigation a:hover img[src="/derived/SEARCH.HTM_CMP_-1-010_GBTN.GIF"],
+.utility-navigation a:focus-visible img[src="/derived/SEARCH.HTM_CMP_-1-010_GBTN.GIF"] { content: url("/derived/SEARCH.HTM_CMP_-1-010_GBTN_A.GIF"); }
+.utility-navigation a:hover img[src="/derived/SSILKI.HTM_CMP_-1-010_GBTN.GIF"],
+.utility-navigation a:focus-visible img[src="/derived/SSILKI.HTM_CMP_-1-010_GBTN.GIF"] { content: url("/derived/SSILKI.HTM_CMP_-1-010_GBTN_A.GIF"); }
