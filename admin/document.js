@@ -107,11 +107,13 @@
         if (out.attributes) for (const key of Object.keys(out.attributes)) if (/^on/i.test(key)) delete out.attributes[key];
         return out;
     }
-    function template(title, kind) {
-        const main = kind === 'services' ? '<section style="display:flex;gap:24px;flex-wrap:wrap"><article style="flex:1;padding:24px;background:#f1f5f9;border-radius:12px"><h2>Перша послуга</h2><p>Опишіть, що ви пропонуєте.</p></article><article style="flex:1;padding:24px;background:#f1f5f9;border-radius:12px"><h2>Друга послуга</h2><p>Додайте переваги для клієнта.</p></article></section>' : '<p>Двічі натисніть на цей текст, щоб написати свій. Додавайте блоки з панелі ліворуч.</p>';
-        return '<!DOCTYPE html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escape(title) + '</title></head><body style="margin:0;font-family:Arial,sans-serif;color:#18263d;background:#fff"><header style="padding:24px 6%;border-bottom:1px solid #e2e8f0"><a href="/index.html" style="color:#196050;font-weight:bold;text-decoration:none">TCG · Головна</a></header><main style="max-width:1000px;margin:0 auto;padding:64px 24px"><h1 style="font-size:42px;line-height:1.15">' + escape(title) + '</h1>' + main + '</main></body></html>';
+    function template(title, kind, path) {
+        const content = kind === 'services'
+            ? '<div class="content-sections"><section><h2>Перша послуга</h2><p>Опишіть, що ви пропонуєте.</p></section><section><h2>Друга послуга</h2><p>Додайте інформацію для клієнта.</p></section></div>'
+            : '<p>Двічі натисніть на цей текст, щоб написати свій. Додавайте блоки з панелі ліворуч.</p>';
+        return window.TCGPage.render({ file: path, title, content, language: 'uk' });
     }
-    function rebaseCopy(html, sourcePath) {
+    function rebaseCopy(html, sourcePath, targetPath) {
         const doc = parse(html), base = new URL('/' + sourcePath, location.origin);
         const absolute = value => {
             if (!value || value.startsWith('#') || /^[a-z][a-z\d+.-]*:/i.test(value) || value.startsWith('//')) return value;
@@ -124,6 +126,7 @@
             if (node.hasAttribute('style')) node.setAttribute('style', css(node.getAttribute('style')));
         });
         doc.querySelectorAll('style').forEach(node => { node.textContent = css(node.textContent); });
+        if (targetPath) doc.querySelector('link[rel="canonical"]')?.setAttribute('href', window.TCGRoutes.url(targetPath));
         return (html.match(/<!doctype[^>]*>/i)?.[0] || '') + doc.documentElement.outerHTML;
     }
     function slug(title) {

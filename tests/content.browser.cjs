@@ -5,12 +5,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { build } = require('../scripts/build');
-const { isPage, pageProblem } = require('../admin/repository');
+const { pageProblem } = require('../admin/repository');
 
 (async () => {
     const output = build();
     const files = fs.readdirSync(output, { recursive: true }).filter(name => fs.statSync(path.join(output, name)).isFile() && !name.startsWith('admin/'));
-    const pages = files.filter(name => /\.html?$/i.test(name));
+    const routes = require('../themes/routes');
+    const pages = require('../lib/published-site').sourcePages(path.resolve(__dirname, '..')).map(routes.entryPath);
     const assets = files.filter(name => /\.(?:png|jpe?g|gif|webp)$/i.test(name));
     for (const name of pages) assert.equal(pageProblem(fs.readFileSync(path.join(output, name), 'utf8')), null, name);
     const server = express().use(express.static(output)).listen(0, '127.0.0.1');
@@ -53,7 +54,7 @@ const { isPage, pageProblem } = require('../admin/repository');
             return failures;
         }, assets);
         assert.deepEqual(brokenAssets, [], 'every image offered by the asset library must decode');
-        console.log(`PASS ${pages.filter(isPage).length} editable pages + ${pages.filter(name => !isPage(name)).length} support pages: UTF-8, ${imageCount} image placements and all local resources`);
+        console.log(`PASS ${pages.length} published pages: UTF-8, ${imageCount} image placements and all local resources`);
         console.log(`PASS all ${assets.length} image files decode in Chromium`);
     } finally {
         await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));

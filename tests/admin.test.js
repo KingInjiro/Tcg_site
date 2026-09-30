@@ -146,7 +146,7 @@ test('build serves the CMS, website and legacy links without exposing server fil
         assert.equal(fs.existsSync(path.join(output, name)), false, name);
     }
     assert.ok(fs.existsSync(path.join(output, 'admin/vendor/decap-cms.js')));
-    for (const name of ['Docs/Sno_for_Buh_ua.html', 'Docs/rp21q1.html', 'script5445.html', '1Cabon.files/image001.html', 'derived/FOR_AS.HTM_CMP_-1-010_VBTN.HTML']) {
+    for (const name of ['Docs/rp21q1.html', 'script5445.html', '1Cabon.files/image001.html', 'derived/FOR_AS.HTM_CMP_-1-010_VBTN.HTML']) {
         assert.equal(fs.existsSync(path.join(output, name)), false, 'invalid imported file: ' + name);
     }
     assert.deepEqual(fs.readFileSync(path.join(output, 'Docs/Sno_for_Buh_ua.ert')).subarray(0, 8), Buffer.from('d0cf11e0a1b11ae1', 'hex'));

@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
   <title>TCG — редактор сайту</title>
   <link rel="stylesheet" href="/admin/vendor/grapes.min.css"><link rel="stylesheet" href="/admin/builder.css">
-  <script defer src="/admin/vendor/grapes.min.js"></script><script defer src="/admin/repository.js"></script><script defer src="/admin/document.js"></script><script defer src="/admin/builder.js"></script>
+  <script defer src="/admin/vendor/grapes.min.js"></script><script defer src="/admin/repository.js"></script><script defer src="/themes/routes.js"></script><script defer src="/themes/page-template.js"></script><script defer src="/admin/document.js"></script><script defer src="/admin/builder.js"></script>
 </head>
 <body>
   <div id="login-screen">
@@ -42,7 +42,7 @@
   <dialog id="new-dialog"><form id="new-form">
     <div class="dialog-heading"><div><p class="eyebrow">РОЗШИРЮЙТЕ СВІЙ САЙТ</p><h2>Нова сторінка</h2></div><button type="button" class="close-dialog" aria-label="Закрити">×</button></div>
     <label for="new-title">Назва</label><input id="new-title" required maxlength="120" placeholder="Наприклад, Наші послуги">
-    <label for="new-slug">Адреса сторінки</label><div class="slug-input"><span>/</span><input id="new-slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="70" placeholder="nashi-posluhy"><span>.html</span></div><small>Латинські літери, цифри й дефіс. Адресу можна змінити перед створенням.</small>
+    <label for="new-slug">Адреса сторінки</label><div class="slug-input"><span>/</span><input id="new-slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="70" placeholder="nashi-posluhy"><span>/</span></div><small>Латинські літери, цифри й дефіс. Адресу можна змінити перед створенням.</small>
     <label for="new-template">Почати з</label><select id="new-template"><option value="simple">Проста сторінка</option><option value="services">Сторінка послуг</option><option value="copy">Копія поточної сторінки</option></select>
     <label class="check-label"><input type="checkbox" id="new-link" checked> Додати посилання внизу поточної сторінки</label><p id="new-error" class="error" role="alert"></p>
     <div class="dialog-actions"><button type="button" class="secondary close-dialog">Скасувати</button><button class="primary" type="submit">Створити сторінку</button></div>
