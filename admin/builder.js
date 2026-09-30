@@ -1,7 +1,7 @@
 (function () {
     'use strict';
     const $ = id => document.getElementById(id);
-    const R = window.TCGRepository, D = window.TCGDocument;
+    const R = window.TCGRepository, D = window.TCGDocument, Routes = window.TCGRoutes;
     const local = ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('local') === 'true';
     const titles = { 'index.html': 'Головна', 'contacts.html': 'Контакти', 'services.html': 'Послуги', 'products.html': 'Продукти', 'news.html': 'Новини', 'price01.html': 'Ціни', 'Download.html': 'Завантаження', 'feedback.html': 'Зворотний зв’язок', 'toc.html': 'Зміст' };
     const state = { pages: new Map(), assets: [], uploads: new Map(), current: null, repo: null, editor: null, loading: false, busy: false };
@@ -34,7 +34,7 @@
         for (const page of pages) {
             if (!(displayTitle(page) + ' ' + page.path).toLowerCase().includes(search)) continue;
             const button = document.createElement('button');
-            button.type = 'button'; button.dataset.path = page.path; button.title = '/' + page.path;
+            button.type = 'button'; button.dataset.path = page.path; button.title = Routes.url(page.path);
             button.classList.toggle('active', page.path === state.current);
             button.setAttribute('aria-current', page.path === state.current ? 'page' : 'false');
             const icon = document.createElement('span'); icon.className = 'page-icon'; icon.textContent = '◧'; icon.setAttribute('aria-hidden', 'true');
@@ -47,7 +47,7 @@
         $('page-list').scrollTop = scroll;
         const value = $('link-page').value;
         $('link-page').replaceChildren(new Option('Виберіть сторінку…', ''));
-        for (const page of pages) $('link-page').append(new Option(displayTitle(page), '/' + page.path));
+        for (const page of pages) $('link-page').append(new Option(displayTitle(page), Routes.url(page.path)));
         $('link-page').value = value;
     }
     function replaceAssets(value, publishing) {
@@ -69,10 +69,10 @@
             ['heading', 'Заголовок', '<path d="M5 4v16M19 4v16M5 12h14"/>', '<h2 style="padding:10px 16px;font-size:28px">Ваш заголовок</h2>'],
             ['text', 'Текст', '<path d="M4 5h16M4 10h16M4 15h16M4 20h10"/>', '<p style="padding:10px 16px;line-height:1.6">Двічі натисніть, щоб змінити цей текст.</p>'],
             ['image', 'Зображення', '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="2"/><path d="m3 18 6-6 4 4 3-4 5 6"/>', { type: 'image', style: { width: '100%', 'max-width': '600px', 'min-height': '120px' }, attributes: { alt: 'Зображення' } }],
-            ['button', 'Кнопка', '<rect x="2" y="6" width="20" height="12" rx="4"/><path d="M7 12h10m-3-3 3 3-3 3"/>', '<a href="/contacts.html" style="display:inline-block;margin:16px;padding:12px 24px;background:#196450;color:white;border-radius:6px;text-decoration:none">Дізнатися більше</a>'],
+            ['button', 'Кнопка', '<rect x="2" y="6" width="20" height="12" rx="4"/><path d="M7 12h10m-3-3 3 3-3 3"/>', '<a href="/contacts/" class="site-button" style="margin:16px">Дізнатися більше</a>'],
             ['section', 'Секція', '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h5"/>', '<section style="padding:40px 24px"><h2>Нова секція</h2><p>Додайте сюди текст, фотографії або інші блоки.</p></section>'],
             ['columns', 'Дві колонки', '<rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/>', '<section style="display:flex;flex-wrap:wrap;gap:24px;padding:24px"><div style="flex:1;min-width:200px;padding:16px"><h3>Перша колонка</h3><p>Ваш текст.</p></div><div style="flex:1;min-width:200px;padding:16px"><h3>Друга колонка</h3><p>Ваш текст.</p></div></section>'],
-            ['divider', 'Розділювач', '<path d="M3 12h18M8 6h8M8 18h8"/>', '<hr style="border:0;border-top:1px solid #d9e1da;margin:28px 16px">'],
+            ['divider', 'Розділювач', '<path d="M3 12h18M8 6h8M8 18h8"/>', '<hr style="border:0;border-top:1px solid #bebcaa;margin:28px 16px">'],
             ['spacer', 'Відступ', '<path d="M3 3h18M3 21h18M12 7v10m-3-7 3-3 3 3m-6 4 3 3 3-3"/>', '<div style="height:48px"></div>'],
         ];
         for (const [id, label, svg, content] of blocks) editor.BlockManager.add(id, { label, media: icon(svg), content, activate: id === 'image', select: true });
@@ -169,7 +169,7 @@
             }
             state.current = path;
             await createEditor(page);
-            $('current-path').textContent = '/' + path;
+            $('current-path').textContent = Routes.url(path);
             $('page-title').value = page.meta.title;
             $('desktop').classList.add('active'); $('mobile').classList.remove('active');
             status(page.dirty ? 'Є неопубліковані зміни' : 'Двічі натисніть на текст, щоб редагувати');
@@ -253,13 +253,13 @@
         event.preventDefault();
         const title = $('new-title').value.trim(), slug = $('new-slug').value.trim(), path = slug + '.html';
         if (!title || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || !R.isPage(path)) { $('new-error').textContent = 'Вкажіть назву й коректну адресу сторінки.'; return; }
-        if (state.paths.has(slug) || [...state.pages.keys()].some(existing => existing.toLowerCase().replace(/\.html?$/i, '') === slug)) { $('new-error').textContent = 'Така адреса вже зайнята. Виберіть іншу.'; return; }
+        if (!Routes.available(path, [...state.pages.keys()]) || state.paths.has(slug) || [...state.pages.keys()].some(existing => existing.toLowerCase().replace(/\.html?$/i, '') === slug)) { $('new-error').textContent = 'Така адреса вже зайнята. Виберіть іншу.'; return; }
         capture();
         const source = state.pages.get(state.current), kind = $('new-template').value;
-        const page = { path, html: kind === 'copy' ? D.rebaseCopy(D.exportHTML(state.editor, source.meta), source.path) : D.template(title, kind), dirty: true };
+        const page = { path, html: kind === 'copy' ? D.rebaseCopy(D.exportHTML(state.editor, source.meta), source.path, path) : D.template(title, kind, path), dirty: true };
         page.meta = D.importHTML(page.html, path).meta;
         if ($('new-link').checked && source) {
-            state.editor.addComponents('<p style="padding:16px"><a href="/' + D.escape(path) + '">' + D.escape(title) + '</a></p>');
+            state.editor.addComponents('<p style="padding:16px"><a href="/' + D.escape(Routes.url(path)).replace(/^\//, '') + '">' + D.escape(title) + '</a></p>');
             markDirty(); capture();
         }
         state.pages.set(path, page); $('new-dialog').close(); renderPageList();

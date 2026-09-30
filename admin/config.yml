@@ -236,3 +236,23 @@ collections:
         label: "Pege06.html"
         file: ListPage/Pege06.html
         fields: *html_fields
+      - name: contract-1c
+        label: "Договір: обслуговування 1С"
+        file: Docs/contract-1c.html
+        fields: *html_fields
+      - name: contract-computers
+        label: "Договір: комп’ютери"
+        file: Docs/contract-computers.html
+        fields: *html_fields
+      - name: contract-consulting
+        label: "Договір: консультації"
+        file: Docs/contract-consulting.html
+        fields: *html_fields
+      - name: manual-universal
+        label: "Універсальна TCG: довідник"
+        file: Docs/manual-universal.html
+        fields: *html_fields
+      - name: manual-advertising-tax
+        label: "Облік податку на рекламу: довідник"
+        file: Docs/manual-advertising-tax.html
+        fields: *html_fields

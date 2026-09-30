@@ -15,9 +15,11 @@
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:browser": "node tests/builder.browser.cjs",
     "test:content": "node tests/content.browser.cjs",
-    "test:calculators": "node tests/calculators.browser.cjs"
+    "test:calculators": "node tests/calculators.browser.cjs",
+    "test:modern": "node tests/modern.browser.cjs"
   },
   "dependencies": {
+    "cheerio": "1.2.0",
     "decap-cms": "3.14.1",
     "express": "^4.18.2",
     "grapesjs": "0.23.6",

@@ -27,16 +27,17 @@ const screenshot = async (page, name) => {
     try {
         browser = await chromium.launch({ executablePath: process.env.TCG_BROWSER_EXECUTABLE || undefined, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
         page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+        page.setDefaultTimeout(60000);
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.route('**/*', route => new URL(route.request().url()).origin === origin || /^(data|blob):/.test(route.request().url()) ? route.continue() : route.abort());
         const open = async name => {
             await page.locator('[data-path="' + name + '"]').click();
-            await page.waitForFunction(name => document.getElementById('current-path').textContent === '/' + name, name);
+            await page.waitForFunction(name => document.getElementById('current-path').textContent === window.TCGRoutes.url(name), name);
         };
         const login = async () => {
             await page.goto(origin + '/admin/?local=true'); await page.locator('#login').click();
-            await page.waitForFunction(() => document.getElementById('current-path').textContent === '/index.html');
+            await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
         };
         const publish = async () => {
             await page.locator('#publish').click();
@@ -48,6 +49,7 @@ const screenshot = async (page, name) => {
         const listed = await page.locator('#page-list [data-path]').evaluateAll(nodes => nodes.map(node => node.dataset.path));
         assert.deepEqual(listed.sort(), [...entries].sort(), 'only real pages are offered, never binary documents or saved 404 responses');
         for (const name of entries) {
+            console.log('Checking editor:', name);
             if (name !== 'index.html') await open(name);
             const result = await page.evaluate(({ html, name }) => {
                 const editor = window.grapesjs.editors.at(-1), D = window.TCGDocument;
@@ -65,6 +67,7 @@ const screenshot = async (page, name) => {
             assert.deepEqual(result, { differences: [], dirty: false }, name);
             const broken = await page.frameLocator('.gjs-frame').locator('body').evaluate(async body => {
                 const images = [...body.querySelectorAll('img')].filter(img => new URL(img.src, document.baseURI).origin === new URL(document.baseURI).origin || img.src.startsWith('data:'));
+                images.forEach(img => { img.loading = 'eager'; });
                 await Promise.all(images.map(img => img.decode().catch(() => {})));
                 return images.filter(img => !img.complete || !img.naturalWidth).map(img => img.getAttribute('src'));
             });
@@ -76,9 +79,9 @@ const screenshot = async (page, name) => {
         await page.locator('#new-page').click(); await page.locator('#new-title').fill('Нова тест сторінка');
         assert.equal(await page.locator('#new-slug').inputValue(), 'nova-test-storinka');
         await page.getByRole('button', { name: 'Створити сторінку', exact: true }).click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/nova-test-storinka.html');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/nova-test-storinka/');
         let canvas = page.frameLocator('.gjs-frame');
-        await canvas.getByText('Нова тест сторінка', { exact: true }).dblclick();
+        await canvas.locator('h1').dblclick();
         await canvas.locator('[contenteditable="true"]').fill('Нова сторінка без коду'); await page.locator('#page-title').click();
         const block = page.locator('.gjs-block').filter({ hasText: 'Текст' }).first();
         const bb = await block.boundingBox(), target = await canvas.locator('main').boundingBox();
@@ -103,21 +106,21 @@ const screenshot = async (page, name) => {
         assert.ok(!html.includes('data:image/png;base64'));
         assert.equal(fs.readdirSync(path.join(root, 'images/editor')).length, 1);
         const contacts = read('contacts.html');
-        assert.ok(contacts.includes('href="/nova-test-storinka.html"'));
+        assert.ok(contacts.includes('href="/nova-test-storinka/"'));
         assert.ok(contacts.includes('<title>Контакти — перевірено</title>'));
         assert.equal((contacts.match(/<script\b/gi) || []).length, (originalContacts.match(/<script\b/gi) || []).length);
         assert.ok(exists('.tcg-editor/nova-test-storinka.html.json'));
         console.log('PASS atomic local publish: two pages, project data, uploaded image and inbound link');
 
         await page.reload(); await page.locator('#login').click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/index.html');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
         await open('nova-test-storinka.html'); canvas = page.frameLocator('.gjs-frame');
         await canvas.getByText('Нова сторінка без коду', { exact: true }).waitFor();
         assert.equal(await page.locator('#publish').isDisabled(), true);
         await screenshot(page, 'builder-new-page');
         const live = await browser.newPage(); await live.goto(origin + '/nova-test-storinka.html');
         assert.equal(await live.locator('h1').innerText(), 'Нова сторінка без коду');
-        assert.ok(await live.locator('img').evaluate(image => image.complete && image.naturalWidth === 1));
+        assert.ok(await live.locator('img[src^="/images/editor/"]').evaluate(image => image.complete && image.naturalWidth === 1));
         await live.close();
         console.log('PASS published page and image served; editable blocks survive reopening');
 
@@ -127,7 +130,7 @@ const screenshot = async (page, name) => {
         const data = JSON.parse(fs.readFileSync(backup, 'utf8'));
         assert.equal(data.pages.length, 1); assert.ok(!JSON.stringify(data).includes('token'));
         page.once('dialog', dialog => dialog.accept()); await page.reload(); await page.locator('#login').click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/index.html');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
         await page.locator('#restore-file').setInputFiles(backup);
         await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Чернетки відновлено'));
         assert.equal(await page.locator('#page-title').inputValue(), 'Чернетка для відновлення'); await publish();
@@ -136,7 +139,7 @@ const screenshot = async (page, name) => {
         await page.locator('#new-page').click(); await page.locator('#new-title').fill('Копія сторінки');
         await page.locator('#new-template').selectOption('copy'); await page.locator('#new-link').uncheck();
         await page.getByRole('button', { name: 'Створити сторінку', exact: true }).click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/kopiya-storinky.html');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/kopiya-storinky/');
         await page.frameLocator('.gjs-frame').getByText('Нова сторінка без коду', { exact: true }).waitFor();
         await publish(); assert.ok(read('kopiya-storinky.html').includes('<title>Копія сторінки</title>'));
         console.log('PASS copy existing page preserves contents and changes only the new title');

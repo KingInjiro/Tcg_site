@@ -7,23 +7,44 @@
     {
       "source": "/admin/:path*",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "no-referrer" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
       ]
     },
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
       ]
     },
     {
       "source": "/Docs/Sno_for_Buh_ua.ert",
       "headers": [
-        { "key": "Content-Type", "value": "application/octet-stream" },
-        { "key": "Content-Disposition", "value": "attachment; filename=\"Sno_for_Buh_ua.ert\"" }
+        {
+          "key": "Content-Type",
+          "value": "application/octet-stream"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"Sno_for_Buh_ua.ert\""
+        }
       ]
     }
   ],
@@ -31,6 +52,566 @@
     {
       "source": "/Docs/Sno_for_Buh_ua.html",
       "destination": "/Docs/Sno_for_Buh_ua.ert",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/index.htm",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/news.html",
+      "destination": "/news/",
+      "permanent": true
+    },
+    {
+      "source": "/news.htm",
+      "destination": "/news/",
+      "permanent": true
+    },
+    {
+      "source": "/News0.html",
+      "destination": "/news/site-launch/",
+      "permanent": true
+    },
+    {
+      "source": "/News0.htm",
+      "destination": "/news/site-launch/",
+      "permanent": true
+    },
+    {
+      "source": "/News1.html",
+      "destination": "/news/1c-77/",
+      "permanent": true
+    },
+    {
+      "source": "/News1.htm",
+      "destination": "/news/1c-77/",
+      "permanent": true
+    },
+    {
+      "source": "/contacts.html",
+      "destination": "/contacts/",
+      "permanent": true
+    },
+    {
+      "source": "/contacts.htm",
+      "destination": "/contacts/",
+      "permanent": true
+    },
+    {
+      "source": "/products.html",
+      "destination": "/products/",
+      "permanent": true
+    },
+    {
+      "source": "/products.htm",
+      "destination": "/products/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01.html",
+      "destination": "/products/software/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01.htm",
+      "destination": "/products/software/",
+      "permanent": true
+    },
+    {
+      "source": "/1CPrice.html",
+      "destination": "/products/1c/prices/",
+      "permanent": true
+    },
+    {
+      "source": "/1CPrice.htm",
+      "destination": "/products/1c/prices/",
+      "permanent": true
+    },
+    {
+      "source": "/priceMS.html",
+      "destination": "/products/microsoft/",
+      "permanent": true
+    },
+    {
+      "source": "/priceMS.htm",
+      "destination": "/products/microsoft/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01My.html",
+      "destination": "/products/tcg/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01My.htm",
+      "destination": "/products/tcg/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy01.html",
+      "destination": "/products/tcg/advertising-tax/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy01.htm",
+      "destination": "/products/tcg/advertising-tax/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy02.html",
+      "destination": "/products/tcg/medicines/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy02.htm",
+      "destination": "/products/tcg/medicines/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy03.html",
+      "destination": "/products/tcg/universal/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy03.htm",
+      "destination": "/products/tcg/universal/",
+      "permanent": true
+    },
+    {
+      "source": "/services.html",
+      "destination": "/services/",
+      "permanent": true
+    },
+    {
+      "source": "/services.htm",
+      "destination": "/services/",
+      "permanent": true
+    },
+    {
+      "source": "/serv01.html",
+      "destination": "/services/computers/",
+      "permanent": true
+    },
+    {
+      "source": "/serv01.htm",
+      "destination": "/services/computers/",
+      "permanent": true
+    },
+    {
+      "source": "/PCTarf.html",
+      "destination": "/services/computers/plans/",
+      "permanent": true
+    },
+    {
+      "source": "/PCTarf.htm",
+      "destination": "/services/computers/plans/",
+      "permanent": true
+    },
+    {
+      "source": "/TEconom.html",
+      "destination": "/services/computers/plans/economy/",
+      "permanent": true
+    },
+    {
+      "source": "/TEconom.htm",
+      "destination": "/services/computers/plans/economy/",
+      "permanent": true
+    },
+    {
+      "source": "/TStand.html",
+      "destination": "/services/computers/plans/standard/",
+      "permanent": true
+    },
+    {
+      "source": "/TStand.htm",
+      "destination": "/services/computers/plans/standard/",
+      "permanent": true
+    },
+    {
+      "source": "/TVip.html",
+      "destination": "/services/computers/plans/vip/",
+      "permanent": true
+    },
+    {
+      "source": "/TVip.htm",
+      "destination": "/services/computers/plans/vip/",
+      "permanent": true
+    },
+    {
+      "source": "/price01.html",
+      "destination": "/services/computers/prices/",
+      "permanent": true
+    },
+    {
+      "source": "/price01.htm",
+      "destination": "/services/computers/prices/",
+      "permanent": true
+    },
+    {
+      "source": "/Net.html",
+      "destination": "/services/networks/",
+      "permanent": true
+    },
+    {
+      "source": "/Net.htm",
+      "destination": "/services/networks/",
+      "permanent": true
+    },
+    {
+      "source": "/reglament.html",
+      "destination": "/services/visits/",
+      "permanent": true
+    },
+    {
+      "source": "/reglament.htm",
+      "destination": "/services/visits/",
+      "permanent": true
+    },
+    {
+      "source": "/complex.html",
+      "destination": "/services/office/",
+      "permanent": true
+    },
+    {
+      "source": "/complex.htm",
+      "destination": "/services/office/",
+      "permanent": true
+    },
+    {
+      "source": "/serv02.html",
+      "destination": "/services/1c/",
+      "permanent": true
+    },
+    {
+      "source": "/serv02.htm",
+      "destination": "/services/1c/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cabon.html",
+      "destination": "/services/1c/subscription/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cabon.htm",
+      "destination": "/services/1c/subscription/",
+      "permanent": true
+    },
+    {
+      "source": "/1Complex.html",
+      "destination": "/services/1c/automation/",
+      "permanent": true
+    },
+    {
+      "source": "/1Complex.htm",
+      "destination": "/services/1c/automation/",
+      "permanent": true
+    },
+    {
+      "source": "/1Config.html",
+      "destination": "/services/1c/setup/",
+      "permanent": true
+    },
+    {
+      "source": "/1Config.htm",
+      "destination": "/services/1c/setup/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cobslug.html",
+      "destination": "/services/1c/support/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cobslug.htm",
+      "destination": "/services/1c/support/",
+      "permanent": true
+    },
+    {
+      "source": "/1Citc.html",
+      "destination": "/services/1c/its/",
+      "permanent": true
+    },
+    {
+      "source": "/1Citc.htm",
+      "destination": "/services/1c/its/",
+      "permanent": true
+    },
+    {
+      "source": "/1CDisitc.html",
+      "destination": "/services/1c/its/discs/",
+      "permanent": true
+    },
+    {
+      "source": "/1CDisitc.htm",
+      "destination": "/services/1c/its/discs/",
+      "permanent": true
+    },
+    {
+      "source": "/price1C.html",
+      "destination": "/services/1c/prices/",
+      "permanent": true
+    },
+    {
+      "source": "/price1C.htm",
+      "destination": "/services/1c/prices/",
+      "permanent": true
+    },
+    {
+      "source": "/serv04.html",
+      "destination": "/services/other/",
+      "permanent": true
+    },
+    {
+      "source": "/serv04.htm",
+      "destination": "/services/other/",
+      "permanent": true
+    },
+    {
+      "source": "/1Ccrypt.html",
+      "destination": "/services/security/",
+      "permanent": true
+    },
+    {
+      "source": "/1Ccrypt.htm",
+      "destination": "/services/security/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0401.html",
+      "destination": "/services/hardware/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0401.htm",
+      "destination": "/services/hardware/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0402.html",
+      "destination": "/services/audit/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0402.htm",
+      "destination": "/services/audit/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage_www_tcg_com_ua.html",
+      "destination": "/articles/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage_www_tcg_com_ua.htm",
+      "destination": "/articles/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege01.html",
+      "destination": "/articles/video-surveillance/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege01.htm",
+      "destination": "/articles/video-surveillance/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege02.html",
+      "destination": "/articles/windows-account-policies/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege02.htm",
+      "destination": "/articles/windows-account-policies/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege03.html",
+      "destination": "/articles/windows-group-policies/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege03.htm",
+      "destination": "/articles/windows-group-policies/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege04.html",
+      "destination": "/articles/isa-server/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege04.htm",
+      "destination": "/articles/isa-server/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege05.html",
+      "destination": "/articles/backup/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege05.htm",
+      "destination": "/articles/backup/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege06.html",
+      "destination": "/articles/it-outsourcing/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege06.htm",
+      "destination": "/articles/it-outsourcing/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiRoot.html",
+      "destination": "/articles/antivirus-rules/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiRoot.htm",
+      "destination": "/articles/antivirus-rules/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiTipi.html",
+      "destination": "/articles/virus-types/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiTipi.htm",
+      "destination": "/articles/virus-types/",
+      "permanent": true
+    },
+    {
+      "source": "/For_as.html",
+      "destination": "/articles/about-us/",
+      "permanent": true
+    },
+    {
+      "source": "/For_as.htm",
+      "destination": "/articles/about-us/",
+      "permanent": true
+    },
+    {
+      "source": "/Download.html",
+      "destination": "/downloads/",
+      "permanent": true
+    },
+    {
+      "source": "/Download.htm",
+      "destination": "/downloads/",
+      "permanent": true
+    },
+    {
+      "source": "/feedback.html",
+      "destination": "/feedback/",
+      "permanent": true
+    },
+    {
+      "source": "/feedback.htm",
+      "destination": "/feedback/",
+      "permanent": true
+    },
+    {
+      "source": "/search.html",
+      "destination": "/search/",
+      "permanent": true
+    },
+    {
+      "source": "/search.htm",
+      "destination": "/search/",
+      "permanent": true
+    },
+    {
+      "source": "/toc.html",
+      "destination": "/sitemap/",
+      "permanent": true
+    },
+    {
+      "source": "/toc.htm",
+      "destination": "/sitemap/",
+      "permanent": true
+    },
+    {
+      "source": "/ssilki.html",
+      "destination": "/links/",
+      "permanent": true
+    },
+    {
+      "source": "/ssilki.htm",
+      "destination": "/links/",
+      "permanent": true
+    },
+    {
+      "source": "/header.html",
+      "destination": "/about/",
+      "permanent": true
+    },
+    {
+      "source": "/header.htm",
+      "destination": "/about/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/contract-1c.html",
+      "destination": "/documents/1c-support/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/contract-1c.htm",
+      "destination": "/documents/1c-support/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/contract-computers.html",
+      "destination": "/documents/computer-support/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/contract-computers.htm",
+      "destination": "/documents/computer-support/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/contract-consulting.html",
+      "destination": "/documents/consulting/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/contract-consulting.htm",
+      "destination": "/documents/consulting/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/manual-universal.html",
+      "destination": "/documents/universal/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/manual-universal.htm",
+      "destination": "/documents/universal/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/manual-advertising-tax.html",
+      "destination": "/documents/advertising-tax/",
+      "permanent": true
+    },
+    {
+      "source": "/Docs/manual-advertising-tax.htm",
+      "destination": "/documents/advertising-tax/",
       "permanent": true
     }
   ]
