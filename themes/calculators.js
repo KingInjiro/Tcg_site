@@ -45,7 +45,6 @@
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 10000);
             try {
-                // Request today's date in Kyiv explicitly and validate the date returned by NBU.
                 const parts = new Intl.DateTimeFormat('en-GB', {
                     timeZone: 'Europe/Kyiv', year: 'numeric', month: '2-digit', day: '2-digit',
                 }).formatToParts(new Date());
@@ -126,6 +125,40 @@
         calculate();
     }
 
+    function newsWidget() {
+        if (!document.body.classList.contains('page-home')) return;
+        const panel = document.querySelector('.page-home .page-body > .utility-panel:not(.home-contact-details)');
+        if (!panel || document.getElementById('news-widget')) return;
+        const widget = document.createElement('div');
+        widget.id = 'news-widget';
+        widget.innerHTML = '<a href="https://finance.ua/" target="_blank" rel="noopener noreferrer"><b>Финансовые новости:</b></a><ul id="news-list"><li>Загрузка...</li></ul>';
+        const currency = document.getElementById('currency-widget');
+        (currency?.parentElement || panel).append(widget);
+        const list = widget.querySelector('#news-list');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        fetch('https://api.rss2json.com/v1/api.json?rss_url=https://news.finance.ua/rss', { signal: controller.signal })
+            .then(response => { if (!response.ok) throw new Error('feed'); return response.json(); })
+            .then(data => {
+                if (!data || data.status !== 'ok' || !Array.isArray(data.items)) throw new Error('feed');
+                list.replaceChildren();
+                for (const item of data.items.slice(0, 8)) {
+                    if (!item || typeof item.title !== 'string') continue;
+                    let link;
+                    try { link = new URL(item.link); } catch { continue; }
+                    if (link.protocol !== 'https:' || !(link.hostname === 'finance.ua' || link.hostname.endsWith('.finance.ua'))) continue;
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = link.href; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.textContent = item.title;
+                    li.append(a); list.append(li);
+                }
+                if (!list.children.length) list.append(Object.assign(document.createElement('li'), { textContent: 'Новостей нет.' }));
+            })
+            .catch(() => { list.replaceChildren(Object.assign(document.createElement('li'), { textContent: 'Не удалось загрузить новости.' })); })
+            .finally(() => clearTimeout(timeout));
+    }
+
     currencyCalculator();
     backupCalculator();
+    newsWidget();
 })();
