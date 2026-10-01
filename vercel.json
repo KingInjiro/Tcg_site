@@ -7,23 +7,44 @@
     {
       "source": "/admin/:path*",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "no-referrer" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
       ]
     },
     {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
       ]
     },
     {
       "source": "/Docs/Sno_for_Buh_ua.ert",
       "headers": [
-        { "key": "Content-Type", "value": "application/octet-stream" },
-        { "key": "Content-Disposition", "value": "attachment; filename=\"Sno_for_Buh_ua.ert\"" }
+        {
+          "key": "Content-Type",
+          "value": "application/octet-stream"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"Sno_for_Buh_ua.ert\""
+        }
       ]
     }
   ],
@@ -31,6 +52,1021 @@
     {
       "source": "/Docs/Sno_for_Buh_ua.html",
       "destination": "/Docs/Sno_for_Buh_ua.ert",
+      "permanent": true
+    },
+    {
+      "source": "/1CDISITC.HTM",
+      "destination": "/1CDisitc/",
+      "permanent": true
+    },
+    {
+      "source": "/1CDisitc.htm",
+      "destination": "/1CDisitc/",
+      "permanent": true
+    },
+    {
+      "source": "/1CDisitc.html",
+      "destination": "/1CDisitc/",
+      "permanent": true
+    },
+    {
+      "source": "/1CPRICE.HTM",
+      "destination": "/1CPrice/",
+      "permanent": true
+    },
+    {
+      "source": "/1CPrice.htm",
+      "destination": "/1CPrice/",
+      "permanent": true
+    },
+    {
+      "source": "/1CPrice.html",
+      "destination": "/1CPrice/",
+      "permanent": true
+    },
+    {
+      "source": "/1CABON.HTM",
+      "destination": "/1Cabon/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cabon.htm",
+      "destination": "/1Cabon/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cabon.html",
+      "destination": "/1Cabon/",
+      "permanent": true
+    },
+    {
+      "source": "/1CCRYPT.HTM",
+      "destination": "/1Ccrypt/",
+      "permanent": true
+    },
+    {
+      "source": "/1Ccrypt.htm",
+      "destination": "/1Ccrypt/",
+      "permanent": true
+    },
+    {
+      "source": "/1Ccrypt.html",
+      "destination": "/1Ccrypt/",
+      "permanent": true
+    },
+    {
+      "source": "/1CITC.HTM",
+      "destination": "/1Citc/",
+      "permanent": true
+    },
+    {
+      "source": "/1Citc.htm",
+      "destination": "/1Citc/",
+      "permanent": true
+    },
+    {
+      "source": "/1Citc.html",
+      "destination": "/1Citc/",
+      "permanent": true
+    },
+    {
+      "source": "/1COBSLUG.HTM",
+      "destination": "/1Cobslug/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cobslug.htm",
+      "destination": "/1Cobslug/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cobslug.html",
+      "destination": "/1Cobslug/",
+      "permanent": true
+    },
+    {
+      "source": "/1COMPLEX.HTM",
+      "destination": "/1Complex/",
+      "permanent": true
+    },
+    {
+      "source": "/1Complex.htm",
+      "destination": "/1Complex/",
+      "permanent": true
+    },
+    {
+      "source": "/1Complex.html",
+      "destination": "/1Complex/",
+      "permanent": true
+    },
+    {
+      "source": "/1CONFIG.HTM",
+      "destination": "/1Config/",
+      "permanent": true
+    },
+    {
+      "source": "/1Config.htm",
+      "destination": "/1Config/",
+      "permanent": true
+    },
+    {
+      "source": "/1Config.html",
+      "destination": "/1Config/",
+      "permanent": true
+    },
+    {
+      "source": "/ANTIROOT.HTM",
+      "destination": "/AntiRoot/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiRoot.htm",
+      "destination": "/AntiRoot/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiRoot.html",
+      "destination": "/AntiRoot/",
+      "permanent": true
+    },
+    {
+      "source": "/ANTITIPI.HTM",
+      "destination": "/AntiTipi/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiTipi.htm",
+      "destination": "/AntiTipi/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiTipi.html",
+      "destination": "/AntiTipi/",
+      "permanent": true
+    },
+    {
+      "source": "/DOWNLOAD.HTM",
+      "destination": "/Download/",
+      "permanent": true
+    },
+    {
+      "source": "/Download.htm",
+      "destination": "/Download/",
+      "permanent": true
+    },
+    {
+      "source": "/Download.html",
+      "destination": "/Download/",
+      "permanent": true
+    },
+    {
+      "source": "/FOR_AS.HTM",
+      "destination": "/For_as/",
+      "permanent": true
+    },
+    {
+      "source": "/For_as.htm",
+      "destination": "/For_as/",
+      "permanent": true
+    },
+    {
+      "source": "/For_as.html",
+      "destination": "/For_as/",
+      "permanent": true
+    },
+    {
+      "source": "/LISTPAGE_WWW_TCG_COM_UA.HTM",
+      "destination": "/ListPage_www_tcg_com_ua/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage_www_tcg_com_ua.htm",
+      "destination": "/ListPage_www_tcg_com_ua/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage_www_tcg_com_ua.html",
+      "destination": "/ListPage_www_tcg_com_ua/",
+      "permanent": true
+    },
+    {
+      "source": "/NET.HTM",
+      "destination": "/Net/",
+      "permanent": true
+    },
+    {
+      "source": "/Net.htm",
+      "destination": "/Net/",
+      "permanent": true
+    },
+    {
+      "source": "/Net.html",
+      "destination": "/Net/",
+      "permanent": true
+    },
+    {
+      "source": "/NEWS0.HTM",
+      "destination": "/News0/",
+      "permanent": true
+    },
+    {
+      "source": "/News0.htm",
+      "destination": "/News0/",
+      "permanent": true
+    },
+    {
+      "source": "/News0.html",
+      "destination": "/News0/",
+      "permanent": true
+    },
+    {
+      "source": "/NEWS1.HTM",
+      "destination": "/News1/",
+      "permanent": true
+    },
+    {
+      "source": "/News1.htm",
+      "destination": "/News1/",
+      "permanent": true
+    },
+    {
+      "source": "/News1.html",
+      "destination": "/News1/",
+      "permanent": true
+    },
+    {
+      "source": "/PCTARF.HTM",
+      "destination": "/PCTarf/",
+      "permanent": true
+    },
+    {
+      "source": "/PCTarf.htm",
+      "destination": "/PCTarf/",
+      "permanent": true
+    },
+    {
+      "source": "/PCTarf.html",
+      "destination": "/PCTarf/",
+      "permanent": true
+    },
+    {
+      "source": "/TECONOM.HTM",
+      "destination": "/TEconom/",
+      "permanent": true
+    },
+    {
+      "source": "/TEconom.htm",
+      "destination": "/TEconom/",
+      "permanent": true
+    },
+    {
+      "source": "/TEconom.html",
+      "destination": "/TEconom/",
+      "permanent": true
+    },
+    {
+      "source": "/TSTAND.HTM",
+      "destination": "/TStand/",
+      "permanent": true
+    },
+    {
+      "source": "/TStand.htm",
+      "destination": "/TStand/",
+      "permanent": true
+    },
+    {
+      "source": "/TStand.html",
+      "destination": "/TStand/",
+      "permanent": true
+    },
+    {
+      "source": "/TVIP.HTM",
+      "destination": "/TVip/",
+      "permanent": true
+    },
+    {
+      "source": "/TVip.htm",
+      "destination": "/TVip/",
+      "permanent": true
+    },
+    {
+      "source": "/TVip.html",
+      "destination": "/TVip/",
+      "permanent": true
+    },
+    {
+      "source": "/COMPLEX.HTM",
+      "destination": "/complex/",
+      "permanent": true
+    },
+    {
+      "source": "/complex.htm",
+      "destination": "/complex/",
+      "permanent": true
+    },
+    {
+      "source": "/complex.html",
+      "destination": "/complex/",
+      "permanent": true
+    },
+    {
+      "source": "/CONTACTS.HTM",
+      "destination": "/contacts/",
+      "permanent": true
+    },
+    {
+      "source": "/contacts.htm",
+      "destination": "/contacts/",
+      "permanent": true
+    },
+    {
+      "source": "/contacts.html",
+      "destination": "/contacts/",
+      "permanent": true
+    },
+    {
+      "source": "/FEEDBACK.HTM",
+      "destination": "/feedback/",
+      "permanent": true
+    },
+    {
+      "source": "/feedback.htm",
+      "destination": "/feedback/",
+      "permanent": true
+    },
+    {
+      "source": "/feedback.html",
+      "destination": "/feedback/",
+      "permanent": true
+    },
+    {
+      "source": "/HEADER.HTM",
+      "destination": "/header/",
+      "permanent": true
+    },
+    {
+      "source": "/header.htm",
+      "destination": "/header/",
+      "permanent": true
+    },
+    {
+      "source": "/header.html",
+      "destination": "/header/",
+      "permanent": true
+    },
+    {
+      "source": "/INDEX.HTM",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/index.htm",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/NEWS.HTM",
+      "destination": "/news/",
+      "permanent": true
+    },
+    {
+      "source": "/news.htm",
+      "destination": "/news/",
+      "permanent": true
+    },
+    {
+      "source": "/news.html",
+      "destination": "/news/",
+      "permanent": true
+    },
+    {
+      "source": "/PRICE01.HTM",
+      "destination": "/price01/",
+      "permanent": true
+    },
+    {
+      "source": "/price01.htm",
+      "destination": "/price01/",
+      "permanent": true
+    },
+    {
+      "source": "/price01.html",
+      "destination": "/price01/",
+      "permanent": true
+    },
+    {
+      "source": "/PRICE1C.HTM",
+      "destination": "/price1C/",
+      "permanent": true
+    },
+    {
+      "source": "/price1C.htm",
+      "destination": "/price1C/",
+      "permanent": true
+    },
+    {
+      "source": "/price1C.html",
+      "destination": "/price1C/",
+      "permanent": true
+    },
+    {
+      "source": "/PRICEMS.HTM",
+      "destination": "/priceMS/",
+      "permanent": true
+    },
+    {
+      "source": "/priceMS.htm",
+      "destination": "/priceMS/",
+      "permanent": true
+    },
+    {
+      "source": "/priceMS.html",
+      "destination": "/priceMS/",
+      "permanent": true
+    },
+    {
+      "source": "/PROD01.HTM",
+      "destination": "/prod01/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01.htm",
+      "destination": "/prod01/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01.html",
+      "destination": "/prod01/",
+      "permanent": true
+    },
+    {
+      "source": "/PROD01MY.HTM",
+      "destination": "/prod01My/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01My.htm",
+      "destination": "/prod01My/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01My.html",
+      "destination": "/prod01My/",
+      "permanent": true
+    },
+    {
+      "source": "/PRODMY01.HTM",
+      "destination": "/prodMy01/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy01.htm",
+      "destination": "/prodMy01/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy01.html",
+      "destination": "/prodMy01/",
+      "permanent": true
+    },
+    {
+      "source": "/PRODMY02.HTM",
+      "destination": "/prodMy02/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy02.htm",
+      "destination": "/prodMy02/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy02.html",
+      "destination": "/prodMy02/",
+      "permanent": true
+    },
+    {
+      "source": "/PRODMY03.HTM",
+      "destination": "/prodMy03/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy03.htm",
+      "destination": "/prodMy03/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy03.html",
+      "destination": "/prodMy03/",
+      "permanent": true
+    },
+    {
+      "source": "/PRODUCTS.HTM",
+      "destination": "/products/",
+      "permanent": true
+    },
+    {
+      "source": "/products.htm",
+      "destination": "/products/",
+      "permanent": true
+    },
+    {
+      "source": "/products.html",
+      "destination": "/products/",
+      "permanent": true
+    },
+    {
+      "source": "/REGLAMENT.HTM",
+      "destination": "/reglament/",
+      "permanent": true
+    },
+    {
+      "source": "/reglament.htm",
+      "destination": "/reglament/",
+      "permanent": true
+    },
+    {
+      "source": "/reglament.html",
+      "destination": "/reglament/",
+      "permanent": true
+    },
+    {
+      "source": "/SEARCH.HTM",
+      "destination": "/search/",
+      "permanent": true
+    },
+    {
+      "source": "/search.htm",
+      "destination": "/search/",
+      "permanent": true
+    },
+    {
+      "source": "/search.html",
+      "destination": "/search/",
+      "permanent": true
+    },
+    {
+      "source": "/SERV01.HTM",
+      "destination": "/serv01/",
+      "permanent": true
+    },
+    {
+      "source": "/serv01.htm",
+      "destination": "/serv01/",
+      "permanent": true
+    },
+    {
+      "source": "/serv01.html",
+      "destination": "/serv01/",
+      "permanent": true
+    },
+    {
+      "source": "/SERV02.HTM",
+      "destination": "/serv02/",
+      "permanent": true
+    },
+    {
+      "source": "/serv02.htm",
+      "destination": "/serv02/",
+      "permanent": true
+    },
+    {
+      "source": "/serv02.html",
+      "destination": "/serv02/",
+      "permanent": true
+    },
+    {
+      "source": "/SERV04.HTM",
+      "destination": "/serv04/",
+      "permanent": true
+    },
+    {
+      "source": "/serv04.htm",
+      "destination": "/serv04/",
+      "permanent": true
+    },
+    {
+      "source": "/serv04.html",
+      "destination": "/serv04/",
+      "permanent": true
+    },
+    {
+      "source": "/SERV0401.HTM",
+      "destination": "/serv0401/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0401.htm",
+      "destination": "/serv0401/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0401.html",
+      "destination": "/serv0401/",
+      "permanent": true
+    },
+    {
+      "source": "/SERV0402.HTM",
+      "destination": "/serv0402/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0402.htm",
+      "destination": "/serv0402/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0402.html",
+      "destination": "/serv0402/",
+      "permanent": true
+    },
+    {
+      "source": "/SERVICES.HTM",
+      "destination": "/services/",
+      "permanent": true
+    },
+    {
+      "source": "/services.htm",
+      "destination": "/services/",
+      "permanent": true
+    },
+    {
+      "source": "/services.html",
+      "destination": "/services/",
+      "permanent": true
+    },
+    {
+      "source": "/SSILKI.HTM",
+      "destination": "/ssilki/",
+      "permanent": true
+    },
+    {
+      "source": "/ssilki.htm",
+      "destination": "/ssilki/",
+      "permanent": true
+    },
+    {
+      "source": "/ssilki.html",
+      "destination": "/ssilki/",
+      "permanent": true
+    },
+    {
+      "source": "/TOC.HTM",
+      "destination": "/toc/",
+      "permanent": true
+    },
+    {
+      "source": "/toc.htm",
+      "destination": "/toc/",
+      "permanent": true
+    },
+    {
+      "source": "/toc.html",
+      "destination": "/toc/",
+      "permanent": true
+    },
+    {
+      "source": "/LISTPAGE/PEGE01.HTM",
+      "destination": "/ListPage/Pege01/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege01.htm",
+      "destination": "/ListPage/Pege01/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege01.html",
+      "destination": "/ListPage/Pege01/",
+      "permanent": true
+    },
+    {
+      "source": "/LISTPAGE/PEGE02.HTM",
+      "destination": "/ListPage/Pege02/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege02.htm",
+      "destination": "/ListPage/Pege02/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege02.html",
+      "destination": "/ListPage/Pege02/",
+      "permanent": true
+    },
+    {
+      "source": "/LISTPAGE/PEGE03.HTM",
+      "destination": "/ListPage/Pege03/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege03.htm",
+      "destination": "/ListPage/Pege03/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege03.html",
+      "destination": "/ListPage/Pege03/",
+      "permanent": true
+    },
+    {
+      "source": "/LISTPAGE/PEGE04.HTM",
+      "destination": "/ListPage/Pege04/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege04.htm",
+      "destination": "/ListPage/Pege04/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege04.html",
+      "destination": "/ListPage/Pege04/",
+      "permanent": true
+    },
+    {
+      "source": "/LISTPAGE/PEGE05.HTM",
+      "destination": "/ListPage/Pege05/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege05.htm",
+      "destination": "/ListPage/Pege05/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege05.html",
+      "destination": "/ListPage/Pege05/",
+      "permanent": true
+    },
+    {
+      "source": "/LISTPAGE/PEGE06.HTM",
+      "destination": "/ListPage/Pege06/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege06.htm",
+      "destination": "/ListPage/Pege06/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege06.html",
+      "destination": "/ListPage/Pege06/",
+      "permanent": true
+    },
+    {
+      "source": "/1CDisitc",
+      "destination": "/1CDisitc/",
+      "permanent": true
+    },
+    {
+      "source": "/1CPrice",
+      "destination": "/1CPrice/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cabon",
+      "destination": "/1Cabon/",
+      "permanent": true
+    },
+    {
+      "source": "/1Ccrypt",
+      "destination": "/1Ccrypt/",
+      "permanent": true
+    },
+    {
+      "source": "/1Citc",
+      "destination": "/1Citc/",
+      "permanent": true
+    },
+    {
+      "source": "/1Cobslug",
+      "destination": "/1Cobslug/",
+      "permanent": true
+    },
+    {
+      "source": "/1Complex",
+      "destination": "/1Complex/",
+      "permanent": true
+    },
+    {
+      "source": "/1Config",
+      "destination": "/1Config/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiRoot",
+      "destination": "/AntiRoot/",
+      "permanent": true
+    },
+    {
+      "source": "/AntiTipi",
+      "destination": "/AntiTipi/",
+      "permanent": true
+    },
+    {
+      "source": "/Download",
+      "destination": "/Download/",
+      "permanent": true
+    },
+    {
+      "source": "/For_as",
+      "destination": "/For_as/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage_www_tcg_com_ua",
+      "destination": "/ListPage_www_tcg_com_ua/",
+      "permanent": true
+    },
+    {
+      "source": "/Net",
+      "destination": "/Net/",
+      "permanent": true
+    },
+    {
+      "source": "/News0",
+      "destination": "/News0/",
+      "permanent": true
+    },
+    {
+      "source": "/News1",
+      "destination": "/News1/",
+      "permanent": true
+    },
+    {
+      "source": "/PCTarf",
+      "destination": "/PCTarf/",
+      "permanent": true
+    },
+    {
+      "source": "/TEconom",
+      "destination": "/TEconom/",
+      "permanent": true
+    },
+    {
+      "source": "/TStand",
+      "destination": "/TStand/",
+      "permanent": true
+    },
+    {
+      "source": "/TVip",
+      "destination": "/TVip/",
+      "permanent": true
+    },
+    {
+      "source": "/complex",
+      "destination": "/complex/",
+      "permanent": true
+    },
+    {
+      "source": "/contacts",
+      "destination": "/contacts/",
+      "permanent": true
+    },
+    {
+      "source": "/feedback",
+      "destination": "/feedback/",
+      "permanent": true
+    },
+    {
+      "source": "/header",
+      "destination": "/header/",
+      "permanent": true
+    },
+    {
+      "source": "/news",
+      "destination": "/news/",
+      "permanent": true
+    },
+    {
+      "source": "/price01",
+      "destination": "/price01/",
+      "permanent": true
+    },
+    {
+      "source": "/price1C",
+      "destination": "/price1C/",
+      "permanent": true
+    },
+    {
+      "source": "/priceMS",
+      "destination": "/priceMS/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01",
+      "destination": "/prod01/",
+      "permanent": true
+    },
+    {
+      "source": "/prod01My",
+      "destination": "/prod01My/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy01",
+      "destination": "/prodMy01/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy02",
+      "destination": "/prodMy02/",
+      "permanent": true
+    },
+    {
+      "source": "/prodMy03",
+      "destination": "/prodMy03/",
+      "permanent": true
+    },
+    {
+      "source": "/products",
+      "destination": "/products/",
+      "permanent": true
+    },
+    {
+      "source": "/reglament",
+      "destination": "/reglament/",
+      "permanent": true
+    },
+    {
+      "source": "/search",
+      "destination": "/search/",
+      "permanent": true
+    },
+    {
+      "source": "/serv01",
+      "destination": "/serv01/",
+      "permanent": true
+    },
+    {
+      "source": "/serv02",
+      "destination": "/serv02/",
+      "permanent": true
+    },
+    {
+      "source": "/serv04",
+      "destination": "/serv04/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0401",
+      "destination": "/serv0401/",
+      "permanent": true
+    },
+    {
+      "source": "/serv0402",
+      "destination": "/serv0402/",
+      "permanent": true
+    },
+    {
+      "source": "/services",
+      "destination": "/services/",
+      "permanent": true
+    },
+    {
+      "source": "/ssilki",
+      "destination": "/ssilki/",
+      "permanent": true
+    },
+    {
+      "source": "/toc",
+      "destination": "/toc/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege01",
+      "destination": "/ListPage/Pege01/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege02",
+      "destination": "/ListPage/Pege02/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege03",
+      "destination": "/ListPage/Pege03/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege04",
+      "destination": "/ListPage/Pege04/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege05",
+      "destination": "/ListPage/Pege05/",
+      "permanent": true
+    },
+    {
+      "source": "/ListPage/Pege06",
+      "destination": "/ListPage/Pege06/",
       "permanent": true
     }
   ]

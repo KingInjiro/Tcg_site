@@ -4,12 +4,15 @@ const fs = require('node:fs');
 const { publicEntries, isPublicContent } = require('./lib/site-files');
 const { createOAuth } = require('./lib/github-oauth');
 const { createLocalEditor } = require('./lib/editor-local');
+const { pageFiles, routeMap, outputFile, publishHTML } = require('./lib/site-routes');
 
 function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}) {
     const app = express();
     const publicPath = path.join(root, 'dist');
     const contentPath = dev ? root : publicPath;
     const allowed = new Set(publicEntries(contentPath));
+    const pages = pageFiles(root);
+    const routes = routeMap(pages);
     app.disable('x-powered-by');
     app.get('/api/auth', oauth.auth);
     app.get('/api/callback', oauth.callback);
@@ -25,7 +28,19 @@ function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}
         let reqPath;
         try { reqPath = decodeURIComponent(req.path); }
         catch { return res.sendStatus(400); }
-        if (reqPath === '/') reqPath = '/index.html';
+        const currentPages = dev && (!path.posix.extname(reqPath) || /\.html?$/i.test(reqPath)) && !reqPath.startsWith('/admin/') ? pageFiles(root) : pages;
+        const match = (dev ? routeMap(currentPages) : routes).get(reqPath.toLowerCase());
+        const queryIndex = req.url.indexOf('?');
+        const query = queryIndex < 0 ? '' : req.url.slice(queryIndex);
+        if (match) {
+            if (reqPath !== match.url) return res.redirect(308, match.url + query);
+            if (dev) {
+                res.set('Cache-Control', 'no-store');
+                return res.type('html').send(publishHTML(fs.readFileSync(path.join(root, match.file), 'utf8'), match.file, currentPages));
+            }
+            req.url = '/' + outputFile(match.file) + query;
+            return next();
+        }
         // Keep legacy .htm links and case-insensitive filenames working.
         const absolute = path.resolve(contentPath, '.' + reqPath);
         if (!absolute.startsWith(contentPath + path.sep)) return res.sendStatus(404);
@@ -42,7 +57,6 @@ function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}
         const file = path.join(contentPath, reqPath);
         if (fs.existsSync(file) && !isPublicContent(file)) return res.sendStatus(404);
         if (reqPath === '/Docs/Sno_for_Buh_ua.ert') res.attachment('Sno_for_Buh_ua.ert');
-        const queryIndex = req.url.indexOf('?');
         req.url = reqPath + (queryIndex < 0 ? '' : req.url.slice(queryIndex));
         if (reqPath === '/sw.js') res.set('Cache-Control', 'no-cache');
         next();

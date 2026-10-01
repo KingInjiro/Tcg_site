@@ -6,11 +6,13 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const { build } = require('../scripts/build');
 const { isPage, pageProblem } = require('../admin/repository');
+const { pageFiles, outputFile, pageURL } = require('../lib/site-routes');
 
 (async () => {
     const output = build();
     const files = fs.readdirSync(output, { recursive: true }).filter(name => fs.statSync(path.join(output, name)).isFile() && !name.startsWith('admin/'));
-    const pages = files.filter(name => /\.html?$/i.test(name));
+    const sources = pageFiles(path.resolve(__dirname, '..'));
+    const pages = sources.map(outputFile);
     const assets = files.filter(name => /\.(?:png|jpe?g|gif|webp)$/i.test(name));
     for (const name of pages) assert.equal(pageProblem(fs.readFileSync(path.join(output, name), 'utf8')), null, name);
     const server = express().use(express.static(output)).listen(0, '127.0.0.1');
@@ -27,15 +29,16 @@ const { isPage, pageProblem } = require('../admin/repository');
         page.on('requestfailed', request => { if (new URL(request.url()).origin === origin) failed.push(request.url()); });
         let imageCount = 0;
         for (const name of pages) {
-            const response = await page.goto(origin + '/' + name, { waitUntil: 'load' });
+            const response = await page.goto(origin + pageURL(sources[pages.indexOf(name)]), { waitUntil: 'load' });
             assert.equal(response.status(), 200, name);
             const result = await page.evaluate(async () => {
                 const images = [...document.images].filter(image => !image.closest('noscript') && (image.src.startsWith(location.origin + '/') || image.src.startsWith('data:')));
                 await Promise.all(images.map(image => image.decode().catch(() => {})));
-                return { count: images.length, broken: images.filter(image => !image.naturalWidth).map(image => image.getAttribute('src')), charset: document.characterSet };
+                return { count: images.length, broken: images.filter(image => !image.naturalWidth).map(image => image.getAttribute('src')), charset: document.characterSet, mode: document.compatMode };
             });
             assert.deepEqual(result.broken, [], name + ': broken image');
             assert.equal(result.charset, 'UTF-8', name + ': wrong encoding');
+            assert.equal(result.mode, 'CSS1Compat', name + ': must use HTML5 standards mode');
             imageCount += result.count;
         }
         assert.deepEqual([...new Set(failed)], [], 'all local resources, including CSS backgrounds, must load');
@@ -53,7 +56,7 @@ const { isPage, pageProblem } = require('../admin/repository');
             return failures;
         }, assets);
         assert.deepEqual(brokenAssets, [], 'every image offered by the asset library must decode');
-        console.log(`PASS ${pages.filter(isPage).length} editable pages + ${pages.filter(name => !isPage(name)).length} support pages: UTF-8, ${imageCount} image placements and all local resources`);
+        console.log(`PASS ${pages.length} clean page URLs: HTML5 standards mode, UTF-8, ${imageCount} image placements and all local resources`);
         console.log(`PASS all ${assets.length} image files decode in Chromium`);
     } finally {
         await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));

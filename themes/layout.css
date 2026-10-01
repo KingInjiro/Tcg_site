@@ -16,26 +16,26 @@
 }
 
 /* Also cover old Word exports whose embedded font-size rules are hidden in comments. */
-.site-page :where(font) {
+.site-page :where(span:where(.legacy-font)) {
   font-size: 16px;
   line-height: 1.5;
 }
 
-.site-page :where(font[size="1"]) {
+.site-page :where(span:where(.legacy-font)[data-size="1"]) {
   font-size: 14px;
 }
 
-.site-page :where(font[size="3"]) {
+.site-page :where(span:where(.legacy-font)[data-size="3"]) {
   font-size: 18px;
 }
 
-.site-page :where(font > span) {
+.site-page :where(span:where(.legacy-font) > span) {
   font-size: inherit;
 }
 
 /* The editor renders the page body as a wrapper inside its own iframe body. */
 body:has(> [data-gjs-type="wrapper"].site-page) {
-  margin: 0;
+  margin: 0px;
 }
 
 .site-page #table2 {
@@ -62,7 +62,7 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
 .site-layout > tbody > tr > td {
   display: block;
   width: auto;
-  min-width: 0;
+  min-width: 0px;
 }
 
 .site-layout > tbody > tr > .site-content {
@@ -117,7 +117,7 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
 .home-columns > tbody > tr > td {
   display: block;
   width: auto;
-  min-width: 0;
+  min-width: 0px;
 }
 
 .home-intro {
@@ -162,7 +162,7 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
 }
 
 .backup-article {
-  min-width: 0;
+  min-width: 0px;
 }
 
 /* New controls use the same plain fields, yellow fill and grey border as the currency block. */
@@ -181,9 +181,9 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
 
 .site-calculator fieldset {
   border: 0;
-  padding: 0;
-  margin: 0;
-  min-width: 0;
+  padding: 0px;
+  margin: 0px;
+  min-width: 0px;
 }
 
 .calculator-field {

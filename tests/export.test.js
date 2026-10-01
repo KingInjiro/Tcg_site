@@ -43,15 +43,18 @@ async function serve(t, app) {
     return 'http://127.0.0.1:' + server.address().port;
 }
 
-test('portable ZIP contains byte-identical public files, UTF-8 names and legacy URLs; excludes private/invalid content', t => {
+test('portable ZIP contains clean page routes, unchanged assets, UTF-8 names and legacy redirects; excludes private/invalid content', t => {
     const { root, files } = fixture(t);
     fs.symlinkSync(path.join(root, '.env'), path.join(root, 'images', 'link.txt'));
     const result = exportWebsite(root);
     const archive = readZip(result.buffer);
     assert.ok(result.filename.startsWith('tcg-hosting-'));
     assert.deepEqual(fs.readFileSync(path.join(root, 'exports', result.filename)), result.buffer);
-    for (const name of ['index.html', 'New.html', 'ListPage/Article.html', 'images/editor/photo.png', 'Docs/Документ.txt', 'themes/navigation.css', 'Docs/Sno_for_Buh_ua.ert']) assert.deepEqual(archive.get(name), Buffer.from(files[name]), name);
-    for (const name of ['index', 'New', 'ListPage/Article']) assert.deepEqual(archive.get(name + '.htm'), archive.get(name + '.html'));
+    for (const name of ['images/editor/photo.png', 'Docs/Документ.txt', 'themes/navigation.css', 'Docs/Sno_for_Buh_ua.ert']) assert.deepEqual(archive.get(name), Buffer.from(files[name]), name);
+    for (const [file, target] of [['index.html', 'index.html'], ['New.html', 'New/index.html'], ['ListPage/Article.html', 'ListPage/Article/index.html']]) {
+        assert.ok(archive.get(target).includes(files[file].match(/<body>(.*?)<\/body>/)[1]));
+        assert.match(archive.get(file.replace(/\.html$/, '.htm')).toString(), /location.replace/);
+    }
     assert.match(archive.get('Docs/Sno_for_Buh_ua.html').toString(), /href="Sno_for_Buh_ua.ert" download/);
     for (const name of ['.env', 'server.js', 'admin/index.html', '.tcg-editor/index.html.json', 'Docs/missing.html', 'images/.secret', 'images/.private/data.txt', 'images/link.txt']) assert.ok(!archive.has(name), name);
     for (const [name, content] of Object.entries(files)) assert.deepEqual(fs.readFileSync(path.join(root, name)), Buffer.from(content), 'source unchanged: ' + name);
@@ -84,7 +87,7 @@ test('local export requires same-origin POST, detects stale snapshots and serves
     await local.publish([{ path: 'new-page.html', content: '<html><body>Найновіша зміна</body></html>', encoding: 'utf-8' }]);
     const result = await local.export();
     assert.equal(result.blob.type, 'application/zip');
-    assert.match(readZip(Buffer.from(await result.blob.arrayBuffer())).get('new-page.html').toString(), /Найновіша зміна/);
+    assert.match(readZip(Buffer.from(await result.blob.arrayBuffer())).get('new-page/index.html').toString(), /Найновіша зміна/);
     const latest = await fetch(origin + '/api/editor-local?action=tree').then(r => r.json());
     assert.equal(latest.head, local.head, 'export itself does not change editor snapshot');
     fs.appendFileSync(path.join(root, 'index.html'), '<!-- concurrent -->');

@@ -1,7 +1,7 @@
-const CACHE_NAME = 'tgroup-v2';
+const CACHE_NAME = 'tgroup-v3-clean-urls';
 
 self.addEventListener('install', event => {
-    event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['/', '/index.html']))
+    event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['/']))
         .then(() => self.skipWaiting()));
 });
 
