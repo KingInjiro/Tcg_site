@@ -9,13 +9,13 @@
   line-height: 1.5;
 }
 
-/* Legacy pages run in quirks mode: tables and controls otherwise reset to browser defaults. */
+/* Keep the inherited table and control fonts after the move from quirks mode to HTML5. */
 .site-page :where(table, input, select, textarea, button) {
   font-family: inherit;
   font-size: inherit;
 }
 
-/* Also cover old Word exports whose embedded font-size rules are hidden in comments. */
+/* Preserve the text sizes used by the imported Word pages. */
 .site-page :where(span:where(.legacy-font)) {
   font-size: 16px;
   line-height: 1.5;

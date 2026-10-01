@@ -3,302 +3,242 @@
    accidentally retain the rollover belonging to a different label.
    CSS also works in the script-free editor canvas and with JavaScript disabled. */
 
-.site-page a:hover > img[src="/derived/1CABON.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CABON.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CABON.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/1CABON.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CABON.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CABON.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CABON.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1CABON.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CCRYPT.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CCRYPT.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CCRYPT.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1CCRYPT.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CDISITC.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CDISITC.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CDISITC.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1CDISITC.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CITC.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CITC.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CITC.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/1CITC.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CITC.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CITC.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CITC.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1CITC.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1COBSLUG.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1COBSLUG.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1COBSLUG.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/1COBSLUG.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1COBSLUG.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1COBSLUG.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1COBSLUG.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1COBSLUG.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1COMPLEX.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1COMPLEX.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1COMPLEX.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/1COMPLEX.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1COMPLEX.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1COMPLEX.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1COMPLEX.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1COMPLEX.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CONFIG.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CONFIG.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CONFIG.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/1CONFIG.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CONFIG.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CONFIG.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CONFIG.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1CONFIG.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CPRICE.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CPRICE.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CPRICE.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/1CPRICE.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/1CPRICE.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/1CPRICE.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/1CPRICE.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/1CPRICE.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/COMPLEX.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/COMPLEX.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/COMPLEX.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/COMPLEX.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/COMPLEX.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/COMPLEX.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/COMPLEX.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/COMPLEX.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/CONTACTS.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/CONTACTS.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/CONTACTS.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/CONTACTS.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/CONTACTS.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/CONTACTS.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/CONTACTS.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/CONTACTS.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/HOME_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/HOME_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/HOME_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/HOME_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/LISTPAGE_WWW_TCG_COM_UA.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/NET.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/NET.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/NET.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/NET.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/NET.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/NET.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/NET.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/NET.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/NEWS.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/NEWS.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/NEWS.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/NEWS.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/NEWS.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/NEWS.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/NEWS.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/NEWS.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/NEWS0.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/NEWS0.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/NEWS0.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/NEWS0.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/NEWS1.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/NEWS1.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/NEWS1.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/NEWS1.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PCTARF.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PCTARF.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PCTARF.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/PCTARF.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PCTARF.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PCTARF.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PCTARF.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PCTARF.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRICE01.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRICE01.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRICE01.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/PRICE01.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRICE01.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRICE01.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRICE01.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PRICE01.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRICE1C.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRICE1C.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRICE1C.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/PRICE1C.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRICE1C.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRICE1C.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRICE1C.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PRICE1C.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRICEMS.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRICEMS.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRICEMS.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/PRICEMS.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRICEMS.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRICEMS.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRICEMS.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PRICEMS.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PROD01.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PROD01.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PROD01.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/PROD01.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PROD01.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PROD01.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PROD01.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PROD01.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PROD01MY.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PROD01MY.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PROD01MY.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/PROD01MY.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PROD01MY.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PROD01MY.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PROD01MY.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PROD01MY.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRODMY01.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRODMY01.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRODMY01.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PRODMY01.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRODMY02.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRODMY02.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRODMY02.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PRODMY02.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRODMY03.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRODMY03.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRODMY03.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PRODMY03.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRODUCTS.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRODUCTS.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRODUCTS.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/PRODUCTS.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/PRODUCTS.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/PRODUCTS.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/PRODUCTS.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/PRODUCTS.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/REGLAMENT.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/REGLAMENT.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/REGLAMENT.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/REGLAMENT.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/REGLAMENT.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/REGLAMENT.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/REGLAMENT.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/REGLAMENT.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV01.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV01.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV01.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/SERV01.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV01.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV01.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV01.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/SERV01.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV02.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV02.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV02.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/SERV02.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV02.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV02.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV02.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/SERV02.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV04.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV04.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV04.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/SERV04.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV04.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV04.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV04.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/SERV04.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV0401.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV0401.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV0401.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/SERV0401.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERV0402.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERV0402.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERV0402.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/SERV0402.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERVICES.HTM_CMP_-1-010_HBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERVICES.HTM_CMP_-1-010_HBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERVICES.HTM_CMP_-1-010_HBTN.GIF"] {
   content: url("/derived/SERVICES.HTM_CMP_-1-010_HBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/SERVICES.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/SERVICES.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/SERVICES.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/SERVICES.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/TECONOM.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/TECONOM.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/TECONOM.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/TECONOM.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/TSTAND.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/TSTAND.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/TSTAND.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/TSTAND.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/TVIP.HTM_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/TVIP.HTM_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/TVIP.HTM_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/TVIP.HTM_CMP_-1-010_VBTN_A.GIF");
 }
 
-.site-page a:hover > img[src="/derived/UP_CMP_-1-010_VBTN.GIF"],
-.site-page a:focus-visible > img[src="/derived/UP_CMP_-1-010_VBTN.GIF"] {
+.site-page a:is(:hover, :focus-visible) > img[src="/derived/UP_CMP_-1-010_VBTN.GIF"] {
   content: url("/derived/UP_CMP_-1-010_VBTN_A.GIF");
 }
