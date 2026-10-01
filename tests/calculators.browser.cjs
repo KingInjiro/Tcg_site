@@ -69,7 +69,7 @@ const { build } = require('../scripts/build');
         await page.locator('#currency-amount').fill('1 000,50');
         assert.equal(await page.locator('#currency-amount').getAttribute('aria-invalid'), null);
         await page.locator('#currency-amount').press('Enter');
-        assert.equal(new URL(page.url()).pathname, '/index.html');
+        assert.equal(new URL(page.url()).pathname, '/');
         console.log('PASS currency UI: direct, reverse, cross and same-currency conversions; comma, zero and invalid input; keyboard submit');
 
         for (mode of ['network', 'http', 'missing', 'zero', 'stale', 'malformed']) {
@@ -107,7 +107,7 @@ const { build } = require('../scripts/build');
         await page.locator('#backup-reserve').fill('20');
         assert.equal(await text('#backup-result'), 'Требуетсяпримерно600ГБ');
         await page.locator('#backup-size').press('Enter');
-        assert.equal(new URL(page.url()).pathname, '/ListPage/Pege05.html');
+        assert.equal(new URL(page.url()).pathname, '/ListPage/Pege05/');
         assert.equal(requests, requestsBeforeBackup, 'backup calculation is local and never loads exchange rates');
         await page.setViewportSize({ width: 390, height: 844 });
         assert.ok(await page.locator('#backup-size').isVisible());

@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { publicEntries, isPublicContent } = require('../lib/site-files');
+const { pageFiles, cleanWebsite } = require('../lib/site-routes');
 
 function build(root = path.resolve(__dirname, '..')) {
     const output = path.join(root, 'dist');
@@ -11,6 +12,11 @@ function build(root = path.resolve(__dirname, '..')) {
             recursive: true,
             filter: source => !fs.lstatSync(source).isSymbolicLink() && !path.basename(source).startsWith('.') && isPublicContent(source),
         });
+    }
+    const pages = new Map(pageFiles(root).map(name => [name, fs.readFileSync(path.join(root, name))]));
+    for (const [name, content] of cleanWebsite(pages)) {
+        fs.mkdirSync(path.dirname(path.join(output, name)), { recursive: true });
+        fs.writeFileSync(path.join(output, name), content);
     }
     // Include the pinned CMS bundle and its lazy-loaded chunks on this site.
     const cms = path.dirname(require.resolve('decap-cms'));
