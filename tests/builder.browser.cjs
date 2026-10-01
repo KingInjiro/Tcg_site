@@ -8,6 +8,8 @@ const yaml = require('js-yaml');
 const { createApp } = require('../server');
 const { publicEntries } = require('../lib/site-files');
 const { build } = require('../scripts/build');
+const { readZip } = require('./zip-reader.cjs');
+const express = require('express');
 const source = path.resolve(__dirname, '..');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-browser-'));
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
@@ -23,33 +25,33 @@ const screenshot = async (page, name) => {
     const server = createApp({ dev: true, root }).listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
     const origin = 'http://127.0.0.1:' + server.address().port;
-    let browser, page;
+    let browser, page, hosting;
     try {
         browser = await chromium.launch({ executablePath: process.env.TCG_BROWSER_EXECUTABLE || undefined, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
         page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-        page.setDefaultTimeout(60000);
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.route('**/*', route => new URL(route.request().url()).origin === origin || /^(data|blob):/.test(route.request().url()) ? route.continue() : route.abort());
         const open = async name => {
             await page.locator('[data-path="' + name + '"]').click();
-            await page.waitForFunction(name => document.getElementById('current-path').textContent === window.TCGRoutes.url(name), name);
+            await page.waitForFunction(name => document.getElementById('current-path').textContent === '/' + name, name);
         };
         const login = async () => {
             await page.goto(origin + '/admin/?local=true'); await page.locator('#login').click();
-            await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
+            await page.waitForFunction(() => document.getElementById('current-path').textContent === '/index.html');
         };
         const publish = async () => {
             await page.locator('#publish').click();
             await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Збережено.'), {}, { timeout: 15000 });
         };
         await login();
+        assert.equal(await page.locator('#publish').innerText(), 'Зберегти на комп’ютері');
+        assert.equal(await page.locator('#portable-info').isVisible(), true);
         await screenshot(page, 'builder-existing-page');
         const entries = yaml.load(read('admin/config.yml')).collections.flatMap(collection => collection.files).map(file => file.file);
         const listed = await page.locator('#page-list [data-path]').evaluateAll(nodes => nodes.map(node => node.dataset.path));
         assert.deepEqual(listed.sort(), [...entries].sort(), 'only real pages are offered, never binary documents or saved 404 responses');
         for (const name of entries) {
-            console.log('Checking editor:', name);
             if (name !== 'index.html') await open(name);
             const result = await page.evaluate(({ html, name }) => {
                 const editor = window.grapesjs.editors.at(-1), D = window.TCGDocument;
@@ -67,7 +69,6 @@ const screenshot = async (page, name) => {
             assert.deepEqual(result, { differences: [], dirty: false }, name);
             const broken = await page.frameLocator('.gjs-frame').locator('body').evaluate(async body => {
                 const images = [...body.querySelectorAll('img')].filter(img => new URL(img.src, document.baseURI).origin === new URL(document.baseURI).origin || img.src.startsWith('data:'));
-                images.forEach(img => { img.loading = 'eager'; });
                 await Promise.all(images.map(img => img.decode().catch(() => {})));
                 return images.filter(img => !img.complete || !img.naturalWidth).map(img => img.getAttribute('src'));
             });
@@ -79,9 +80,9 @@ const screenshot = async (page, name) => {
         await page.locator('#new-page').click(); await page.locator('#new-title').fill('Нова тест сторінка');
         assert.equal(await page.locator('#new-slug').inputValue(), 'nova-test-storinka');
         await page.getByRole('button', { name: 'Створити сторінку', exact: true }).click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/nova-test-storinka/');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/nova-test-storinka.html');
         let canvas = page.frameLocator('.gjs-frame');
-        await canvas.locator('h1').dblclick();
+        await canvas.getByText('Нова тест сторінка', { exact: true }).dblclick();
         await canvas.locator('[contenteditable="true"]').fill('Нова сторінка без коду'); await page.locator('#page-title').click();
         const block = page.locator('.gjs-block').filter({ hasText: 'Текст' }).first();
         const bb = await block.boundingBox(), target = await canvas.locator('main').boundingBox();
@@ -98,7 +99,37 @@ const screenshot = async (page, name) => {
         const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9HcAAAAASUVORK5CYII=', 'base64');
         await page.locator('#asset-upload').setInputFiles({ name: 'test-image.png', mimeType: 'image/png', buffer: png });
         await page.locator('#asset-dialog').waitFor({ state: 'hidden' });
-        await publish();
+        // One click must save every draft before producing a host-ready archive.
+        const exported = page.waitForEvent('download');
+        await page.locator('#export-site').click();
+        const archiveDownload = await exported;
+        const archive = readZip(fs.readFileSync(await archiveDownload.path()));
+        await page.locator('#export-dialog').waitFor();
+        await screenshot(page, 'builder-export-ready');
+        await page.locator('#export-dialog .primary').click();
+        assert.ok(exists('exports/' + archiveDownload.suggestedFilename()));
+        assert.equal(await page.locator('#publish').isDisabled(), true);
+        assert.ok(![...archive.keys()].some(name => /^(admin\/|\.tcg-editor\/|server\.js|package\.json|\.env)/.test(name)));
+        const hostingRoot = path.join(root, 'hosted-copy');
+        for (const [name, data] of archive) {
+            const destination = path.resolve(hostingRoot, name);
+            assert.ok(destination.startsWith(hostingRoot + path.sep));
+            fs.mkdirSync(path.dirname(destination), { recursive: true }); fs.writeFileSync(destination, data);
+        }
+        hosting = express().use(express.static(hostingRoot)).listen(0, '127.0.0.1');
+        await new Promise(resolve => hosting.once('listening', resolve));
+        const hostedOrigin = 'http://127.0.0.1:' + hosting.address().port;
+        const hosted = await browser.newPage();
+        await hosted.route('**/*', route => new URL(route.request().url()).origin === hostedOrigin ? route.continue() : route.abort());
+        await hosted.goto(hostedOrigin + '/nova-test-storinka.html');
+        assert.equal(await hosted.locator('h1').innerText(), 'Нова сторінка без коду');
+        await hosted.locator('img').evaluate(image => image.decode());
+        assert.ok(await hosted.locator('img').evaluate(image => image.naturalWidth === 1));
+        assert.equal((await hosted.goto(hostedOrigin + '/News1.htm')).status(), 200, 'legacy .htm on a plain static server');
+        assert.equal((await hosted.goto(hostedOrigin + '/admin/')).status(), 404, 'no broken online login in the hosting ZIP');
+        assert.equal((await hosted.goto(hostedOrigin + '/.tcg-editor/nova-test-storinka.html.json')).status(), 404);
+        await hosted.close();
+        console.log('PASS export saves drafts and uploads; extracted ZIP serves new content, images and .htm without a backend');
         const html = read('nova-test-storinka.html');
         assert.ok(html.includes('Нова сторінка без коду'));
         assert.ok(html.includes('Двічі натисніть, щоб змінити цей текст.'));
@@ -106,21 +137,21 @@ const screenshot = async (page, name) => {
         assert.ok(!html.includes('data:image/png;base64'));
         assert.equal(fs.readdirSync(path.join(root, 'images/editor')).length, 1);
         const contacts = read('contacts.html');
-        assert.ok(contacts.includes('href="/nova-test-storinka/"'));
+        assert.ok(contacts.includes('href="/nova-test-storinka.html"'));
         assert.ok(contacts.includes('<title>Контакти — перевірено</title>'));
         assert.equal((contacts.match(/<script\b/gi) || []).length, (originalContacts.match(/<script\b/gi) || []).length);
         assert.ok(exists('.tcg-editor/nova-test-storinka.html.json'));
         console.log('PASS atomic local publish: two pages, project data, uploaded image and inbound link');
 
         await page.reload(); await page.locator('#login').click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/index.html');
         await open('nova-test-storinka.html'); canvas = page.frameLocator('.gjs-frame');
         await canvas.getByText('Нова сторінка без коду', { exact: true }).waitFor();
         assert.equal(await page.locator('#publish').isDisabled(), true);
         await screenshot(page, 'builder-new-page');
         const live = await browser.newPage(); await live.goto(origin + '/nova-test-storinka.html');
         assert.equal(await live.locator('h1').innerText(), 'Нова сторінка без коду');
-        assert.ok(await live.locator('img[src^="/images/editor/"]').evaluate(image => image.complete && image.naturalWidth === 1));
+        assert.ok(await live.locator('img').evaluate(image => image.complete && image.naturalWidth === 1));
         await live.close();
         console.log('PASS published page and image served; editable blocks survive reopening');
 
@@ -130,7 +161,7 @@ const screenshot = async (page, name) => {
         const data = JSON.parse(fs.readFileSync(backup, 'utf8'));
         assert.equal(data.pages.length, 1); assert.ok(!JSON.stringify(data).includes('token'));
         page.once('dialog', dialog => dialog.accept()); await page.reload(); await page.locator('#login').click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/index.html');
         await page.locator('#restore-file').setInputFiles(backup);
         await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Чернетки відновлено'));
         assert.equal(await page.locator('#page-title').inputValue(), 'Чернетка для відновлення'); await publish();
@@ -139,23 +170,47 @@ const screenshot = async (page, name) => {
         await page.locator('#new-page').click(); await page.locator('#new-title').fill('Копія сторінки');
         await page.locator('#new-template').selectOption('copy'); await page.locator('#new-link').uncheck();
         await page.getByRole('button', { name: 'Створити сторінку', exact: true }).click();
-        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/kopiya-storinky/');
+        await page.waitForFunction(() => document.getElementById('current-path').textContent === '/kopiya-storinky.html');
         await page.frameLocator('.gjs-frame').getByText('Нова сторінка без коду', { exact: true }).waitFor();
         await publish(); assert.ok(read('kopiya-storinky.html').includes('<title>Копія сторінки</title>'));
         console.log('PASS copy existing page preserves contents and changes only the new title');
 
+        // Clean exports are allowed and include the most recently saved pages.
+        const cleanExport = page.waitForEvent('download'); await page.locator('#export-site').click();
+        const cleanArchive = readZip(fs.readFileSync(await (await cleanExport).path()));
+        assert.match(cleanArchive.get('kopiya-storinky.html').toString(), /Копія сторінки/);
+        await page.locator('#export-dialog').waitFor(); await page.locator('#export-dialog .primary').click();
+        assert.equal(await page.locator('#publish').innerText(), 'Зберегти на комп’ютері');
+
+        // A failed export must not undo a successful local save or download a stale ZIP.
+        await page.locator('#page-title').fill('Збережено перед помилкою експорту');
+        const exportCount = fs.readdirSync(path.join(root, 'exports')).length;
+        let unexpectedDownloads = 0;
+        page.on('download', () => unexpectedDownloads++);
+        await page.route('**/api/editor-local?action=export', route => route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Не вдалося записати архів' }) }));
+        await page.locator('#export-site').click();
+        await page.waitForFunction(() => document.getElementById('status').textContent.includes('Не вдалося записати архів'));
+        assert.match(read('kopiya-storinky.html'), /Збережено перед помилкою експорту/);
+        assert.equal(await page.locator('#publish').isDisabled(), true);
+        await page.unroute('**/api/editor-local?action=export');
+        assert.equal(unexpectedDownloads, 0);
+        assert.equal(fs.readdirSync(path.join(root, 'exports')).length, exportCount);
+
         await page.locator('#page-title').fill('Не перезаписувати іншу зміну');
         fs.appendFileSync(path.join(root, 'contacts.html'), '\n<!-- concurrent editor -->');
-        await page.locator('#publish').click();
+        await page.locator('#export-site').click();
         await page.waitForFunction(() => document.getElementById('status').textContent.includes('Сайт змінився'));
         assert.ok(!read('kopiya-storinky.html').includes('Не перезаписувати іншу зміну'));
         assert.equal(await page.locator('#publish').isDisabled(), false);
+        assert.equal(unexpectedDownloads, 0, 'a conflicting save never exports an old snapshot');
+        assert.equal(fs.readdirSync(path.join(root, 'exports')).length, exportCount);
         console.log('PASS concurrent changes keep both the published version and unsaved draft');
         assert.deepEqual(errors, []);
     } catch (error) {
         if (page) { console.error('Editor status:', await page.locator('#status').innerText()); await screenshot(page, 'builder-failure'); }
         throw error;
     } finally {
+        if (hosting) { hosting.closeAllConnections(); await new Promise(resolve => hosting.close(resolve)); }
         await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
         fs.rmSync(root, { recursive: true, force: true });
     }

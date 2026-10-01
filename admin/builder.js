@@ -1,8 +1,10 @@
 (function () {
     'use strict';
     const $ = id => document.getElementById(id);
-    const R = window.TCGRepository, D = window.TCGDocument, Routes = window.TCGRoutes;
+    const R = window.TCGRepository, D = window.TCGDocument;
     const local = ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('local') === 'true';
+    const saveLabel = local ? 'Зберегти на комп’ютері' : 'Опублікувати';
+    const dirtyMessage = local ? 'Є незбережені зміни' : 'Є неопубліковані зміни';
     const titles = { 'index.html': 'Головна', 'contacts.html': 'Контакти', 'services.html': 'Послуги', 'products.html': 'Продукти', 'news.html': 'Новини', 'price01.html': 'Ціни', 'Download.html': 'Завантаження', 'feedback.html': 'Зворотний зв’язок', 'toc.html': 'Зміст' };
     const state = { pages: new Map(), assets: [], uploads: new Map(), current: null, repo: null, editor: null, loading: false, busy: false };
     let assetTarget, assetLimit = 48;
@@ -13,7 +15,8 @@
     function updateButtons() {
         $('publish').disabled = state.busy || state.loading || !dirtyPages().length;
         $('new-page').disabled = state.busy || state.loading || !state.current;
-        for (const id of ['preview', 'backup', 'restore', 'logout']) $(id).disabled = state.busy || state.loading;
+        for (const id of ['preview', 'backup', 'restore', 'logout', 'export-site']) $(id).disabled = state.busy || state.loading;
+        $('export-site').disabled ||= !state.repo;
         $('preview').disabled ||= !state.current;
         $('page-title').disabled = !state.current;
         $('dirty-badge').hidden = !state.pages.get(state.current)?.dirty;
@@ -21,7 +24,7 @@
     function markDirty() {
         if (state.loading || state.busy || !state.current) return;
         state.pages.get(state.current).dirty = true;
-        status('Є неопубліковані зміни');
+        status(dirtyMessage);
         updateButtons();
         renderPageList();
     }
@@ -34,7 +37,7 @@
         for (const page of pages) {
             if (!(displayTitle(page) + ' ' + page.path).toLowerCase().includes(search)) continue;
             const button = document.createElement('button');
-            button.type = 'button'; button.dataset.path = page.path; button.title = Routes.url(page.path);
+            button.type = 'button'; button.dataset.path = page.path; button.title = '/' + page.path;
             button.classList.toggle('active', page.path === state.current);
             button.setAttribute('aria-current', page.path === state.current ? 'page' : 'false');
             const icon = document.createElement('span'); icon.className = 'page-icon'; icon.textContent = '◧'; icon.setAttribute('aria-hidden', 'true');
@@ -47,7 +50,7 @@
         $('page-list').scrollTop = scroll;
         const value = $('link-page').value;
         $('link-page').replaceChildren(new Option('Виберіть сторінку…', ''));
-        for (const page of pages) $('link-page').append(new Option(displayTitle(page), Routes.url(page.path)));
+        for (const page of pages) $('link-page').append(new Option(displayTitle(page), '/' + page.path));
         $('link-page').value = value;
     }
     function replaceAssets(value, publishing) {
@@ -69,10 +72,10 @@
             ['heading', 'Заголовок', '<path d="M5 4v16M19 4v16M5 12h14"/>', '<h2 style="padding:10px 16px;font-size:28px">Ваш заголовок</h2>'],
             ['text', 'Текст', '<path d="M4 5h16M4 10h16M4 15h16M4 20h10"/>', '<p style="padding:10px 16px;line-height:1.6">Двічі натисніть, щоб змінити цей текст.</p>'],
             ['image', 'Зображення', '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="2"/><path d="m3 18 6-6 4 4 3-4 5 6"/>', { type: 'image', style: { width: '100%', 'max-width': '600px', 'min-height': '120px' }, attributes: { alt: 'Зображення' } }],
-            ['button', 'Кнопка', '<rect x="2" y="6" width="20" height="12" rx="4"/><path d="M7 12h10m-3-3 3 3-3 3"/>', '<a href="/contacts/" class="site-button" style="margin:16px">Дізнатися більше</a>'],
+            ['button', 'Кнопка', '<rect x="2" y="6" width="20" height="12" rx="4"/><path d="M7 12h10m-3-3 3 3-3 3"/>', '<a href="/contacts.html" style="display:inline-block;margin:16px;padding:12px 24px;background:#196450;color:white;border-radius:6px;text-decoration:none">Дізнатися більше</a>'],
             ['section', 'Секція', '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h10M7 16h5"/>', '<section style="padding:40px 24px"><h2>Нова секція</h2><p>Додайте сюди текст, фотографії або інші блоки.</p></section>'],
             ['columns', 'Дві колонки', '<rect x="3" y="4" width="7" height="16" rx="1"/><rect x="14" y="4" width="7" height="16" rx="1"/>', '<section style="display:flex;flex-wrap:wrap;gap:24px;padding:24px"><div style="flex:1;min-width:200px;padding:16px"><h3>Перша колонка</h3><p>Ваш текст.</p></div><div style="flex:1;min-width:200px;padding:16px"><h3>Друга колонка</h3><p>Ваш текст.</p></div></section>'],
-            ['divider', 'Розділювач', '<path d="M3 12h18M8 6h8M8 18h8"/>', '<hr style="border:0;border-top:1px solid #bebcaa;margin:28px 16px">'],
+            ['divider', 'Розділювач', '<path d="M3 12h18M8 6h8M8 18h8"/>', '<hr style="border:0;border-top:1px solid #d9e1da;margin:28px 16px">'],
             ['spacer', 'Відступ', '<path d="M3 3h18M3 21h18M12 7v10m-3-7 3-3 3 3m-6 4 3 3 3-3"/>', '<div style="height:48px"></div>'],
         ];
         for (const [id, label, svg, content] of blocks) editor.BlockManager.add(id, { label, media: icon(svg), content, activate: id === 'image', select: true });
@@ -169,10 +172,10 @@
             }
             state.current = path;
             await createEditor(page);
-            $('current-path').textContent = Routes.url(path);
+            $('current-path').textContent = '/' + path;
             $('page-title').value = page.meta.title;
             $('desktop').classList.add('active'); $('mobile').classList.remove('active');
-            status(page.dirty ? 'Є неопубліковані зміни' : 'Двічі натисніть на текст, щоб редагувати');
+            status(page.dirty ? dirtyMessage : 'Двічі натисніть на текст, щоб редагувати');
         } catch (error) {
             // A failed import must not replace the previously captured page's draft.
             state.current = null;
@@ -222,44 +225,55 @@
         }, 1000);
         window.addEventListener('message', receive);
     }
-    async function publish() {
+    async function publish(exportAfter = false) {
         if (state.busy || state.loading) return;
+        if (exportAfter && !local) return;
         capture();
         const pages = dirtyPages();
-        if (!pages.length) return;
-        state.busy = true; updateButtons(); $('app').querySelector('.workspace').inert = true; $('publish').textContent = 'Публікація…';
+        if (!pages.length && !exportAfter) return;
+        state.busy = true; updateButtons(); $('app').querySelector('.workspace').inert = true; $('publish').textContent = local ? 'Збереження…' : 'Публікація…';
         status('Зберігаю сторінки та зображення…'); $('publication').hidden = true;
         try {
-            const changes = [], saved = new Map();
-            for (const page of pages) {
-                const html = replaceAssets(page.html, true);
-                const project = replaceAssets(page.project, true);
-                const data = { version: 1, path: page.path, meta: page.meta, project, htmlHash: await hash(html) };
-                changes.push({ path: page.path, content: html, encoding: 'utf-8' }, { path: R.projectPath(page.path), content: JSON.stringify(data), encoding: 'utf-8' });
-                saved.set(page.path, { html, project });
+            if (pages.length) {
+                const changes = [], saved = new Map();
+                for (const page of pages) {
+                    const html = replaceAssets(page.html, true);
+                    const project = replaceAssets(page.project, true);
+                    const data = { version: 1, path: page.path, meta: page.meta, project, htmlHash: await hash(html) };
+                    changes.push({ path: page.path, content: html, encoding: 'utf-8' }, { path: R.projectPath(page.path), content: JSON.stringify(data), encoding: 'utf-8' });
+                    saved.set(page.path, { html, project });
+                }
+                for (const [path, asset] of state.uploads) if (!asset.published) changes.push({ path, content: asset.base64, encoding: 'base64' });
+                const result = await state.repo.publish(changes);
+                for (const page of pages) { Object.assign(page, saved.get(page.path)); page.dirty = false; }
+                // Keep temporary image previews until reload: deployment may still be building.
+                for (const path of state.uploads.keys()) if (!state.assets.includes(path)) state.assets.push(path);
+                state.uploads.forEach(asset => { asset.published = true; });
+                if (result.url) { $('publication').href = result.url; $('publication').hidden = false; }
+                status(local ? 'Збережено. Для оновлення сайту в інтернеті створіть архів і завантажте його на хостинг.' : 'Збережено в GitHub. Сайт оновиться після успішного розгортання Vercel.');
             }
-            for (const [path, asset] of state.uploads) if (!asset.published) changes.push({ path, content: asset.base64, encoding: 'base64' });
-            const result = await state.repo.publish(changes);
-            for (const page of pages) { Object.assign(page, saved.get(page.path)); page.dirty = false; }
-            // Keep temporary image previews until reload: deployment may still be building.
-            for (const path of state.uploads.keys()) if (!state.assets.includes(path)) state.assets.push(path);
-            state.uploads.forEach(asset => { asset.published = true; });
-            if (result.url) { $('publication').href = result.url; $('publication').hidden = false; }
-            status(local ? 'Збережено. Зміни вже доступні на локальному сайті.' : 'Збережено в GitHub. Сайт оновиться після успішного розгортання Vercel.');
-        } catch (error) { status(error.message + ' Правки залишилися в редакторі.', true); }
-        finally { state.busy = false; $('app').querySelector('.workspace').inert = false; $('publish').textContent = 'Опублікувати'; renderPageList(); updateButtons(); }
+            if (exportAfter) {
+                status('Створюю архів для хостингу…');
+                const { blob, filename } = await state.repo.export();
+                const url = URL.createObjectURL(blob), link = document.createElement('a');
+                link.href = url; link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+                $('export-filename').textContent = filename; $('export-dialog').showModal();
+                status('Архів готовий. Завантажте його на хостинг, щоб відвідувачі побачили зміни.');
+            }
+        } catch (error) { status(error.message + (dirtyPages().length ? ' Правки залишилися в редакторі.' : local ? ' Збережені файли залишилися на комп’ютері.' : ''), true); }
+        finally { state.busy = false; $('app').querySelector('.workspace').inert = false; $('publish').textContent = saveLabel; renderPageList(); updateButtons(); }
     }
     async function createPage(event) {
         event.preventDefault();
         const title = $('new-title').value.trim(), slug = $('new-slug').value.trim(), path = slug + '.html';
         if (!title || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || !R.isPage(path)) { $('new-error').textContent = 'Вкажіть назву й коректну адресу сторінки.'; return; }
-        if (!Routes.available(path, [...state.pages.keys()]) || state.paths.has(slug) || [...state.pages.keys()].some(existing => existing.toLowerCase().replace(/\.html?$/i, '') === slug)) { $('new-error').textContent = 'Така адреса вже зайнята. Виберіть іншу.'; return; }
+        if (state.paths.has(slug) || [...state.pages.keys()].some(existing => existing.toLowerCase().replace(/\.html?$/i, '') === slug)) { $('new-error').textContent = 'Така адреса вже зайнята. Виберіть іншу.'; return; }
         capture();
         const source = state.pages.get(state.current), kind = $('new-template').value;
-        const page = { path, html: kind === 'copy' ? D.rebaseCopy(D.exportHTML(state.editor, source.meta), source.path, path) : D.template(title, kind, path), dirty: true };
+        const page = { path, html: kind === 'copy' ? D.rebaseCopy(D.exportHTML(state.editor, source.meta), source.path) : D.template(title, kind), dirty: true };
         page.meta = D.importHTML(page.html, path).meta;
         if ($('new-link').checked && source) {
-            state.editor.addComponents('<p style="padding:16px"><a href="/' + D.escape(Routes.url(path)).replace(/^\//, '') + '">' + D.escape(title) + '</a></p>');
+            state.editor.addComponents('<p style="padding:16px"><a href="/' + D.escape(path) + '">' + D.escape(title) + '</a></p>');
             markDirty(); capture();
         }
         state.pages.set(path, page); $('new-dialog').close(); renderPageList();
@@ -315,7 +329,7 @@
         state.current = null;
         for (const page of data.pages) state.pages.set(page.path, { ...page, dirty: true });
         state.uploads = new Map(data.uploads);
-        renderPageList(); await openPage(data.pages[0].path); status('Чернетки відновлено. Перевірте їх перед публікацією.');
+        renderPageList(); await openPage(data.pages[0].path); status('Чернетки відновлено. Перевірте їх перед збереженням.');
     }
     function preview() {
         capture();
@@ -329,7 +343,8 @@
         window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
     $('login').addEventListener('click', login);
-    $('publish').addEventListener('click', publish);
+    $('publish').addEventListener('click', () => publish());
+    $('export-site').addEventListener('click', () => publish(true));
     $('page-search').addEventListener('input', renderPageList);
     $('page-title').addEventListener('input', () => { state.pages.get(state.current).meta.title = $('page-title').value; markDirty(); });
     $('undo').addEventListener('click', () => state.editor.UndoManager.undo());
@@ -349,8 +364,15 @@
     $('backup').addEventListener('click', backup); $('restore').addEventListener('click', () => $('restore-file').click());
     $('restore-file').addEventListener('change', event => restore(event.target.files[0]).catch(error => status(error.message, true)).finally(() => { event.target.value = ''; }));
     $('preview').addEventListener('click', preview);
-    $('logout').addEventListener('click', () => { if (!dirtyPages().length || confirm('Є неопубліковані зміни. Вийти й відкинути їх?')) { state.pages.clear(); state.repo.token = ''; location.reload(); } });
+    $('logout').addEventListener('click', () => { if (!dirtyPages().length || confirm(dirtyMessage + '. Вийти й відкинути їх?')) { state.pages.clear(); state.repo.token = ''; location.reload(); } });
     window.addEventListener('beforeunload', event => { if (dirtyPages().length) { event.preventDefault(); event.returnValue = ''; } });
-    if (local) { $('login').textContent = 'Відкрити локальний редактор →'; $('login-note').textContent = 'Зміни зберігатимуться у файлах на цьому комп’ютері'; }
+    if (local) {
+        $('login').textContent = 'Відкрити редактор →';
+        $('login-note').textContent = 'На цьому комп’ютері. Вхід через GitHub не потрібен.';
+        $('publish').textContent = saveLabel; $('export-site').hidden = false; $('portable-info').hidden = false;
+        $('export-site').title = 'Зберегти всі правки та завантажити готовий ZIP для хостингу';
+        $('backup').textContent = 'Копія чернетки'; $('backup').title = 'Лише незбережені правки. Це не повна копія проєкту.';
+        $('asset-note').textContent = 'PNG, JPG, WebP або GIF до 2 МБ. Нові зображення збережуться разом зі сторінкою та потраплять в архів для хостингу.';
+    }
     if (!window.grapesjs || !R || !D) { $('login').disabled = true; $('login-status').textContent = 'Не вдалося завантажити редактор. Оновіть сторінку.'; }
 })();

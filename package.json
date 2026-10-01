@@ -11,15 +11,15 @@
     "start": "node --env-file-if-exists=.env server.js",
     "predev": "npm run build",
     "dev": "node --env-file-if-exists=.env server.js --dev",
+    "editor": "node scripts/start-editor.js",
+    "export": "node scripts/export-site.js",
     "cms:local": "node scripts/cms-local.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:browser": "node tests/builder.browser.cjs",
     "test:content": "node tests/content.browser.cjs",
-    "test:calculators": "node tests/calculators.browser.cjs",
-    "test:modern": "node tests/modern.browser.cjs"
+    "test:calculators": "node tests/calculators.browser.cjs"
   },
   "dependencies": {
-    "cheerio": "1.2.0",
     "decap-cms": "3.14.1",
     "express": "^4.18.2",
     "grapesjs": "0.23.6",
