@@ -1,37 +1,20 @@
 <!DOCTYPE html>
-<html lang="ru"><head><meta charset="utf-8"><link rel="stylesheet" href="/themes/html5.css"><link rel="manifest" href="/manifest.json">
-
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(err => {
-                console.log('SW registration failed: ', err);
-            });
-        });
-    }
-</script>
-
-
-
-
-
-
-<style>
-  /* Safe span:where(.legacy-font) increase */
-  body, p, td, span, div, a, span:where(.legacy-font), li {
-    font-size: 16px;
-    line-height: 1.5;
-  }
-  span:where(.legacy-font)[data-size="1"] { font-size: 14px; }
-  span:where(.legacy-font)[data-size="2"] { font-size: 16px; }
-  span:where(.legacy-font)[data-size="3"] { font-size: 18px; }
-</style>
-
-<link rel="stylesheet" href="/themes/banner.css">
-<link rel="stylesheet" href="/themes/layout.css">
-<link rel="stylesheet" href="/themes/navigation.css">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TCG</title><link rel="canonical" data-tcg-canonical="" href="/header/"><script src="/themes/clean-urls.js" defer=""></script></head><body class="site-page"><!--msnavigation--><table data-cell-padding="0" class="legacy-style-1"><tbody><tr><td>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="/themes/html5.css">
+  <link rel="manifest" href="/manifest.json">
+  <script src="/themes/service-worker.js" defer=""></script>
+  <link rel="stylesheet" href="/themes/typography.css">
+  <link rel="stylesheet" href="/themes/banner.css">
+  <link rel="stylesheet" href="/themes/layout.css">
+  <link rel="stylesheet" href="/themes/navigation.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TCG</title>
+  <link rel="canonical" data-tcg-canonical="" href="/header/">
+  <script src="/themes/clean-urls.js" defer=""></script>
+</head>
+<body class="site-page"><table data-cell-padding="0" class="legacy-style-1"><tbody><tr><td>
 
 <table id="table2" style="margin-bottom: 0px" class="legacy-style-2">
 				<tbody><tr>
@@ -82,8 +65,8 @@ google_ad_height = 90;
 </p>
 <hr>
 
-</td></tr><!--msnavigation--></tbody></table><!--msnavigation--><table dir="ltr" data-cell-padding="0" class="legacy-style-1"><tbody><tr><td class="legacy-style-13">
-			www.tcg.com.ua</td></tr></tbody></table><input type="hidden" name="client" value="pub-7737559393751728"><input type="hidden" name="forid" value="1"><input type="hidden" name="ie" value="utf-8"><input type="hidden" name="oe" value="utf-8"><input type="hidden" name="cof" value="GALT:#008000;GL:1;DIV:#336699;VLC:663399;AH:center;BGC:FFFFFF;LBGC:FFFF99;ALC:0000FF;LC:0000FF;T:000000;GFNT:0000FF;GIMP:0000FF;FORID:1;"><input type="hidden" name="hl" value="ru"><!--msnavigation--><!--msnavigation--><!--msnavigation--><table data-cell-padding="0" class="legacy-style-1"><tbody><tr><td>
+</td></tr></tbody></table><table dir="ltr" data-cell-padding="0" class="legacy-style-1"><tbody><tr><td class="legacy-style-13">
+			www.tcg.com.ua</td></tr></tbody></table><input type="hidden" name="client" value="pub-7737559393751728"><input type="hidden" name="forid" value="1"><input type="hidden" name="ie" value="utf-8"><input type="hidden" name="oe" value="utf-8"><input type="hidden" name="cof" value="GALT:#008000;GL:1;DIV:#336699;VLC:663399;AH:center;BGC:FFFFFF;LBGC:FFFF99;ALC:0000FF;LC:0000FF;T:000000;GFNT:0000FF;GIMP:0000FF;FORID:1;"><input type="hidden" name="hl" value="ru"><table data-cell-padding="0" class="legacy-style-1"><tbody><tr><td>
 <p style="margin-top: 10px; margin-bottom: 0px"><a href="http://meta.ua/">
 <span style="text-decoration: none">
 <span>META — Украина</span></span></a><span lang="en-us">
@@ -96,7 +79,8 @@ google_ad_height = 90;
 © 2026 Общество с ограниченой ответсвенностью "Т-груп"<br>
 Дата изменения: 27.03.2026</span></p>
 
-</td></tr><!--msnavigation--></tbody></table>
+</td></tr></tbody></table>
 
 
-</body></html>
+</body>
+</html>

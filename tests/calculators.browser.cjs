@@ -16,6 +16,7 @@ const { build } = require('../scripts/build');
         const errors = [];
         page.on('pageerror', error => errors.push(error.message));
         let mode = 'valid', requests = 0;
+        const news = Array.from({ length: 12 }, (_, i) => ({ title: 'Тестова новина ' + (i + 1), link: 'https://example.com/news/' + (i + 1) }));
         await page.route('**/*', async route => {
             const url = new URL(route.request().url());
             if (url.origin === origin || url.protocol === 'data:') return route.continue();
@@ -35,7 +36,7 @@ const { build } = require('../scripts/build');
                 if (mode === 'stale') records[0].exchangedate = '01.01.2000';
                 return route.fulfill({ json: mode === 'malformed' ? { error: 'invalid' } : records });
             }
-            if (url.hostname === 'api.rss2json.com') return route.fulfill({ json: { status: 'ok', items: [] } });
+            if (url.hostname === 'api.rss2json.com') return route.fulfill({ json: { status: 'ok', items: news } });
             return route.abort();
         });
         const text = async selector => (await page.locator(selector).innerText()).replace(/[\s\u00a0\u202f]/g, '');
@@ -45,6 +46,9 @@ const { build } = require('../scripts/build');
         };
         await page.goto(origin + '/index.html');
         await loaded();
+        await page.waitForFunction(() => document.querySelectorAll('#news-list a').length === 10);
+        assert.deepEqual(await page.locator('#news-list a').evaluateAll(links => links.map(a => ({ title: a.textContent, link: a.href }))), news.slice(0, 10));
+        console.log('PASS extracted news widget: the same first ten titles and links');
         assert.equal(await text('#currency-result'), '100,00USD=4200,00UAH');
         assert.match(await page.locator('#currency-date').innerText(), /^Курс на \d{2}\.\d{2}\.\d{4}$/);
         await page.locator('#currency-from').selectOption('UAH');
