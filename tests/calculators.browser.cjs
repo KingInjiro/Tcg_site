@@ -43,9 +43,8 @@ const { build } = require('../scripts/build');
             await page.waitForFunction(() => !document.querySelector('#currency-converter fieldset').disabled);
             assert.equal(await page.locator('#currency-refresh').isDisabled(), false);
         };
-        await page.goto(origin + '/');
+        await page.goto(origin + '/index.html');
         await loaded();
-        await page.getByText('Курс НБУ и конвертер валют', { exact: true }).click();
         assert.equal(await text('#currency-result'), '100,00USD=4200,00UAH');
         assert.match(await page.locator('#currency-date').innerText(), /^Курс на \d{2}\.\d{2}\.\d{4}$/);
         await page.locator('#currency-from').selectOption('UAH');
@@ -70,7 +69,7 @@ const { build } = require('../scripts/build');
         await page.locator('#currency-amount').fill('1 000,50');
         assert.equal(await page.locator('#currency-amount').getAttribute('aria-invalid'), null);
         await page.locator('#currency-amount').press('Enter');
-        assert.equal(new URL(page.url()).pathname, '/');
+        assert.equal(new URL(page.url()).pathname, '/index.html');
         console.log('PASS currency UI: direct, reverse, cross and same-currency conversions; comma, zero and invalid input; keyboard submit');
 
         for (mode of ['network', 'http', 'missing', 'zero', 'stale', 'malformed']) {
@@ -87,7 +86,7 @@ const { build } = require('../scripts/build');
         console.log('PASS failed, incomplete and stale rates never produce a result; retry restores the converter');
 
         const requestsBeforeBackup = requests;
-        await page.goto(origin + '/articles/backup/');
+        await page.goto(origin + '/ListPage/Pege05.html');
         assert.equal(await text('#backup-result'), 'Требуетсяпримерно360ГБ');
         assert.equal(await text('#backup-formula'), '100ГБ×3×(1+20/100)=360ГБ');
         await page.locator('#backup-size').fill('10,5');
@@ -108,7 +107,7 @@ const { build } = require('../scripts/build');
         await page.locator('#backup-reserve').fill('20');
         assert.equal(await text('#backup-result'), 'Требуетсяпримерно600ГБ');
         await page.locator('#backup-size').press('Enter');
-        assert.equal(new URL(page.url()).pathname, '/articles/backup/');
+        assert.equal(new URL(page.url()).pathname, '/ListPage/Pege05.html');
         assert.equal(requests, requestsBeforeBackup, 'backup calculation is local and never loads exchange rates');
         await page.setViewportSize({ width: 390, height: 844 });
         assert.ok(await page.locator('#backup-size').isVisible());

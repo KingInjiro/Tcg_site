@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
   <title>TCG — редактор сайту</title>
   <link rel="stylesheet" href="/admin/vendor/grapes.min.css"><link rel="stylesheet" href="/admin/builder.css">
-  <script defer src="/admin/vendor/grapes.min.js"></script><script defer src="/admin/repository.js"></script><script defer src="/themes/routes.js"></script><script defer src="/themes/page-template.js"></script><script defer src="/admin/document.js"></script><script defer src="/admin/builder.js"></script>
+  <script defer src="/admin/vendor/grapes.min.js"></script><script defer src="/admin/repository.js"></script><script defer src="/admin/document.js"></script><script defer src="/admin/builder.js"></script>
 </head>
 <body>
   <div id="login-screen">
@@ -20,8 +20,9 @@
     <header class="topbar">
       <a class="brand" href="/" target="_blank" rel="noopener" aria-label="Відкрити сайт TCG"><span class="brand-mark">T</span><strong>TCG</strong></a><div class="topbar-divider"></div><span class="editor-label">Редактор сайту</span><div class="topbar-spacer"></div>
       <button id="backup" class="subtle" title="Завантажити неопубліковані правки">Резервна копія</button><button id="restore" class="subtle">Відновити</button><input id="restore-file" type="file" accept="application/json,.json" hidden>
-      <button id="preview" class="secondary">Перегляд</button><button id="publish" class="primary" disabled>Опублікувати</button><button id="logout" class="subtle">Вийти</button>
+      <button id="preview" class="secondary">Перегляд</button><button id="publish" class="primary" disabled>Опублікувати</button><button id="export-site" class="secondary" hidden>Архів для хостингу</button><button id="logout" class="subtle">Вийти</button>
     </header>
+    <div id="portable-info" class="portable-info" hidden><span>Ви редагуєте копію на комп’ютері. Щоб оновити сайт в інтернеті, завантажте архів на хостинг.</span><a href="/admin/portable-help.html" target="_blank" rel="noopener">Як це зробити ↗</a></div>
     <div class="workspace">
       <aside class="left-sidebar">
         <div class="sidebar-heading"><h2>Сторінки</h2><button id="new-page" class="add-button" aria-label="Нова сторінка" title="Нова сторінка">+</button></div>
@@ -42,7 +43,7 @@
   <dialog id="new-dialog"><form id="new-form">
     <div class="dialog-heading"><div><p class="eyebrow">РОЗШИРЮЙТЕ СВІЙ САЙТ</p><h2>Нова сторінка</h2></div><button type="button" class="close-dialog" aria-label="Закрити">×</button></div>
     <label for="new-title">Назва</label><input id="new-title" required maxlength="120" placeholder="Наприклад, Наші послуги">
-    <label for="new-slug">Адреса сторінки</label><div class="slug-input"><span>/</span><input id="new-slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="70" placeholder="nashi-posluhy"><span>/</span></div><small>Латинські літери, цифри й дефіс. Адресу можна змінити перед створенням.</small>
+    <label for="new-slug">Адреса сторінки</label><div class="slug-input"><span>/</span><input id="new-slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="70" placeholder="nashi-posluhy"><span>.html</span></div><small>Латинські літери, цифри й дефіс. Адресу можна змінити перед створенням.</small>
     <label for="new-template">Почати з</label><select id="new-template"><option value="simple">Проста сторінка</option><option value="services">Сторінка послуг</option><option value="copy">Копія поточної сторінки</option></select>
     <label class="check-label"><input type="checkbox" id="new-link" checked> Додати посилання внизу поточної сторінки</label><p id="new-error" class="error" role="alert"></p>
     <div class="dialog-actions"><button type="button" class="secondary close-dialog">Скасувати</button><button class="primary" type="submit">Створити сторінку</button></div>
@@ -50,7 +51,15 @@
   <dialog id="asset-dialog">
     <div class="dialog-heading"><div><p class="eyebrow">МЕДІАТЕКА</p><h2>Виберіть зображення</h2></div><button class="close-dialog" aria-label="Закрити">×</button></div>
     <div class="asset-actions"><input id="asset-search" type="search" placeholder="Пошук за назвою…" aria-label="Пошук зображень"><label class="primary upload-label">Завантажити<input id="asset-upload" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label></div>
-    <p class="quiet">PNG, JPG, WebP або GIF до 2 МБ. Нове зображення з’явиться на сайті після публікації.</p><div id="asset-grid"></div><p id="asset-error" class="error" role="alert"></p><button id="more-assets" class="secondary">Показати ще</button>
+    <p class="quiet" id="asset-note">PNG, JPG, WebP або GIF до 2 МБ. Нове зображення з’явиться на сайті після публікації.</p><div id="asset-grid"></div><p id="asset-error" class="error" role="alert"></p><button id="more-assets" class="secondary">Показати ще</button>
+  </dialog>
+  <dialog id="export-dialog">
+    <div class="dialog-heading"><h2>Архів готовий</h2><button class="close-dialog" aria-label="Закрити">×</button></div>
+    <p>Зміни збережено на комп’ютері. Браузер завантажує <strong id="export-filename"></strong>. Ще одна копія є у папці <strong>exports</strong> всередині проєкту.</p>
+    <ol><li>Зробіть резервну копію чинного сайту на хостингу.</li><li>Завантажте архів у папку свого домену та розпакуйте його, замінивши однойменні файли.</li><li>Перевірте сайт за його звичайною адресою.</li></ol>
+    <p>У папці домену має лежати сам <strong>index.html</strong>, без додаткової папки навколо нього. Після розпакування видаліть ZIP із хостингу.</p>
+    <a href="/admin/portable-help.html" target="_blank" rel="noopener">Інструкція та варіант без розпакування на хостингу ↗</a>
+    <div class="dialog-actions"><button class="primary close-dialog">Зрозуміло</button></div>
   </dialog>
   <noscript>Для роботи редактора увімкніть JavaScript.</noscript>
 </body>
