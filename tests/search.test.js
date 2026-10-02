@@ -22,3 +22,26 @@ test('static exports regenerate the index, including new pages, without exposing
     output = cleanWebsite(files);
     assert.equal(search(JSON.parse(output.get('themes/search-index.json')), 'Уникальный')[0].url, '/New/');
 });
+
+test('an external form endpoint is public configuration, but SMTP settings never enter the export', () => {
+    const names = ['CONTACT_FORM_ENDPOINT', 'SMTP_PASSWORD', 'CONTACT_TOKEN_SECRET'];
+    const original = Object.fromEntries(names.map(name => [name, process.env[name]]));
+    try {
+        process.env.CONTACT_FORM_ENDPOINT = 'https://mail.example.com/api/contact';
+        process.env.SMTP_PASSWORD = 'test-only-smtp-secret-not-for-export';
+        process.env.CONTACT_TOKEN_SECRET = 'test-only-token-secret-not-for-export';
+        const files = new Map([['index.html', Buffer.from('<!doctype html><html><title>TCG</title><body>Text</body></html>')]]);
+        const output = cleanWebsite(files);
+        assert.deepEqual(JSON.parse(output.get('themes/contact-config.json')), { endpoint: process.env.CONTACT_FORM_ENDPOINT });
+        for (const [name, value] of output) {
+            assert.ok(!value.includes(Buffer.from(process.env.SMTP_PASSWORD)), name + ': no SMTP password');
+            assert.ok(!value.includes(Buffer.from(process.env.CONTACT_TOKEN_SECRET)), name + ': no token secret');
+        }
+        for (const endpoint of ['http://mail.example.com/api/contact', 'https://user:password@mail.example.com/api/contact', 'https://mail.example.com/api/contact#fragment']) {
+            process.env.CONTACT_FORM_ENDPOINT = endpoint;
+            assert.throws(() => cleanWebsite(files));
+        }
+    } finally {
+        for (const name of names) if (original[name] === undefined) delete process.env[name]; else process.env[name] = original[name];
+    }
+});

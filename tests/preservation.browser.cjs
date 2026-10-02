@@ -63,6 +63,41 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         if (failures.length) console.log('PRESERVATION_REPORT ' + JSON.stringify(failures));
         assert.deepEqual(failures, [], 'visible content, fonts, colours and geometry must remain unchanged (1px rounding tolerance)');
         console.log('PASS appearance preservation: ' + sources.length + ' pages at 1440 and 390px; only restored price1C form geometry is excluded');
+
+        // Keep the original image replacement on hover and keyboard focus.
+        const buttons = new Map();
+        for (const file of sources) {
+            const html = fs.readFileSync(path.join(root, file), 'utf8');
+            for (const match of html.matchAll(/<img\b[^>]*\bsrc="([^"]+_[HV]BTN\.GIF)"/gi)) if (!buttons.has(match[1])) buttons.set(match[1], file);
+        }
+        const interactive = await browser.newPage({ serviceWorkers: 'block' }), errors = [];
+        interactive.on('pageerror', error => errors.push(error.message));
+        await interactive.route('**/*', route => new URL(route.request().url()).origin === origins[1] || route.request().url().startsWith('data:') ? route.continue() : route.abort());
+        await interactive.goto(origins[1] + '/contacts.html?from=old#phone');
+        await interactive.waitForURL(origins[1] + '/contacts/?from=old#phone');
+        await interactive.goto(origins[1] + '/index.html?from=old');
+        await interactive.waitForURL(origins[1] + '/?from=old');
+        let currentFile;
+        for (const [src, file] of buttons) {
+            if (file !== currentFile) await interactive.goto(origins[1] + pageURL(file));
+            currentFile = file;
+            const menu = interactive.locator('a > img[src="' + src + '"]').first();
+            const expected = src.replace(/\.GIF$/i, '_A.GIF');
+            await menu.hover();
+            assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': hover');
+            await interactive.mouse.move(0, 0);
+            await interactive.keyboard.press('Tab');
+            await menu.locator('..').focus();
+            assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': keyboard focus');
+        }
+        assert.deepEqual(errors, []);
+        console.log('PASS ' + buttons.size + ' original GIF buttons: hover and keyboard focus; legacy redirects preserve query/hash');
+        const offline = await browser.newPage();
+        await offline.route('**/*', route => new URL(route.request().url()).origin === origins[1] ? route.continue() : route.abort());
+        await offline.goto(origins[1] + '/');
+        await offline.waitForFunction(async () => Boolean((await navigator.serviceWorker.getRegistration())?.active), {}, { timeout: 10000 });
+        assert.ok(await offline.evaluate(async () => Boolean(await caches.match('/'))), 'offline homepage is cached');
+        console.log('PASS shared service-worker registration and homepage cache');
     } finally {
         await browser?.close();
         await Promise.all(servers.map(server => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); }));

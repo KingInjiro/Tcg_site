@@ -1,0 +1,86 @@
+[
+  {
+    "file": "1CPrice.html",
+    "rule": "color-contrast",
+    "target": [
+      ".legacy-style-18[colspan=\"3\"] > .legacy-style-7 > b > span"
+    ]
+  },
+  {
+    "file": "1CPrice.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(23) > .legacy-cell-height.legacy-style-20 > p > span:nth-child(1)"
+    ]
+  },
+  {
+    "file": "1CPrice.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(24) > .legacy-style-20 > p > span:nth-child(1)"
+    ]
+  },
+  {
+    "file": "1CPrice.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(25) > .legacy-style-20 > p > span:nth-child(1)"
+    ]
+  },
+  {
+    "file": "TStand.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(1) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"]"
+    ]
+  },
+  {
+    "file": "TStand.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(1) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"] > b"
+    ]
+  },
+  {
+    "file": "TStand.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(2) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"]"
+    ]
+  },
+  {
+    "file": "TStand.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(2) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"] > b"
+    ]
+  },
+  {
+    "file": "TStand.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(3) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"]"
+    ]
+  },
+  {
+    "file": "TStand.html",
+    "rule": "color-contrast",
+    "target": [
+      "tr:nth-child(3) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"] > b"
+    ]
+  },
+  {
+    "file": "index.html",
+    "rule": "color-contrast",
+    "target": [
+      "a[href$=\"news.meta.ua/\"]"
+    ]
+  },
+  {
+    "file": "serv01.html",
+    "rule": "link-in-text-block",
+    "target": [
+      ".legacy-style-9.legacy-font[data-size=\"2\"] > a[href$=\"reglament/\"]"
+    ]
+  }
+]

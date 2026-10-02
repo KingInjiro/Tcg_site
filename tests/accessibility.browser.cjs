@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const express = require('express');
 const { chromium } = require('playwright');
 const { pageFiles, pageURL } = require('../lib/site-routes');
+const preservedStyleFindings = require('./fixtures/accessibility-legacy.json');
 (async () => {
     const root = path.resolve(__dirname, '..');
     const server = express().use(express.static(path.join(root, 'dist'))).listen(0, '127.0.0.1');
@@ -25,8 +26,11 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         }
         if (process.env.TCG_A11Y_REPORT) fs.writeFileSync(process.env.TCG_A11Y_REPORT, JSON.stringify(report, null, 2));
         console.log('ACCESSIBILITY_REPORT ' + JSON.stringify(report.filter(r => r.violations.length)));
-        const structural = report.flatMap(r => r.violations.filter(v => !['color-contrast', 'link-in-text-block'].includes(v.id)).map(v => ({ file: r.file, ...v })));
-        assert.deepEqual(structural, [], 'no automatically detected structural WCAG A/AA violations');
+        const unexpected = report.flatMap(r => r.violations.flatMap(v => v.nodes.filter(n =>
+            !preservedStyleFindings.some(known => known.file === r.file && known.rule === v.id && JSON.stringify(known.target) === JSON.stringify(n.target))
+        ).map(n => ({ file: r.file, rule: v.id, ...n }))));
+        assert.deepEqual(unexpected, [], 'no new WCAG A/AA findings, including new contrast/link-style findings');
+        console.log('Known unchanged-style findings: ' + preservedStyleFindings.length + ' exact targets; other occurrences of the same rules still fail.');
         console.log('PASS structural accessibility scan on ' + report.length + ' pages. Original colour/link styling findings are reported separately; this is not WCAG certification.');
     } finally {
         await browser?.close(); server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
