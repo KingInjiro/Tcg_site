@@ -10,4 +10,11 @@
 
 /* Original h6 presentation retained for price footnotes, which are notes rather than headings. */
 .legacy-note { display:block; font-size:.67em; font-weight:bold; margin-block:2.33em; }
-:where(table>tbody>tr>td>.legacy-note:first-child) { margin-top:0; }
+:where(table>tbody>tr>td)>.legacy-note:first-child { margin-top:0; }
+
+/* The original shared theme made price01 footnotes normal, unlike the Word price1C page. */
+.legacy-note--theme { font-weight: normal; font-style: normal; }
+/* Restored fields must not enlarge the surrounding price table on narrow screens. */
+[data-contact-page="/price1C/"] #table5 { width: 100%; max-width: 32em; table-layout: fixed; }
+[data-contact-page="/price1C/"] #table5 td:first-child { width: 28%; }
+[data-contact-page="/price1C/"] #table5 :is(input, textarea) { width: 100%; min-width: 0; max-width: 100%; }

@@ -8,5 +8,5 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-node scripts\start-editor.js
+node --env-file-if-exists=.env scripts\start-editor.js
 if errorlevel 1 pause

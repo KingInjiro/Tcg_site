@@ -6,13 +6,13 @@
     "node": "24.x"
   },
   "scripts": {
-    "build": "node scripts/build.js",
+    "build": "node --env-file-if-exists=.env scripts/build.js",
     "prestart": "npm run build",
     "start": "node --env-file-if-exists=.env server.js",
     "predev": "npm run build",
     "dev": "node --env-file-if-exists=.env server.js --dev",
-    "editor": "node scripts/start-editor.js",
-    "export": "node scripts/export-site.js",
+    "editor": "node --env-file-if-exists=.env scripts/start-editor.js",
+    "export": "node --env-file-if-exists=.env scripts/export-site.js",
     "cms:local": "node scripts/cms-local.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:browser": "node tests/builder.browser.cjs",
