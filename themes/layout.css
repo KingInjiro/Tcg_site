@@ -122,26 +122,12 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
 
 .home-intro {
   grid-column: 1;
-  grid-row: 1 / span 2;
+  grid-row: 1;
 }
 
 .home-tools {
   grid-column: 2;
   grid-row: 1;
-}
-
-.home-search {
-  grid-column: 2;
-  grid-row: 2;
-}
-
-.home-search table {
-  width: 100%;
-}
-
-.home-search input[type="text"] {
-  width: 100%;
-  box-sizing: border-box;
 }
 
 /* Keep the existing widget link colours when the editor moves inline styles into classes. */
@@ -228,8 +214,7 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
   }
 
   .home-intro,
-  .home-tools,
-  .home-search {
+  .home-tools {
     grid-column: auto;
     grid-row: auto;
   }
