@@ -26,6 +26,9 @@ jobs:
           distribution: temurin
           java-version: '17'
       - run: npm ci
+      - name: Report dependency audit (informational)
+        run: npm audit --json
+        continue-on-error: true
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm test
       - run: npm run test:html
