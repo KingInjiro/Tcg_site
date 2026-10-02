@@ -1,4 +1,6 @@
 const express = require('express');
+const { createContact } = require('./lib/contact');
+const { buildSearchIndex } = require('./lib/search-index');
 const path = require('node:path');
 const fs = require('node:fs');
 const { publicEntries, isPublicContent } = require('./lib/site-files');
@@ -6,7 +8,7 @@ const { createOAuth } = require('./lib/github-oauth');
 const { createLocalEditor } = require('./lib/editor-local');
 const { pageFiles, routeMap, outputFile, publishHTML } = require('./lib/site-routes');
 
-function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}) {
+function createApp({ dev = false, oauth = createOAuth(), contact = createContact(), root = __dirname } = {}) {
     const app = express();
     const publicPath = path.join(root, 'dist');
     const contentPath = dev ? root : publicPath;
@@ -16,6 +18,13 @@ function createApp({ dev = false, oauth = createOAuth(), root = __dirname } = {}
     app.disable('x-powered-by');
     app.get('/api/auth', oauth.auth);
     app.get('/api/callback', oauth.callback);
+    app.all('/api/contact', contact);
+    if (dev) app.get('/themes/search-index.json', (_req, res) => {
+        res.set('Cache-Control', 'no-store').json(buildSearchIndex(new Map(pageFiles(root).map(file => [file, fs.readFileSync(path.join(root, file), 'utf8')]))));
+    });
+    app.get('/themes/contact-config.json', (_req, res) => {
+        res.set('Cache-Control', 'no-store').json({ endpoint: process.env.CONTACT_FORM_ENDPOINT || '/api/contact' });
+    });
     app.get('/Docs/Sno_for_Buh_ua.html', (_req, res) => res.redirect(308, '/Docs/Sno_for_Buh_ua.ert'));
     if (dev) app.use('/api/editor-local', express.json({ limit: '12mb' }), createLocalEditor(root));
     app.use('/api', (_req, res) => res.sendStatus(404));

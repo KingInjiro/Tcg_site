@@ -1,0 +1,9 @@
+/* Keyboard navigation aid, outside the layout until focused. */
+.skip-link { position: absolute; top: 0; left: -10000px; z-index: 1000; }
+.skip-link:focus { left: 8px; padding: 8px; background: #fff; color: #222; }
+[data-contact-form] [role="status"], #search-status { overflow-wrap: anywhere; }
+.form-trap { display: none; }
+.legacy-inline { display: inline; }
+.legacy-dl { margin-block: 1em; }
+.legacy-dt { display: block; }
+.legacy-dd { display: block; margin-inline-start: 40px; }

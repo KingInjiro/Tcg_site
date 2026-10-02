@@ -3,6 +3,6 @@ body, p, td, span, div, a, li {
   font-size: 16px;
   line-height: 1.5;
 }
-span:where(.legacy-font)[data-size="1"] { font-size: 14px; }
-span:where(.legacy-font)[data-size="2"] { font-size: 16px; }
-span:where(.legacy-font)[data-size="3"] { font-size: 18px; }
+:where(.legacy-font)[data-size="1"] { font-size: 14px; }
+:where(.legacy-font)[data-size="2"] { font-size: 16px; }
+:where(.legacy-font)[data-size="3"] { font-size: 18px; }

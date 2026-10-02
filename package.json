@@ -25,11 +25,14 @@
     "express": "^4.18.2",
     "grapesjs": "0.23.6",
     "iconv-lite": "^0.7.3",
+    "nodemailer": "10.0.13",
     "parse5": "5.1.1"
   },
   "devDependencies": {
+    "axe-core": "4.13.0",
     "decap-server": "3.11.3",
     "js-yaml": "5.4.2",
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "vnu-jar": "26.9.30"
   }
 }
