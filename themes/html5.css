@@ -241,28 +241,6 @@
   font-family:Verdana;
 }
 
-:where(.legacy-style-50) {
-  border-width:0px;
-  background-color:#ffffff;
-  width:228px;
-}
-
-:where(.legacy-style-51) {
-  white-space:nowrap;
-  vertical-align:top;
-  text-align:-webkit-left;
-  height:32px;
-}
-
-:where(.legacy-style-52) {
-  width:218px;
-}
-
-:where(.legacy-style-53) {
-  color:#000000;
-  font-size:small;
-}
-
 :where(.legacy-style-54) {
   font-size:medium;
 }
@@ -481,11 +459,6 @@
 
 .site-page .legacy-control-line>.legacy-font {
   line-height:0;
-}
-
-/* Keep the original gap between the floating search logo and its submit button. */
-.home-search input[name="sa"] {
-  margin-inline-start:3px;
 }
 
 /* Image navigation keeps the same line heights when the last item wraps. */
