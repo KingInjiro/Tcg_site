@@ -7,3 +7,7 @@
 .legacy-dl { margin-block: 1em; }
 .legacy-dt { display: block; }
 .legacy-dd { display: block; margin-inline-start: 40px; }
+
+/* Original h6 presentation retained for price footnotes, which are notes rather than headings. */
+.legacy-note { display:block; font-size:.67em; font-weight:bold; margin-block:2.33em; }
+:where(table>tbody>tr>td>.legacy-note:first-child) { margin-top:0; }
