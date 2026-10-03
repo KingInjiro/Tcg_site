@@ -1,8 +1,8 @@
 const { spawnSync } = require('node:child_process');
 const path = require('node:path');
 const { pageFiles, outputFile } = require('../lib/site-routes');
-const root = path.resolve(__dirname, '..'), pages = pageFiles(root);
-const result = spawnSync('java', ['-jar', require.resolve('vnu-jar/build/dist/vnu.jar'), '--format', 'json', ...pages.map(file => path.join(root, 'dist', outputFile(file)))], { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
+const root = path.resolve(__dirname, '..'), pages = [...pageFiles(root).map(outputFile), 'themes/offline.html'];
+const result = spawnSync('java', ['-jar', require.resolve('vnu-jar/build/dist/vnu.jar'), '--format', 'json', ...pages.map(file => path.join(root, 'dist', file))], { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
 if (result.error) throw result.error;
 const messages = JSON.parse(result.stderr || '{"messages":[]}').messages;
 for (const message of messages) console.log(message.type + ': ' + message.url?.replace('file:' + root + '/dist/', '') + ': ' + message.message);

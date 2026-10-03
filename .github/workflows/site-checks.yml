@@ -42,6 +42,13 @@ jobs:
         env:
           TCG_TEST_BROWSER: webkit
       - run: npm run test:accessibility
+      - run: npm run test:app
+      - run: npm run test:app
+        env:
+          TCG_TEST_BROWSER: firefox
+      - run: npm run test:app
+        env:
+          TCG_TEST_BROWSER: webkit
       - run: npm run test:preservation
         env:
           TCG_BASELINE_DIR: baseline

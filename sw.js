@@ -1,34 +1,45 @@
-const CACHE_NAME = 'tgroup-v3-clean-urls';
+/* TCG_BUILD_CONFIG */
+const config = self.TCG_PWA || { version: 'development', urls: ['/', '/themes/offline.html'], aliases: {} };
+const CACHE_NAME = 'tgroup-pwa-' + config.version;
+const assets = new Set(config.urls);
 
 self.addEventListener('install', event => {
-    event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['/']))
-        .then(() => self.skipWaiting()));
+    // Failed installation leaves the previous version in service. Updates wait for
+    // old tabs to close instead of reloading an unfinished form.
+    event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(config.urls.map(url => new Request(url, { cache: 'reload' })))));
 });
-
 self.addEventListener('activate', event => {
     event.waitUntil(caches.keys().then(keys => Promise.all(keys
         .filter(key => key.startsWith('tgroup-') && key !== CACHE_NAME)
         .map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
-
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
-    // Login, editor assets and API responses must always go to the network.
     if (event.request.method !== 'GET' || url.origin !== self.location.origin ||
-        url.pathname === '/admin' || url.pathname.startsWith('/admin/') ||
-        url.pathname === '/api' || url.pathname.startsWith('/api/') ||
-        event.request.mode !== 'navigate') return;
-
-    // Published edits must replace old pages; use the cache only when offline.
-    event.respondWith(fetch(event.request).then(response => {
-        if (response.ok) {
-            const copy = response.clone();
-            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)));
+        /^\/(?:admin|api)(?:\/|$)/i.test(url.pathname) || event.request.headers.has('authorization')) return;
+    const navigation = event.request.mode === 'navigate' || event.request.headers.get('X-TCG-Navigation') === '1';
+    const canonical = config.aliases[url.pathname.toLowerCase()];
+    if (navigation && canonical && canonical !== url.pathname) {
+        event.respondWith(Promise.resolve(Response.redirect(new URL(canonical + url.search, self.location.origin).href, 302)));
+        return;
+    }
+    const key = url.pathname, allowed = assets.has(key);
+    if (!allowed && !navigation) return;
+    event.respondWith((async () => {
+        const cache = await caches.open(CACHE_NAME);
+        try {
+            const response = await fetch(event.request);
+            // Cache known public resources only; never APIs, form data or query strings.
+            if (allowed && response.ok && !response.redirected && response.type === 'basic' &&
+                !/no-store|private/i.test(response.headers.get('cache-control') || '')) {
+                await cache.put(key, response.clone());
+            }
+            return response;
+        } catch (error) {
+            const saved = allowed && await cache.match(key);
+            if (saved) return saved;
+            if (navigation) return await cache.match('/themes/offline.html') || Response.error();
+            throw error;
         }
-        return response;
-    }).catch(async error => {
-        const cached = await caches.match(event.request);
-        if (cached) return cached;
-        throw error;
-    }));
+    })());
 });

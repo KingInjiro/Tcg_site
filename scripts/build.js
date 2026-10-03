@@ -1,7 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { publicEntries, isPublicContent } = require('../lib/site-files');
-const { pageFiles, cleanWebsite } = require('../lib/site-routes');
+const { cleanWebsite } = require('../lib/site-routes');
+const { sourceWebsiteFiles } = require('../lib/site-export');
 
 function build(root = path.resolve(__dirname, '..')) {
     const output = path.join(root, 'dist');
@@ -13,8 +14,7 @@ function build(root = path.resolve(__dirname, '..')) {
             filter: source => !fs.lstatSync(source).isSymbolicLink() && !path.basename(source).startsWith('.') && isPublicContent(source),
         });
     }
-    const pages = new Map(pageFiles(root).map(name => [name, fs.readFileSync(path.join(root, name))]));
-    for (const [name, content] of cleanWebsite(pages)) {
+    for (const [name, content] of cleanWebsite(sourceWebsiteFiles(root))) {
         fs.mkdirSync(path.dirname(path.join(output, name)), { recursive: true });
         fs.writeFileSync(path.join(output, name), content);
     }
