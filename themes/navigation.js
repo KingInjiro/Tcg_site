@@ -55,6 +55,7 @@
         const current = ++sequence;
         pending?.abort(); pending = new AbortController();
         const controller = pending, temporary = [];
+        let committed = false;
         if (!pop) saveScroll();
         changing = true;
         document.documentElement.setAttribute('aria-busy', 'true');
@@ -98,8 +99,17 @@
             copyAttributes(doc.documentElement, document.documentElement);
             // Attribute replacement must not report readiness before focus and scroll settle.
             document.documentElement.setAttribute('aria-busy', 'true');
-            document.head.replaceChildren(...head);
+            // Never detach the loaded stylesheet nodes: reinserting them restarts
+            // loading in some browsers and exposes a frame without page styles.
+            const retained = new Set(head);
+            for (const node of [...document.head.childNodes]) if (!retained.has(node)) node.remove();
+            let next = null;
+            for (const node of [...head].reverse()) {
+                if (node.parentNode !== document.head) document.head.insertBefore(node, next);
+                next = node;
+            }
             document.body.replaceWith(document.importNode(doc.body, true));
+            committed = true;
             rendered = finalURL.pathname + finalURL.search;
             document.dispatchEvent(new Event('tcg:page-load'));
             if (scripts.some(script => script.getAttribute('src') === thirdParty)) {
@@ -111,7 +121,7 @@
             if (current === sequence) { history.scrollRestoration = 'auto'; pop ? location.reload() : location.assign(url.href); }
         } finally {
             clearTimeout(timeout);
-            for (const sheet of temporary) if (sheet.media === 'not all') sheet.remove();
+            if (!committed) for (const sheet of temporary) sheet.remove();
             if (current === sequence) { changing = false; document.documentElement.removeAttribute('aria-busy'); saveScroll(); }
         }
     }

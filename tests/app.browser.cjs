@@ -13,6 +13,11 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
     app.get('/sw.js', (_req, res) => res.type('js').set('Cache-Control', 'no-cache').send(
         fs.readFileSync(path.join(output, 'sw.js'), 'utf8').replace(/("version":")([^"]+)/, (_all, start, version) => start + version + (workerVersion ? '-update' : ''))));
     app.get('/contacts/', (req, res, next) => brokenPage && req.get('X-TCG-Navigation') ? res.status(503).send('temporary failure') : next());
+    // Make transient stylesheet reloads visible instead of hiding them in the cache.
+    app.get(/\.css$/, (_req, res, next) => {
+        res.set('Cache-Control', 'no-store');
+        setTimeout(next, 80);
+    });
     app.use(express.static(output));
     const server = app.listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
@@ -27,7 +32,20 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         const page = await context.newPage(), errors = [];
         page.on('pageerror', error => errors.push(error.message));
         await page.goto(origin + '/');
-        await page.evaluate(() => { window.documentMarker = 'same-document'; });
+        await page.evaluate(() => {
+            window.documentMarker = 'same-document';
+            window.styleGaps = [];
+            function sampleStyles() {
+                const missing = [...document.querySelectorAll('link[rel="stylesheet"]')]
+                    .filter(link => !link.disabled && matchMedia(link.media || 'all').matches && !link.sheet)
+                    .map(link => new URL(link.href).pathname);
+                if (missing.length && window.styleGaps.length < 10) {
+                    window.styleGaps.push({ path: location.pathname, font: getComputedStyle(document.body).fontFamily, missing });
+                }
+                requestAnimationFrame(sampleStyles);
+            }
+            requestAnimationFrame(sampleStyles);
+        });
         const clickRoute = async (url, target = page) => {
             await target.evaluate(url => {
                 const link = document.createElement('a'); link.href = url; link.dataset.tcgPage = ''; link.id = 'test-navigation'; link.textContent = 'Test navigation'; link.style.cssText = 'position:fixed;top:0;left:0;z-index:2147483647'; document.body.prepend(link);
@@ -71,7 +89,9 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             assert.equal(await page.evaluate(() => window.documentMarker), 'same-document', route);
         }
         await direct.close();
+        assert.deepEqual(await page.evaluate(() => window.styleGaps), [], 'no visible frame loses an active stylesheet during slow, uncached SPA transitions');
         console.log('PASS ' + engine + ': SPA navigation on ' + routes.length + ' routes, original styles/images, title/canonical/focus, back/forward and scroll restoration');
+        console.log('PASS ' + engine + ': frame-by-frame stylesheet continuity with delayed, uncached CSS');
         await clickRoute('/search/');
         await page.locator('#site-search').fill('резервное копирование');
         await page.locator('#site-search').press('Enter');
