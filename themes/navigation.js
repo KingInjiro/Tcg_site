@@ -96,6 +96,8 @@
             // One synchronous commit prevents styles from a previous page leaking into the next one.
             if (!pop) history.pushState({ tcgScroll: [0, 0] }, '', finalURL);
             copyAttributes(doc.documentElement, document.documentElement);
+            // Attribute replacement must not report readiness before focus and scroll settle.
+            document.documentElement.setAttribute('aria-busy', 'true');
             document.head.replaceChildren(...head);
             document.body.replaceWith(document.importNode(doc.body, true));
             rendered = finalURL.pathname + finalURL.search;
