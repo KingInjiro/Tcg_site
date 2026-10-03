@@ -22,7 +22,8 @@
     "test:links": "node --test tests/links.test.js",
     "test:html": "node scripts/build.js && node scripts/validate-html.js",
     "test:preservation": "node tests/preservation.browser.cjs",
-    "test:accessibility": "node tests/accessibility.browser.cjs"
+    "test:accessibility": "node tests/accessibility.browser.cjs",
+    "test:app": "node tests/app.browser.cjs"
   },
   "dependencies": {
     "express": "^4.22.3",

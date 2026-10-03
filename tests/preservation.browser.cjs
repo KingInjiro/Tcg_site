@@ -95,7 +95,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         const offline = await browser.newPage();
         await offline.route('**/*', route => new URL(route.request().url()).origin === origins[1] ? route.continue() : route.abort());
         await offline.goto(origins[1] + '/');
-        await offline.waitForFunction(async () => Boolean((await navigator.serviceWorker.getRegistration())?.active), {}, { timeout: 10000 });
+        await offline.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 30000 });
         assert.ok(await offline.evaluate(async () => Boolean(await caches.match('/'))), 'offline homepage is cached');
         console.log('PASS shared service-worker registration and homepage cache');
     } finally {

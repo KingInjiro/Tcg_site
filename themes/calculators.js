@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+    const initialized = new WeakSet();
     const numberFormat = new Intl.NumberFormat('ru-RU', { maximumSignificantDigits: 15 });
     const moneyFormat = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -10,7 +11,8 @@
 
     function currencyCalculator() {
         const form = document.getElementById('currency-converter');
-        if (!form) return;
+        if (!form || initialized.has(form)) return;
+        initialized.add(form);
         const amount = form.elements.amount;
         const from = form.elements.from;
         const to = form.elements.to;
@@ -94,7 +96,8 @@
 
     function backupCalculator() {
         const form = document.getElementById('backup-calculator');
-        if (!form) return;
+        if (!form || initialized.has(form)) return;
+        initialized.add(form);
         const size = form.elements.size;
         const copies = form.elements.copies;
         const reserve = form.elements.reserve;
@@ -126,6 +129,7 @@
         calculate();
     }
 
-    currencyCalculator();
-    backupCalculator();
+    const start = () => { currencyCalculator(); backupCalculator(); };
+    start();
+    document.addEventListener('tcg:page-load', start);
 })();
