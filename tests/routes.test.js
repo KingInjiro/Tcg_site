@@ -44,11 +44,16 @@ test('all source pages use HTML5, a language and UTF-8; obsolete presentational 
         assert.equal(doc.mode, 'no-quirks', file);
         assert.match(html, /<html[^>]*\blang=/i, file);
         assert.match(html, /<meta charset="utf-8">/i, file);
+        let primaryHeadings = 0;
+        const content = node => node.nodeName === '#text' ? node.value : (node.childNodes || []).map(content).join('');
         function check(node) {
             assert.ok(!['font', 'center', 'o:p'].includes(node.tagName), file + ': ' + node.tagName);
+            if (node.tagName === 'h1') primaryHeadings++;
+            if (/^h[1-6]$/.test(node.tagName || '')) assert.ok(content(node).trim(), file + ': empty heading');
             for (const child of node.childNodes || []) check(child);
         }
         check(doc);
+        assert.equal(primaryHeadings, 1, file + ': one existing title is the main heading');
     }
 });
 

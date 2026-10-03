@@ -3,7 +3,7 @@
     "file": "1CPrice.html",
     "rule": "color-contrast",
     "target": [
-      ".legacy-style-18[colspan=\"3\"] > .legacy-style-7 > b > span"
+      "h1 > b > span"
     ]
   },
   {
@@ -31,42 +31,42 @@
     "file": "TStand.html",
     "rule": "color-contrast",
     "target": [
-      "tr:nth-child(1) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"]"
+      "tr:nth-child(1) > td > div > h3 > .style1.legacy-style-9[data-size=\"2\"]"
     ]
   },
   {
     "file": "TStand.html",
     "rule": "color-contrast",
     "target": [
-      "tr:nth-child(1) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"] > b"
+      "tr:nth-child(1) > td > div > h3 > .style1.legacy-style-9[data-size=\"2\"] > b"
     ]
   },
   {
     "file": "TStand.html",
     "rule": "color-contrast",
     "target": [
-      "tr:nth-child(2) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"]"
+      "tr:nth-child(2) > td > div > h3 > .style1.legacy-style-9[data-size=\"2\"]"
     ]
   },
   {
     "file": "TStand.html",
     "rule": "color-contrast",
     "target": [
-      "tr:nth-child(2) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"] > b"
+      "tr:nth-child(2) > td > div > h3 > .style1.legacy-style-9[data-size=\"2\"] > b"
     ]
   },
   {
     "file": "TStand.html",
     "rule": "color-contrast",
     "target": [
-      "tr:nth-child(3) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"]"
+      "tr:nth-child(3) > td > div > h3 > .style1.legacy-style-9[data-size=\"2\"]"
     ]
   },
   {
     "file": "TStand.html",
     "rule": "color-contrast",
     "target": [
-      "tr:nth-child(3) > td > div > h4 > .style1.legacy-style-9[data-size=\"2\"] > b"
+      "tr:nth-child(3) > td > div > h3 > .style1.legacy-style-9[data-size=\"2\"] > b"
     ]
   },
   {
@@ -81,6 +81,20 @@
     "rule": "link-in-text-block",
     "target": [
       ".legacy-style-9.legacy-font[data-size=\"2\"] > a[href$=\"reglament/\"]"
+    ]
+  },
+  {
+    "file": "serv01.html",
+    "rule": "link-in-text-block",
+    "target": [
+      "a[href$=\"TStand/\"]"
+    ]
+  },
+  {
+    "file": "serv01.html",
+    "rule": "link-in-text-block",
+    "target": [
+      "p:nth-child(4) > .legacy-style-9.legacy-font[data-size=\"2\"]:nth-child(1) > a[href$=\"Net/\"]"
     ]
   }
 ]

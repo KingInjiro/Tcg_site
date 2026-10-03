@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const assert = require('node:assert/strict');
-const yaml = require('js-yaml');
+const { pageFiles } = require('../lib/site-routes');
 const { createApp } = require('../server');
 const { publicEntries } = require('../lib/site-files');
 const { build } = require('../scripts/build');
@@ -44,15 +44,17 @@ const screenshot = async (page, name) => {
             await page.locator('#publish').click();
             await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Збережено.'), {}, { timeout: 15000 });
         };
+        await page.goto(origin + '/admin/legacy.html?local=true');
+        await page.waitForURL(origin + '/admin/?local=true');
         await login();
         assert.equal(await page.locator('#publish').innerText(), 'Зберегти на комп’ютері');
         assert.equal(await page.locator('#portable-info').isVisible(), true);
         await screenshot(page, 'builder-existing-page');
-        const entries = yaml.load(read('admin/config.yml')).collections.flatMap(collection => collection.files).map(file => file.file);
+        const entries = pageFiles(root);
         const listed = await page.locator('#page-list [data-path]').evaluateAll(nodes => nodes.map(node => node.dataset.path));
         assert.deepEqual(listed.sort(), [...entries].sort(), 'only real pages are offered, never binary documents or saved 404 responses');
         for (const name of entries) {
-            if (name !== 'index.html') await open(name);
+            await open(name);
             const result = await page.evaluate(({ html, name }) => {
                 const editor = window.grapesjs.editors.at(-1), D = window.TCGDocument;
                 const output = D.exportHTML(editor, D.importHTML(html, name).meta);

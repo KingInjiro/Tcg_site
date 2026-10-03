@@ -18,3 +18,17 @@
 [data-contact-page="/price1C/"] #table5 { width: 100%; max-width: 32em; table-layout: fixed; }
 [data-contact-page="/price1C/"] #table5 td:first-child { width: 28%; }
 [data-contact-page="/price1C/"] #table5 :is(input, textarea) { width: 100%; min-width: 0; max-width: 100%; }
+
+/* Empty legacy headings are spacing only, with their existing appearance retained. */
+.legacy-empty-heading { display: block; font-size: 1.17em; font-weight: normal; }
+
+/* Use real heading levels while retaining the original paragraph/h3/h4 presentation. */
+.legacy-page-title { display: block; font-size: 16px; font-weight: normal; line-height: 1.5; max-width: 100%; box-sizing: border-box; }
+.legacy-page-title-document { line-height: inherit; }
+.legacy-heading-3 { font-size: 1.17em; font-weight: normal; }
+.legacy-heading-4 { font-size: 1em; font-weight: normal; }
+.legacy-heading-bold { font-weight: bold; }
+:where(.legacy-empty-heading, .legacy-page-title, .legacy-heading-3) { margin-block: 1em; }
+:where(.legacy-heading-4) { margin-block: 1.33em; }
+:where(table:not(.site-layout):not(.home-columns)>tbody>tr>td>.legacy-page-title:first-child) { margin-top: 0; }
+:where(table:not(.site-layout):not(.home-columns)>tbody>tr>td>.legacy-page-title:last-child) { margin-bottom: 0; }

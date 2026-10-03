@@ -18,15 +18,9 @@ function build(root = path.resolve(__dirname, '..')) {
         fs.mkdirSync(path.dirname(path.join(output, name)), { recursive: true });
         fs.writeFileSync(path.join(output, name), content);
     }
-    // Include the pinned CMS bundle and its lazy-loaded chunks on this site.
-    const cms = path.dirname(require.resolve('decap-cms'));
+    // The visual editor is the only editing engine shipped with the site.
     const vendor = path.join(output, 'admin', 'vendor');
     fs.mkdirSync(vendor, { recursive: true });
-    for (const name of fs.readdirSync(cms)) {
-        if (name.endsWith('.js') || name.endsWith('.css') || name.endsWith('.LICENSE.txt')) {
-            fs.copyFileSync(path.join(cms, name), path.join(vendor, name));
-        }
-    }
     const grapes = path.dirname(require.resolve('grapesjs'));
     fs.copyFileSync(path.join(grapes, 'grapes.min.js'), path.join(vendor, 'grapes.min.js'));
     fs.copyFileSync(path.join(grapes, 'css', 'grapes.min.css'), path.join(vendor, 'grapes.min.css'));
