@@ -1,0 +1,34 @@
+/* Keyboard navigation aid, outside the layout until focused. */
+.skip-link { position: absolute; top: 0; left: -10000px; z-index: 1000; }
+.skip-link:focus { left: 8px; padding: 8px; background: #fff; color: #222; }
+[data-contact-form] [role="status"], #search-status { overflow-wrap: anywhere; }
+.form-trap { display: none; }
+.legacy-inline { display: inline; }
+.legacy-dl { margin-block: 1em; }
+.legacy-dt { display: block; }
+.legacy-dd { display: block; margin-inline-start: 40px; }
+
+/* Original h6 presentation retained for price footnotes, which are notes rather than headings. */
+.legacy-note { display:block; font-size:.67em; font-weight:bold; margin-block:2.33em; }
+:where(table>tbody>tr>td)>.legacy-note:first-child { margin-top:0; }
+
+/* The original shared theme made price01 footnotes normal, unlike the Word price1C page. */
+.legacy-note--theme { font-weight: normal; font-style: normal; }
+/* Restored fields must not enlarge the surrounding price table on narrow screens. */
+[data-contact-page="/price1C/"] #table5 { width: 100%; max-width: 32em; table-layout: fixed; }
+[data-contact-page="/price1C/"] #table5 td:first-child { width: 28%; }
+[data-contact-page="/price1C/"] #table5 :is(input, textarea) { width: 100%; min-width: 0; max-width: 100%; }
+
+/* Empty legacy headings are spacing only, with their existing appearance retained. */
+.legacy-empty-heading { display: block; font-size: 1.17em; font-weight: normal; }
+
+/* Use real heading levels while retaining the original paragraph/h3/h4 presentation. */
+.legacy-page-title { display: block; font-size: 16px; font-weight: normal; line-height: 1.5; max-width: 100%; box-sizing: border-box; }
+.legacy-page-title-document { line-height: inherit; }
+.legacy-heading-3 { font-size: 1.17em; font-weight: normal; }
+.legacy-heading-4 { font-size: 1em; font-weight: normal; }
+.legacy-heading-bold { font-weight: bold; }
+:where(.legacy-empty-heading, .legacy-page-title, .legacy-heading-3) { margin-block: 1em; }
+:where(.legacy-heading-4) { margin-block: 1.33em; }
+:where(table:not(.site-layout):not(.home-columns)>tbody>tr>td>.legacy-page-title:first-child) { margin-top: 0; }
+:where(table:not(.site-layout):not(.home-columns)>tbody>tr>td>.legacy-page-title:last-child) { margin-bottom: 0; }

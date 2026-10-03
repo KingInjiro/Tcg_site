@@ -6,30 +6,34 @@
     "node": "24.x"
   },
   "scripts": {
-    "build": "node scripts/build.js",
+    "build": "node --env-file-if-exists=.env scripts/build.js",
     "prestart": "npm run build",
     "start": "node --env-file-if-exists=.env server.js",
     "predev": "npm run build",
     "dev": "node --env-file-if-exists=.env server.js --dev",
-    "editor": "node scripts/start-editor.js",
-    "export": "node scripts/export-site.js",
-    "cms:local": "node scripts/cms-local.js",
+    "editor": "node --env-file-if-exists=.env scripts/start-editor.js",
+    "export": "node --env-file-if-exists=.env scripts/export-site.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:browser": "node tests/builder.browser.cjs",
     "test:content": "node tests/content.browser.cjs",
     "test:calculators": "node tests/calculators.browser.cjs",
-    "test:appearance": "node tests/appearance.browser.cjs"
+    "test:appearance": "node tests/appearance.browser.cjs",
+    "test:functionality": "node tests/site-functionality.browser.cjs",
+    "test:links": "node --test tests/links.test.js",
+    "test:html": "node scripts/build.js && node scripts/validate-html.js",
+    "test:preservation": "node tests/preservation.browser.cjs",
+    "test:accessibility": "node tests/accessibility.browser.cjs"
   },
   "dependencies": {
-    "decap-cms": "3.14.1",
-    "express": "^4.18.2",
+    "express": "^4.22.3",
     "grapesjs": "0.23.6",
     "iconv-lite": "^0.7.3",
+    "nodemailer": "10.0.13",
     "parse5": "5.1.1"
   },
   "devDependencies": {
-    "decap-server": "3.11.3",
-    "js-yaml": "5.4.2",
-    "playwright": "1.62.1"
+    "axe-core": "4.13.0",
+    "playwright": "1.62.1",
+    "vnu-jar": "26.9.30"
   }
 }

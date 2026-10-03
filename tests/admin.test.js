@@ -4,11 +4,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const http = require('node:http');
 const crypto = require('node:crypto');
-const yaml = require('js-yaml');
 const { createOAuth } = require('../lib/github-oauth');
 const { build } = require('../scripts/build');
 const { createApp } = require('../server');
-const formatter = require('../admin/raw-format');
 const root = path.resolve(__dirname, '..');
 
 async function serve(t, handler) {
@@ -122,30 +120,13 @@ test('OAuth cancellation and upstream failures return safe, actionable errors', 
     assert.ok(!(await failed.text()).includes('test-secret'));
 });
 
-test('every configured HTML file survives raw-format round trip byte for byte', () => {
-    const config = yaml.load(fs.readFileSync(path.join(root, 'admin/config.yml'), 'utf8'));
-    assert.equal(config.backend.repo, 'KingInjiro/Tcg_site');
-    assert.equal(config.backend.branch, 'main');
-    let count = 0;
-    for (const collection of config.collections) {
-        assert.equal(collection.format, 'raw');
-        for (const entry of collection.files) {
-            const input = fs.readFileSync(path.join(root, entry.file));
-            const output = Buffer.from(formatter.toFile(formatter.fromFile(input.toString('utf8'))));
-            assert.deepEqual(output, input, entry.file);
-            count++;
-        }
-    }
-    assert.ok(count > 50);
-    assert.throws(() => formatter.toFile({}), /HTML/);
-});
-
 test('build serves the CMS, website and legacy links without exposing server files', async t => {
     const output = build();
     for (const name of ['server.js', 'package.json', 'package-lock.json', 'README.md', 'api', 'lib', 'scripts', 'tests', '.env', '.git', 'test_admin.html', 'temp.html']) {
         assert.equal(fs.existsSync(path.join(output, name)), false, name);
     }
-    assert.ok(fs.existsSync(path.join(output, 'admin/vendor/decap-cms.js')));
+    assert.ok(fs.existsSync(path.join(output, 'admin/vendor/grapes.min.js')));
+    assert.equal(fs.existsSync(path.join(output, 'admin/vendor/decap-cms.js')), false);
     for (const name of ['Docs/Sno_for_Buh_ua.html', 'Docs/rp21q1.html', 'script5445.html', '1Cabon.files/image001.html', 'derived/FOR_AS.HTM_CMP_-1-010_VBTN.HTML']) {
         assert.equal(fs.existsSync(path.join(output, name)), false, 'invalid imported file: ' + name);
     }
@@ -155,7 +136,7 @@ test('build serves the CMS, website and legacy links without exposing server fil
     assert.equal(download.status, 200);
     assert.match(download.headers.get('content-disposition'), /attachment.*Sno_for_Buh_ua\.ert/);
     assert.equal((await fetch(origin + '/Docs/rp21q1.html')).status, 404);
-    for (const name of ['/', '/admin/', '/admin/config.yml', '/admin/vendor/decap-cms.js', '/CONTACTS.HTM?from=test']) {
+    for (const name of ['/', '/admin/', '/admin/legacy.html', '/admin/vendor/grapes.min.js', '/CONTACTS.HTM?from=test']) {
         assert.equal((await fetch(origin + name)).status, 200, name);
     }
     for (const name of ['/server.js', '/package.json', '/lib/github-oauth.js', '/.env', '/test_admin.html']) {

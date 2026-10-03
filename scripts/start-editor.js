@@ -8,7 +8,7 @@ function ensureDependencies(directory = root) {
     if (Number(process.versions.node.split('.')[0]) !== 24) throw new Error('Потрібен Node.js 24 LTS. Встановіть його з https://nodejs.org/en/download і запустіть редактор знову.');
     const fingerprint = crypto.createHash('sha256').update(fs.readFileSync(path.join(directory, 'package-lock.json'))).update(process.platform + process.arch + process.versions.node).digest('hex');
     const stamp = path.join(directory, 'node_modules', '.tcg-editor-dependencies');
-    const present = ['express', 'grapesjs', 'decap-cms'].every(name => fs.existsSync(path.join(directory, 'node_modules', name, 'package.json')));
+    const present = ['express', 'grapesjs', 'nodemailer'].every(name => fs.existsSync(path.join(directory, 'node_modules', name, 'package.json')));
     if (present && fs.existsSync(stamp) && fs.readFileSync(stamp, 'utf8') === fingerprint) return;
     console.log('Перший запуск або оновлення: встановлюю компоненти редактора. Потрібен інтернет; зачекайте завершення.');
     // Arguments are fixed; no credentials, paths or user input enter a shell command.

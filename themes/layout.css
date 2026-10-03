@@ -16,20 +16,20 @@
 }
 
 /* Preserve the text sizes used by the imported Word pages. */
-.site-page :where(span:where(.legacy-font)) {
+.site-page :where(:where(.legacy-font)) {
   font-size: 16px;
   line-height: 1.5;
 }
 
-.site-page :where(span:where(.legacy-font)[data-size="1"]) {
+.site-page :where(:where(.legacy-font)[data-size="1"]) {
   font-size: 14px;
 }
 
-.site-page :where(span:where(.legacy-font)[data-size="3"]) {
+.site-page :where(:where(.legacy-font)[data-size="3"]) {
   font-size: 18px;
 }
 
-.site-page :where(span:where(.legacy-font) > span) {
+.site-page :where(:where(.legacy-font) > :is(span, .legacy-inline)) {
   font-size: inherit;
 }
 
