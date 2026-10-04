@@ -1,4 +1,17 @@
 /* Shared layout and readable text sizes; the original theme keeps its colours and decoration. */
+html[aria-busy="true"], html[aria-busy="true"] a { cursor: progress; }
+html[aria-busy="true"]::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #b26b00;
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
 .site-page {
   width: calc(100% - 16px);
   max-width: 1600px;

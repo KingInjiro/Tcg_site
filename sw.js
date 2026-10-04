@@ -23,21 +23,23 @@ self.addEventListener('fetch', event => {
         event.respondWith(Promise.resolve(Response.redirect(new URL(canonical + url.search, self.location.origin).href, 302)));
         return;
     }
-    const key = url.pathname, allowed = assets.has(key);
+    const key = url.pathname, allowed = assets.has(key) && (!url.search || navigation);
     if (!allowed && !navigation) return;
     event.respondWith((async () => {
         const cache = await caches.open(CACHE_NAME);
+        // Public pages and assets are a versioned build snapshot. Do not wait for
+        // the network on every click; a new worker installs the next snapshot.
+        const saved = allowed && await cache.match(key);
+        if (saved) return saved;
         try {
             const response = await fetch(event.request);
             // Cache known public resources only; never APIs, form data or query strings.
-            if (allowed && response.ok && !response.redirected && response.type === 'basic' &&
+            if (allowed && !url.search && response.ok && !response.redirected && response.type === 'basic' &&
                 !/no-store|private/i.test(response.headers.get('cache-control') || '')) {
-                await cache.put(key, response.clone());
+                event.waitUntil(cache.put(key, response.clone()).catch(() => {}));
             }
             return response;
         } catch (error) {
-            const saved = allowed && await cache.match(key);
-            if (saved) return saved;
             if (navigation) return await cache.match('/themes/offline.html') || Response.error();
             throw error;
         }
