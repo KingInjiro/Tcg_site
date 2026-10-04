@@ -9,7 +9,15 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
 (async () => {
     const output = build(), engine = process.env.TCG_TEST_BROWSER || 'chromium';
     const app = express();
-    let workerVersion = false, brokenPage = false;
+    let workerVersion = false, brokenPage = false, slowImages = false;
+    const requests = [], delayedResources = new Set();
+    app.use((req, res, next) => {
+        requests.push(req.path);
+        if (delayedResources.has(req.path) || (slowImages && /\.(?:gif|png|jpe?g|svg)$/i.test(req.path))) {
+            res.set('Cache-Control', 'no-store');
+            setTimeout(next, 250);
+        } else next();
+    });
     app.get('/sw.js', (_req, res) => res.type('js').set('Cache-Control', 'no-cache').send(
         fs.readFileSync(path.join(output, 'sw.js'), 'utf8').replace(/("version":")([^"]+)/, (_all, start, version) => start + version + (workerVersion ? '-update' : ''))));
     app.get('/contacts/', (req, res, next) => brokenPage && req.get('X-TCG-Navigation') ? res.status(503).send('temporary failure') : next());
@@ -55,9 +63,29 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             await target.waitForFunction(() => !document.documentElement.hasAttribute('aria-busy') && !document.getElementById('test-navigation'));
         };
         // Real menu click, URL/title/focus update, original GIF styling, and no document reload.
+        await page.evaluate(() => {
+            document.addEventListener('click', () => {
+                window.clickFeedback = {
+                    busy: document.documentElement.getAttribute('aria-busy'),
+                    cursor: getComputedStyle(document.documentElement).cursor,
+                    indicator: getComputedStyle(document.documentElement, '::before').height,
+                };
+            }, { once: true });
+            document.addEventListener('tcg:page-load', () => {
+                window.unfinishedImages = [...document.images].filter(img => !img.complete || !img.naturalWidth)
+                    .map(img => img.getAttribute('src').slice(0, 100));
+            }, { once: true });
+        });
+        const firstClickRequest = requests.length;
+        slowImages = true;
         await page.locator('a[data-tcg-page][href="/contacts/"]').first().click();
         await page.waitForURL(origin + '/contacts/');
         await page.waitForFunction(() => document.activeElement?.id === 'main-content');
+        slowImages = false;
+        assert.deepEqual(requests.slice(firstClickRequest).filter(url => url.endsWith('.css')), [], 'shared CSS does not reload on navigation');
+        assert.deepEqual(await page.evaluate(() => window.clickFeedback), { busy: 'true', cursor: 'progress', indicator: '2px' }, 'click is acknowledged synchronously');
+        assert.deepEqual(await page.evaluate(() => window.unfinishedImages), [], 'contact page/menu images are ready at the commit, even with delayed image requests');
+        console.log('PASS ' + engine + ': no repeated shared CSS requests, immediate click feedback, delayed images ready before page commit');
         assert.equal(await page.evaluate(() => window.documentMarker), 'same-document');
         assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), '/contacts/');
         const originalTitle = await page.title();
@@ -135,6 +163,22 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             for (const file of pageFiles(path.resolve(__dirname, '..'))) assert.ok(keys.includes(pageURL(file)), file + ': precached');
             assert.ok(keys.includes('/themes/navigation.js') && keys.includes('/images/app-icon.svg'));
             assert.ok(!keys.some(key => /^\/(admin|api)(\/|$)/.test(key) || key === '/themes/contact-config.json'));
+            // Being online must not make ready PWA pages wait for a slow server.
+            keys.forEach(key => delayedResources.add(key));
+            const cachedClickRequest = requests.length;
+            await offline.evaluate(() => { window.documentMarker = 'cached-spa'; });
+            await clickRoute('/contacts/', offline);
+            const searchQuery = 'резервное копирование', searchURL = '/search/?search=' + encodeURIComponent(searchQuery);
+            await clickRoute(searchURL, offline);
+            assert.equal(await offline.locator('#site-search').inputValue(), searchQuery, 'cached HTML retains the requested query');
+            await offline.locator('#search-results a[href="/ListPage/Pege05/"]').waitFor();
+            await clickRoute('/contacts/', offline);
+            await offline.goBack(); await offline.waitForURL(origin + searchURL);
+            await offline.locator('#search-results a[href="/ListPage/Pege05/"]').waitFor();
+            assert.equal(await offline.evaluate(() => window.documentMarker), 'cached-spa');
+            assert.deepEqual(requests.slice(cachedClickRequest).filter(url => delayedResources.has(url)), [], 'cached navigation, modules, search index and images make no server requests');
+            delayedResources.clear();
+            console.log('PASS PWA: online cached transitions bypass delayed network; search query/results survive navigation and history');
             await offlineContext.setOffline(true);
             await offline.goto(origin + '/contacts/');
             assert.equal(await offline.title(), originalTitle);

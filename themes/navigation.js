@@ -7,6 +7,7 @@
     const modules = new Set(['/themes/search.js', '/themes/contact.js', '/themes/calculators.js', '/themes/news.js']);
     const thirdParty = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
     const loaded = new Map([...document.scripts].filter(s => s.src).map(s => [s.src, Promise.resolve()]));
+    const preparingStyles = new WeakSet();
     let sequence = 0, pending, changing = false, rendered = location.pathname + location.search, scrollFrame;
     history.scrollRestoration = 'manual';
     const saveScroll = () => {
@@ -39,6 +40,71 @@
         for (const attr of [...to.attributes]) to.removeAttribute(attr.name);
         for (const attr of from.attributes) to.setAttribute(attr.name, attr.value);
     }
+    function stylesheetKey(link) {
+        return JSON.stringify([...link.attributes].map(attr => [attr.name,
+            attr.name === 'href' ? new URL(attr.value, location.href).href : attr.value])
+            .sort(([a], [b]) => a.localeCompare(b)));
+    }
+    function prepareStyles(doc, signal, temporary) {
+        const existing = [...document.head.querySelectorAll('link[rel="stylesheet"]')]
+            .filter(link => link.sheet && !preparingStyles.has(link));
+        const replacements = new Map(), fresh = new Set(), waits = [];
+        let cursor = 0;
+        for (const link of doc.head.querySelectorAll('link[rel="stylesheet"]')) {
+            const key = stylesheetKey(link);
+            const index = existing.findIndex((sheet, i) => i >= cursor && stylesheetKey(sheet) === key);
+            const sheet = index < 0 ? document.importNode(link, true) : existing[index];
+            replacements.set(link, { sheet, media: link.getAttribute('media') });
+            if (index >= 0) cursor = index + 1;
+            else { sheet.media = 'not all'; fresh.add(sheet); preparingStyles.add(sheet); temporary.push(sheet); }
+        }
+        // Insert only new sheets around the retained ones, preserving cascade order
+        // without detaching or reloading any sheet already in use.
+        let next = null;
+        for (const { sheet } of [...replacements.values()].reverse()) {
+            if (fresh.has(sheet)) waits.push(new Promise((resolve, reject) => {
+                const timer = setTimeout(() => done(new Error('stylesheet timeout')), 10000);
+                const done = error => {
+                    clearTimeout(timer); signal.removeEventListener('abort', aborted);
+                    sheet.onload = sheet.onerror = null;
+                    error ? reject(error) : resolve();
+                };
+                const aborted = () => done(new Error('superseded'));
+                if (signal.aborted) return aborted();
+                signal.addEventListener('abort', aborted, { once: true });
+                sheet.onload = () => done(); sheet.onerror = () => done(new Error('stylesheet unavailable'));
+                document.head.insertBefore(sheet, next);
+            }));
+            next = sheet;
+        }
+        return Promise.all(waits).then(() => replacements);
+    }
+    async function prepareImages(doc, signal) {
+        const main = doc.body.querySelector('main, [role="main"]'), prepared = new Map();
+        let contentImages = 0;
+        const waits = [];
+        [...doc.images].forEach((source, index) => {
+            if (!source.getAttribute('src') || source.loading === 'lazy') return;
+            const url = new URL(source.getAttribute('src'), location.href);
+            if (url.origin !== location.origin && url.protocol !== 'data:') return;
+            const beforeMain = main && !!(source.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING);
+            const inContent = !main || main.contains(source);
+            if (!beforeMain && !(inContent && contentImages++ < 4)) return;
+            const image = document.importNode(source, true);
+            prepared.set(index, image);
+            waits.push(image.decode().catch(() => {}));
+        });
+        // A missing picture must never hold the entire page indefinitely.
+        let timer, aborted;
+        try {
+            await Promise.race([Promise.all(waits), new Promise(resolve => {
+                timer = setTimeout(resolve, 1000);
+                aborted = resolve;
+                if (signal.aborted) resolve(); else signal.addEventListener('abort', aborted, { once: true });
+            })]);
+        } finally { clearTimeout(timer); signal.removeEventListener('abort', aborted); }
+        return prepared;
+    }
     async function position(url, saved) {
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const main = document.querySelector('main, [role="main"]');
@@ -67,24 +133,16 @@
             if (doc.querySelector('meta[name="tcg-page"]')?.content !== '1' || doc.querySelector('base')) throw new Error('ordinary navigation required');
             const scripts = [...doc.scripts];
             if (!scripts.every(scriptSupported)) throw new Error('custom page script requires its own document');
-            const finalURL = new URL(response.url); finalURL.hash = url.hash;
-            // Load new styles without applying them to the old page. Reuse these loaded nodes at commit.
-            const sheets = [...doc.head.querySelectorAll('link[rel="stylesheet"]')];
-            const replacements = new Map();
-            await Promise.all(sheets.map(link => new Promise((resolve, reject) => {
-                const sheet = document.importNode(link, true), media = sheet.getAttribute('media');
-                sheet.media = 'not all'; temporary.push(sheet); replacements.set(link, { sheet, media });
-                const timer = setTimeout(() => reject(new Error('stylesheet timeout')), 10000);
-                const done = error => { clearTimeout(timer); controller.signal.removeEventListener('abort', aborted); error ? reject(error) : resolve(); };
-                const aborted = () => done(new Error('superseded'));
-                controller.signal.addEventListener('abort', aborted, { once: true });
-                sheet.onload = () => done(); sheet.onerror = () => done(new Error('stylesheet unavailable'));
-                document.head.append(sheet);
-            })));
-            for (const script of scripts) {
-                const src = script.getAttribute('src');
-                if (src && modules.has(new URL(src, finalURL).pathname)) await loadScript(src);
-            }
+            const finalURL = new URL(response.url);
+            if (!response.redirected && finalURL.pathname === url.pathname) finalURL.search = url.search;
+            finalURL.hash = url.hash;
+            const moduleSources = [...new Set(scripts.map(script => script.getAttribute('src'))
+                .filter(src => src && modules.has(new URL(src, finalURL).pathname)))];
+            const [replacements, images] = await Promise.all([
+                prepareStyles(doc, controller.signal, temporary),
+                prepareImages(doc, controller.signal),
+                Promise.all(moduleSources.map(loadScript)),
+            ]);
             if (current !== sequence || controller.signal.aborted) return;
             const adSettings = scripts.filter(legacyAd).map(script => script.textContent);
             scripts.forEach(script => script.remove());
@@ -92,8 +150,11 @@
                 const replacement = replacements.get(node);
                 if (!replacement) return document.importNode(node, true);
                 if (replacement.media === null) replacement.sheet.removeAttribute('media'); else replacement.sheet.media = replacement.media;
+                preparingStyles.delete(replacement.sheet);
                 return replacement.sheet;
             });
+            const body = document.importNode(doc.body, true), bodyImages = [...body.querySelectorAll('img')];
+            for (const [index, image] of images) bodyImages[index].replaceWith(image);
             // One synchronous commit prevents styles from a previous page leaking into the next one.
             if (!pop) history.pushState({ tcgScroll: [0, 0] }, '', finalURL);
             copyAttributes(doc.documentElement, document.documentElement);
@@ -108,7 +169,7 @@
                 if (node.parentNode !== document.head) document.head.insertBefore(node, next);
                 next = node;
             }
-            document.body.replaceWith(document.importNode(doc.body, true));
+            document.body.replaceWith(body);
             committed = true;
             rendered = finalURL.pathname + finalURL.search;
             document.dispatchEvent(new Event('tcg:page-load'));
