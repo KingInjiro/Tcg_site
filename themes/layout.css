@@ -90,9 +90,13 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
 }
 
 .site-content > table,
+.site-content > .table-scroll > table,
 .site-price-table {
   width: 100%;
 }
+
+/* The wrapper leaves the desktop table geometry unchanged. */
+.table-scroll { display: contents; }
 
 .site-price-table td:first-child {
   width: auto;
@@ -235,9 +239,99 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
   .backup-calculator {
     grid-row: 1;
   }
+
+  /* Only wide data tables scroll; the surrounding article stays in the viewport. */
+  .table-scroll {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+
+  .table-scroll:focus-visible {
+    outline: 2px solid #b26b00;
+    outline-offset: 2px;
+  }
+
+  .table-scroll > table { width: 100%; min-width: 28rem; }
+  .table-scroll[data-columns="2"] > table { min-width: 0; table-layout: fixed; }
+  .table-scroll[data-columns="2"] > table > tbody > tr > td:last-child { width: 32% !important; }
+  .table-scroll[data-columns="3"] > table { min-width: 36rem; }
+  .table-scroll[data-columns="8"] > table { min-width: 56rem; }
+  .table-scroll[data-columns="8"]::before {
+    content: "↔ Прокрутите таблицу";
+    display: block;
+    position: sticky;
+    left: 0;
+    padding-block: 4px;
+    font-size: 14px;
+  }
+  .site-page [role="main"] table:has(.table-scroll) { table-layout: fixed; width: 100%; }
+  .backup-article table { table-layout: fixed; max-width: 100%; }
+
+  .site-page [role="main"] p[style*="width:"] { width: auto !important; }
+  .site-page hr { box-sizing: border-box; max-width: 100%; }
+  .site-page :is(input, select, textarea, button) { max-width: 100%; box-sizing: border-box; }
+  .site-page textarea { width: 100%; }
+  .site-page :is([data-contact-form], [data-site-search]) blockquote { margin-inline: 0; }
+  .site-page :is([data-contact-form], [data-site-search]) input:not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .site-page :is([data-contact-form], [data-site-search]) .legacy-control-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 600px) {
+  .table-scroll[data-columns="3"]::before {
+    content: "↔ Прокрутите таблицу";
+    display: block;
+    position: sticky;
+    left: 0;
+    padding-block: 4px;
+    font-size: 14px;
+  }
+}
+
+/* Keep the original GIF artwork, with enough space around it for a finger. */
+@media (max-width: 1100px), (any-pointer: coarse) {
+  .site-page .legacy-top-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+  }
+
+  .site-page .legacy-top-navigation a,
+  .site-layout > tbody > tr > td:first-child p a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    max-width: 100%;
+    box-sizing: border-box;
+    vertical-align: middle;
+  }
+
+  .site-page .legacy-top-navigation a img { margin-top: 0; }
+  .site-layout > tbody > tr > td:first-child > p { height: auto !important; }
+  .site-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, button) {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  .site-page :is(input[type="submit"], input[type="reset"], button) { padding: 6px 12px; }
+  .site-page .contact-choice { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
+}
+
+@media (max-width: 900px) {
   .site-layout > tbody > tr {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -249,21 +343,36 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
   .site-layout > tbody > tr > td:first-child > p {
     width: auto !important;
     height: auto !important;
+    margin-inline: 0 !important;
+    margin-block: 8px;
   }
 
   .site-layout > tbody > tr > td:first-child > p:has(.left-nav-icon) {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    gap: 4px 8px;
   }
 
   .site-layout > tbody > tr > td:first-child br {
     display: none;
   }
 
-  .site-content,
-  .backup-article,
-  .site-page .WordSection1 {
-    overflow-x: auto;
+  .site-layout > tbody > tr > td:first-child > p:has(> img[width="0"][height="0"]:only-child) { display: none; }
+
+  /* These spans contain the old nonbreaking-space title indentation only. */
+  .legacy-page-title .legacy-font[data-size="4"] > span[lang="en-us"]:first-child { display: none; }
+
+  .site-page [data-contact-form] :is(table, tbody, tr, td) {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: start;
+  }
+  .site-page [data-contact-form] td:has(input, textarea, select) { padding-bottom: 12px; }
+
+  .site-content :is(p.legacy-style-33, p[style*="text-align:justify"], p[style*="text-align: justify"]) {
+    text-align: start !important;
   }
 }
