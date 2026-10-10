@@ -1,4 +1,4 @@
-// Preserve desktop geometry and the content/artwork/typography at both sizes.
+// Preserve desktop content geometry and the content/artwork/typography at both sizes.
 // Narrow layouts intentionally reflow; responsive.browser.cjs checks their fit and usability.
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,6 +10,11 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
 (async () => {
     const root = path.resolve(__dirname, '..'), baseline = process.env.TCG_BASELINE_DIR;
     assert.ok(baseline && fs.existsSync(path.join(baseline, 'index.html')), 'Set TCG_BASELINE_DIR to the pre-change checkout');
+    // The client approved larger menus and softer upper buttons. Apply only that
+    // shared menu presentation to the reference page too: the rest of the desktop
+    // layout must still match, including the content displaced by taller menus.
+    // Responsive checks exercise the real published layout without this adjustment.
+    const menuPresentation = fs.readFileSync(path.join(root, 'themes/navigation.css'), 'utf8').split('/* Original FrontPage rollover')[0];
     const servers = [baseline, path.join(root, 'dist')].map(dir => express().use(express.static(dir)).listen(0, '127.0.0.1'));
     await Promise.all(servers.map(server => new Promise(resolve => server.once('listening', resolve))));
     const origins = servers.map(server => 'http://127.0.0.1:' + server.address().port);
@@ -44,6 +49,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             for (const page of pages) await page.setViewportSize({ width, height: 1000 });
             for (const file of sources) {
                 await Promise.all(pages.map((page, i) => page.goto(origins[i] + (i ? pageURL(file) : '/' + file), { waitUntil: 'load' })));
+                await pages[0].addStyleTag({ content: menuPresentation });
                 const [before, after] = await Promise.all(pages.map(snapshot)), changes = [];
                 if (before.texts.length !== after.texts.length) changes.push({ kind: 'text-count', before: before.texts.length, after: after.texts.length });
                 for (let i = 0; i < Math.min(before.texts.length, after.texts.length); i++) {
@@ -64,13 +70,13 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         if (process.env.TCG_APPEARANCE_REPORT) fs.writeFileSync(process.env.TCG_APPEARANCE_REPORT, JSON.stringify(failures, null, 2));
         if (failures.length) console.log('PRESERVATION_REPORT ' + JSON.stringify(failures));
         assert.deepEqual(failures, [], 'visible content, fonts, colours and artwork remain unchanged; desktop geometry has 1px tolerance');
-        console.log('PASS appearance preservation: ' + sources.length + ' pages; desktop geometry at 1440px, content/fonts/colours/artwork at 1440/390px; restored price1C form geometry is excluded');
+        console.log('PASS appearance preservation: ' + sources.length + ' pages; desktop content geometry at 1440px with approved menu sizing, content/fonts/colours/artwork at 1440/390px; restored price1C form geometry is excluded');
 
         // Keep the original image replacement on hover and keyboard focus.
         const buttons = new Map();
         for (const file of sources) {
             const html = fs.readFileSync(path.join(root, file), 'utf8');
-            for (const match of html.matchAll(/<img\b[^>]*\bsrc="([^"]+_[HV]BTN\.GIF)"/gi)) if (!buttons.has(match[1])) buttons.set(match[1], file);
+            for (const match of html.matchAll(/<img\b[^>]*\bsrc="([^"]+_[GHV]BTN\.GIF)"/gi)) if (!buttons.has(match[1])) buttons.set(match[1], file);
         }
         const interactive = await browser.newPage({ serviceWorkers: 'block' }), errors = [];
         interactive.on('pageerror', error => errors.push(error.message));
@@ -85,15 +91,24 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             currentFile = file;
             const menu = interactive.locator('a > img[src="' + src + '"]').first();
             const expected = src.replace(/\.GIF$/i, '_A.GIF');
+            const globalButton = /_GBTN\.GIF$/i.test(src);
+            await interactive.mouse.move(0, 0);
+            await interactive.evaluate(() => document.activeElement?.blur());
+            const normal = await menu.evaluate(img => ({ filter: getComputedStyle(img).filter, width: img.getBoundingClientRect().width, height: img.getBoundingClientRect().height }));
             await menu.hover();
-            assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': hover');
+            if (globalButton) {
+                assert.notEqual(await menu.evaluate(img => getComputedStyle(img).filter), normal.filter, src + ': upper background changes on hover');
+                assert.ok(normal.width > 90, src + ': upper lettering is enlarged');
+            } else assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': hover');
             await interactive.mouse.move(0, 0);
             await interactive.keyboard.press('Tab');
             await menu.locator('..').focus();
-            assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': keyboard focus');
+            if (globalButton) assert.notEqual(await menu.evaluate(img => getComputedStyle(img).filter), normal.filter, src + ': upper background changes on keyboard focus');
+            else assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': keyboard focus');
+            assert.deepEqual(await menu.evaluate(img => ({ width: img.getBoundingClientRect().width, height: img.getBoundingClientRect().height })), { width: normal.width, height: normal.height }, src + ': no resizing on hover/focus');
         }
         assert.deepEqual(errors, []);
-        console.log('PASS ' + buttons.size + ' original GIF buttons: hover and keyboard focus; legacy redirects preserve query/hash');
+        console.log('PASS ' + buttons.size + ' original GIF buttons: upper background/legacy rollover on hover and keyboard focus, no resizing; legacy redirects preserve query/hash');
         const offline = await browser.newPage();
         await offline.route('**/*', route => new URL(route.request().url()).origin === origins[1] ? route.continue() : route.abort());
         await offline.goto(origins[1] + '/');
