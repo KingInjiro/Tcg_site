@@ -4,9 +4,11 @@ const CACHE_NAME = 'tgroup-pwa-' + config.version;
 const assets = new Set(config.urls);
 
 self.addEventListener('install', event => {
-    // Failed installation leaves the previous version in service. Updates wait for
-    // old tabs to close instead of reloading an unfinished form.
-    event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(config.urls.map(url => new Request(url, { cache: 'reload' })))));
+    // Activate only after the entire new snapshot is ready. Open tabs keep their
+    // document and form values; their next navigation can use the new build.
+    event.waitUntil(caches.open(CACHE_NAME)
+        .then(cache => cache.addAll(config.urls.map(url => new Request(url, { cache: 'reload' }))))
+        .then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
     event.waitUntil(caches.keys().then(keys => Promise.all(keys
