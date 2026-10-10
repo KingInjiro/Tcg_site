@@ -1,6 +1,5 @@
-/* Enlarge the existing artwork, including its lettering, without replacing it.
-   The upper buttons keep their pale yellow colour and use the same original
-   glow artwork as the left menu. The lettering is still the original GIF. */
+/* Keep the original GIF lettering and pale yellow palette. Upper buttons are
+   compact, with a soft outer glow; the left menu retains its original rollover. */
 .site-page .legacy-top-navigation {
   display: flex;
   flex-wrap: wrap;
@@ -25,16 +24,14 @@
 .site-page .legacy-top-navigation a:has(> img[src$="_GBTN.GIF"]) {
   overflow: hidden;
   isolation: isolate;
-  border-radius: 14px;
+  min-height: 34px;
+  border-radius: 11px;
   background-color: #f4eda6;
-  background-position: center;
-  background-size: 100% 22.5px;
-  background-repeat: no-repeat;
 }
 
 .site-page .legacy-top-navigation a > img[src$="_GBTN.GIF"] {
   display: block;
-  width: 144px;
+  width: 120px;
   max-width: 100%;
   height: auto;
   /* Remove the baked-in rectangular yellow fill, leaving the black lettering.
@@ -44,14 +41,18 @@
 }
 
 .site-page .legacy-top-navigation a:has(> img[src$="_GBTN.GIF"]):is(:hover, :focus-visible) {
-  background-color: #fff;
-  background-image: url("/themes/-1-/nav_vert_over_spring.gif");
-  box-shadow: inset 0 0 0 1px #f4eda6;
+  box-shadow: 0 0 10px 3px rgb(222 196 62 / 55%);
 }
 
 .site-page .legacy-top-navigation a:focus-visible {
   outline: 2px solid #b26b00;
   outline-offset: 2px;
+}
+
+@media (max-width: 1100px), (any-pointer: coarse) {
+  .site-page .legacy-top-navigation a:has(> img[src$="_GBTN.GIF"]) {
+    min-height: 44px;
+  }
 }
 
 .site-layout > tbody > tr > td:first-child > p:has(.left-nav-icon) {
