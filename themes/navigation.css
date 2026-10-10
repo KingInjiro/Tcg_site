@@ -1,3 +1,67 @@
+/* Enlarge the existing artwork, including its lettering, without replacing it.
+   The upper buttons keep their pale yellow colour, with softer edges and a
+   warmer hover/focus state. No script or extra image download is needed. */
+.site-page .legacy-top-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.site-page .legacy-top-navigation a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.site-page .legacy-top-navigation a > img,
+.site-page .legacy-top-navigation a:not(:last-of-type) > img {
+  margin-top: 0;
+}
+
+.site-page .legacy-top-navigation a > img[src$="_GBTN.GIF"] {
+  display: block;
+  width: 144px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  mask-image: linear-gradient(to bottom, transparent, #000 5px, #000 calc(100% - 5px), transparent);
+}
+
+.site-page .legacy-top-navigation a:is(:hover, :focus-visible) > img[src$="_GBTN.GIF"] {
+  filter: brightness(.94) saturate(1.5);
+}
+
+.site-page .legacy-top-navigation a:focus-visible {
+  outline: 2px solid #b26b00;
+  outline-offset: 2px;
+}
+
+.site-layout > tbody > tr > td:first-child > p:has(.left-nav-icon) {
+  width: auto !important;
+  height: auto !important;
+  margin-inline: 0 !important;
+}
+
+.site-layout a:has(> .left-nav-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.site-layout a > .left-nav-icon,
+.site-page .legacy-top-navigation a > img[src$="_HBTN.GIF"] {
+  width: clamp(144px, calc((100vw - 40px) / 2), 165px);
+  max-width: 100%;
+  height: auto;
+}
+
 /* Original FrontPage rollover artwork, not a recreated CSS highlight.
    Match the normal image path so changing a button image in the editor cannot
    accidentally retain the rollover belonging to a different label.
