@@ -85,7 +85,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         await interactive.waitForURL(origins[1] + '/contacts/?from=old#phone');
         await interactive.goto(origins[1] + '/index.html?from=old');
         await interactive.waitForURL(origins[1] + '/?from=old');
-        let currentFile;
+        let currentFile, checkedUpperPixels = false;
         for (const [src, file] of buttons) {
             if (file !== currentFile) await interactive.goto(origins[1] + pageURL(file));
             currentFile = file;
@@ -94,20 +94,44 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             const globalButton = /_GBTN\.GIF$/i.test(src);
             await interactive.mouse.move(0, 0);
             await interactive.evaluate(() => document.activeElement?.blur());
-            const normal = await menu.evaluate(img => ({ filter: getComputedStyle(img).filter, width: img.getBoundingClientRect().width, height: img.getBoundingClientRect().height }));
+            const normal = await menu.evaluate(img => ({ background: getComputedStyle(img.parentElement).backgroundImage, width: img.getBoundingClientRect().width, height: img.getBoundingClientRect().height }));
+            const normalPixels = globalButton && !checkedUpperPixels ? await menu.locator('..').screenshot() : null;
             await menu.hover();
             if (globalButton) {
-                assert.notEqual(await menu.evaluate(img => getComputedStyle(img).filter), normal.filter, src + ': upper background changes on hover');
+                assert.ok((await menu.evaluate(img => getComputedStyle(img.parentElement).backgroundImage)).includes('/themes/-1-/nav_vert_over_spring.gif'), src + ': original left-menu glow on hover');
+                assert.equal(normal.background, 'none', src + ': glow is not shown at rest');
                 assert.ok(normal.width > 90, src + ': upper lettering is enlarged');
+                if (normalPixels) {
+                    await menu.evaluate(async img => {
+                        const background = new Image();
+                        background.src = getComputedStyle(img.parentElement).backgroundImage.match(/url\("?([^"\)]+)"?\)/)[1];
+                        await background.decode();
+                    });
+                    const hoverPixels = await menu.locator('..').screenshot();
+                    const [rest, hover] = await interactive.evaluate(async images => Promise.all(images.map(async source => {
+                        const image = new Image(); image.src = source; await image.decode();
+                        const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+                        const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0);
+                        const pixel = (x, y) => [...ctx.getImageData(x, y, 1, 1).data].slice(0, 3);
+                        return { corner: pixel(3, 3), top: pixel(Math.floor(image.width / 2), 3),
+                            band: Array.from({ length: image.width - 20 }, (_, x) => pixel(x + 10, 30)) };
+                    })), [normalPixels, hoverPixels].map(buffer => 'data:image/png;base64,' + buffer.toString('base64')));
+                    assert.ok(rest.corner.every(channel => channel >= 250), 'rounded upper button has a visibly empty corner');
+                    assert.ok(rest.top[0] >= 230 && rest.top[2] < 200, 'normal upper button keeps the original yellow fill');
+                    assert.ok(hover.top.every(channel => channel >= 250), 'hover removes the flat fill to reveal the original glow');
+                    assert.ok(hover.band.filter(([r, g, b]) => r > 200 && g > 200 && b < 245).length > 20, 'hover screenshot contains a visible yellow glow below the lettering');
+                    checkedUpperPixels = true;
+                }
             } else assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': hover');
             await interactive.mouse.move(0, 0);
             await interactive.keyboard.press('Tab');
             await menu.locator('..').focus();
-            if (globalButton) assert.notEqual(await menu.evaluate(img => getComputedStyle(img).filter), normal.filter, src + ': upper background changes on keyboard focus');
+            if (globalButton) assert.ok((await menu.evaluate(img => getComputedStyle(img.parentElement).backgroundImage)).includes('/themes/-1-/nav_vert_over_spring.gif'), src + ': original left-menu glow on keyboard focus');
             else assert.ok((await menu.evaluate(img => getComputedStyle(img).content)).includes(expected), src + ': keyboard focus');
             assert.deepEqual(await menu.evaluate(img => ({ width: img.getBoundingClientRect().width, height: img.getBoundingClientRect().height })), { width: normal.width, height: normal.height }, src + ': no resizing on hover/focus');
         }
         assert.deepEqual(errors, []);
+        assert.ok(checkedUpperPixels, 'rounded corners and hover glow are checked in the rendered pixels');
         console.log('PASS ' + buttons.size + ' original GIF buttons: upper background/legacy rollover on hover and keyboard focus, no resizing; legacy redirects preserve query/hash');
         const offline = await browser.newPage();
         await offline.route('**/*', route => new URL(route.request().url()).origin === origins[1] ? route.continue() : route.abort());
