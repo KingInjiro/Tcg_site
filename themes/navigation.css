@@ -1,6 +1,6 @@
 /* Enlarge the existing artwork, including its lettering, without replacing it.
-   The upper buttons keep their pale yellow colour, with softer edges and a
-   warmer hover/focus state. No script or extra image download is needed. */
+   The upper buttons keep their pale yellow colour and use the same original
+   glow artwork as the left menu. The lettering is still the original GIF. */
 .site-page .legacy-top-navigation {
   display: flex;
   flex-wrap: wrap;
@@ -22,17 +22,31 @@
   margin-top: 0;
 }
 
+.site-page .legacy-top-navigation a:has(> img[src$="_GBTN.GIF"]) {
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 14px;
+  background-color: #f4eda6;
+  background-position: center;
+  background-size: 100% 22.5px;
+  background-repeat: no-repeat;
+}
+
 .site-page .legacy-top-navigation a > img[src$="_GBTN.GIF"] {
   display: block;
   width: 144px;
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
-  mask-image: linear-gradient(to bottom, transparent, #000 5px, #000 calc(100% - 5px), transparent);
+  /* Remove the baked-in rectangular yellow fill, leaving the black lettering.
+     White blends into the link background; clipping belongs to the whole link. */
+  filter: grayscale(1) brightness(1.2);
+  mix-blend-mode: multiply;
 }
 
-.site-page .legacy-top-navigation a:is(:hover, :focus-visible) > img[src$="_GBTN.GIF"] {
-  filter: brightness(.94) saturate(1.5);
+.site-page .legacy-top-navigation a:has(> img[src$="_GBTN.GIF"]):is(:hover, :focus-visible) {
+  background-color: #fff;
+  background-image: url("/themes/-1-/nav_vert_over_spring.gif");
+  box-shadow: inset 0 0 0 1px #f4eda6;
 }
 
 .site-page .legacy-top-navigation a:focus-visible {
