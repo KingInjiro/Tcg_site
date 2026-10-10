@@ -21,13 +21,13 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
     app.get('/sw.js', (_req, res) => res.type('js').set('Cache-Control', 'no-cache').send(
         fs.readFileSync(path.join(output, 'sw.js'), 'utf8').replace(/("version":")([^"]+)/, (_all, start, version) => start + version + (workerVersion ? '-update' : ''))));
     app.get('/contacts/', (req, res, next) => brokenPage && req.get('X-TCG-Navigation') ? res.status(503).send('temporary failure') : next());
-    app.get('/themes/navigation.css', (_req, res) => res.type('css').set('Cache-Control', 'no-store').send(
-        fs.readFileSync(path.join(output, 'themes/navigation.css'), 'utf8') + '\n:root { --tcg-test-build: ' + (workerVersion ? 'after' : 'before') + '; }'));
     // Make transient stylesheet reloads visible instead of hiding them in the cache.
     app.get(/\.css$/, (_req, res, next) => {
         res.set('Cache-Control', 'no-store');
         setTimeout(next, 80);
     });
+    app.get('/themes/navigation.css', (_req, res) => res.type('css').send(
+        fs.readFileSync(path.join(output, 'themes/navigation.css'), 'utf8') + '\n:root { --tcg-test-build: ' + (workerVersion ? 'after' : 'before') + '; }'));
     app.use(express.static(output));
     const server = app.listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
