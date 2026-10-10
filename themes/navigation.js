@@ -118,6 +118,13 @@
         } else scrollTo(0, 0);
     }
     async function visit(url, pop = false, saved) {
+        if (window.TCGUpdateReady) {
+            // Retained stylesheet/script nodes still belong to the previous
+            // build. Load the ready snapshot once at a user-requested visit.
+            history.scrollRestoration = 'auto';
+            pop ? location.reload() : location.assign(url.href);
+            return;
+        }
         const current = ++sequence;
         pending?.abort(); pending = new AbortController();
         const controller = pending, temporary = [];
