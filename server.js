@@ -7,6 +7,7 @@ const { publicEntries, isPublicContent } = require('./lib/site-files');
 const { createOAuth } = require('./lib/github-oauth');
 const { createLocalEditor } = require('./lib/editor-local');
 const { pageFiles, routeMap, outputFile, publishHTML } = require('./lib/site-routes');
+const { getHeader } = require('./themes/shared-header');
 
 function createApp({ dev = false, oauth = createOAuth(), contact = createContact(), root = __dirname } = {}) {
     const app = express();
@@ -45,7 +46,8 @@ function createApp({ dev = false, oauth = createOAuth(), contact = createContact
             if (reqPath !== match.url) return res.redirect(308, match.url + query);
             if (dev) {
                 res.set('Cache-Control', 'no-store');
-                return res.type('html').send(publishHTML(fs.readFileSync(path.join(root, match.file), 'utf8'), match.file, currentPages));
+                const header = getHeader(fs.readFileSync(path.join(root, 'index.html'), 'utf8'));
+                return res.type('html').send(publishHTML(fs.readFileSync(path.join(root, match.file), 'utf8'), match.file, currentPages, header));
             }
             req.url = '/' + outputFile(match.file) + query;
             return next();

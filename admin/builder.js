@@ -64,7 +64,10 @@
         state.editor.RichTextEditor.disable();
         const page = state.pages.get(state.current);
         page.project = clone(state.editor.getProjectData());
-        if (page.dirty) page.html = D.exportHTML(state.editor, page.meta);
+        if (page.dirty) {
+            page.html = D.exportHTML(state.editor, page.meta);
+            if (page.path === 'index.html') D.setSharedHeader(page.html);
+        }
     }
     const icon = paths => '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">' + paths + '</svg>';
     function addBlocks(editor) {
@@ -138,6 +141,14 @@
                 for (const component of editor.getWrapper().find('tcg-preserved')) component.set('raw', imported.raw[component.getAttributes()['data-key']] || '');
             }
             D.canvasHead(editor, page.meta, page.path);
+            if (page.path !== 'index.html') {
+                // Edit the shared header on the homepage; avoid page-specific copies.
+                const protect = component => {
+                    component.set({ editable: false, draggable: false, droppable: false, removable: false, copyable: false, selectable: false, hoverable: false });
+                    component.components().forEach(protect);
+                };
+                editor.getWrapper().find('.site-header').forEach(protect);
+            }
             editor.UndoManager.clear(); editor.clearDirtyCount();
             $('blocks').querySelectorAll('.gjs-block').forEach(element => {
                 element.setAttribute('tabindex', '0'); element.setAttribute('role', 'button');
@@ -156,16 +167,23 @@
         const page = state.pages.get(path);
         status('Відкриваю сторінку…');
         try {
+            if (typeof page.html === 'string') {
+                const normalized = D.normalizeHTML(page.html, path);
+                if (normalized !== page.html) {
+                    page.html = normalized;
+                    delete page.meta; delete page.project;
+                }
+            }
             if (!page.meta) {
                 const [html, saved] = await Promise.all([page.html ?? state.repo.read(path), state.repo.read(R.projectPath(path))]);
                 if (html === null) throw new Error('Сторінку не знайдено. Оновіть список сторінок.');
                 if (R.pageProblem(html)) throw new Error(R.pageProblem(html));
-                page.html = html;
-                page.meta = D.importHTML(html, path).meta;
+                page.html = D.normalizeHTML(html, path);
+                page.meta = D.importHTML(page.html, path).meta;
                 if (saved) {
                     let data;
                     try { data = JSON.parse(saved); } catch { /* Import the actual HTML if metadata is damaged. */ }
-                    if (data?.version === 1 && data.path === path && data.htmlHash === await hash(html) && data.meta && data.project) {
+                    if (data?.version === 1 && data.path === path && data.htmlHash === await hash(page.html) && data.meta && data.project) {
                         page.meta = data.meta; page.project = data.project;
                     }
                 }
@@ -193,6 +211,7 @@
         state.repo = repo;
         state.paths = new Set(listing.files.map(file => file.path.toLowerCase().replace(/\.html?$/i, '')));
         for (const page of pages) state.pages.set(page.path, page);
+        D.setSharedHeader(state.pages.get('index.html')?.html || '');
         state.assets = listing.files.filter(file => R.isImage(file.path)).map(file => file.path);
         $('login-screen').hidden = true; $('app').hidden = false;
         renderPageList();
@@ -328,6 +347,7 @@
         if (!data.pages.length) throw new Error('У цій копії немає змінених сторінок.');
         state.current = null;
         for (const page of data.pages) state.pages.set(page.path, { ...page, dirty: true });
+        D.setSharedHeader(state.pages.get('index.html')?.html || '');
         state.uploads = new Map(data.uploads);
         renderPageList(); await openPage(data.pages[0].path); status('Чернетки відновлено. Перевірте їх перед збереженням.');
     }

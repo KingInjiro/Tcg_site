@@ -9,6 +9,7 @@ const { createApp } = require('../server');
 const { publicEntries } = require('../lib/site-files');
 const { build } = require('../scripts/build');
 const { readZip } = require('./zip-reader.cjs');
+const { getHeader, applyHeader } = require('../themes/shared-header');
 const express = require('express');
 const source = path.resolve(__dirname, '..');
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-browser-'));
@@ -57,9 +58,10 @@ const screenshot = async (page, name) => {
             await open(name);
             const result = await page.evaluate(({ html, name }) => {
                 const editor = window.grapesjs.editors.at(-1), D = window.TCGDocument;
-                const output = D.exportHTML(editor, D.importHTML(html, name).meta);
+                const normalized = D.normalizeHTML(html, name);
+                const output = D.exportHTML(editor, D.importHTML(normalized, name).meta);
                 const parse = text => new DOMParser().parseFromString(text, 'text/html');
-                const a = parse(html), b = parse(output), differences = [];
+                const a = parse(normalized), b = parse(output), differences = [];
                 const list = (doc, selector, attribute) => [...doc.querySelectorAll(selector)].map(node => node.getAttribute(attribute)).sort();
                 for (const [selector, attribute] of [['img', 'src'], ['a', 'href'], ['link[rel="stylesheet"]', 'href']]) if (JSON.stringify(list(a, selector, attribute)) !== JSON.stringify(list(b, selector, attribute))) differences.push(selector);
                 const scripts = doc => [...doc.querySelectorAll('script')].map(node => node.outerHTML).sort();
@@ -77,7 +79,7 @@ const screenshot = async (page, name) => {
             assert.deepEqual(broken, [], name + ': every local image must decode in the editor');
         }
         console.log(`PASS ${entries.length} real pages: clean round trip, preserved contents and decoded editor images; invalid imports excluded`);
-        const originalContacts = read('contacts.html');
+        const originalContacts = applyHeader(read('contacts.html'), getHeader(read('index.html')));
         await open('contacts.html'); await page.locator('#page-title').fill('Контакти — перевірено');
         await page.locator('#new-page').click(); await page.locator('#new-title').fill('Нова тест сторінка');
         assert.equal(await page.locator('#new-slug').inputValue(), 'nova-test-storinka');
@@ -125,8 +127,9 @@ const screenshot = async (page, name) => {
         await hosted.route('**/*', route => new URL(route.request().url()).origin === hostedOrigin ? route.continue() : route.abort());
         await hosted.goto(hostedOrigin + '/nova-test-storinka.html');
         assert.equal(await hosted.locator('h1').innerText(), 'Нова сторінка без коду');
-        await hosted.locator('img').evaluate(image => image.decode());
-        assert.ok(await hosted.locator('img').evaluate(image => image.naturalWidth === 1));
+        assert.equal(await hosted.locator('.site-header nav a').count(), 6, 'new pages inherit the shared menu');
+        await hosted.locator('img[src^="/images/editor/"]').evaluate(image => image.decode());
+        assert.ok(await hosted.locator('img[src^="/images/editor/"]').evaluate(image => image.naturalWidth === 1));
         assert.equal((await hosted.goto(hostedOrigin + '/News1.htm')).status(), 200, 'legacy .htm on a plain static server');
         assert.equal((await hosted.goto(hostedOrigin + '/admin/')).status(), 404, 'no broken online login in the hosting ZIP');
         assert.equal((await hosted.goto(hostedOrigin + '/.tcg-editor/nova-test-storinka.html.json')).status(), 404);
@@ -153,7 +156,7 @@ const screenshot = async (page, name) => {
         await screenshot(page, 'builder-new-page');
         const live = await browser.newPage(); await live.goto(origin + '/nova-test-storinka.html');
         assert.equal(await live.locator('h1').innerText(), 'Нова сторінка без коду');
-        assert.ok(await live.locator('img').evaluate(image => image.complete && image.naturalWidth === 1));
+        assert.ok(await live.locator('img[src^="/images/editor/"]').evaluate(image => image.complete && image.naturalWidth === 1));
         await live.close();
         console.log('PASS published page and image served; editable blocks survive reopening');
 
