@@ -30,6 +30,15 @@
         parent.childNodes.splice(before ? parent.childNodes.indexOf(before) : parent.childNodes.length, 0, node);
         node.parentNode = parent;
     }
+    function removeYellowUp(doc) {
+        let image;
+        while ((image = find(doc, node => tag(node) === 'img' && /(?:^|\/)UP_CMP_-1-010_GBTN\.GIF(?:[?#].*)?$/i.test(attr(node, 'src'))))) {
+            const button = tag(image.parentNode) === 'a' ? image.parentNode : image;
+            const row = button.parentNode;
+            remove(button);
+            if (['p', 'nav'].includes(tag(row)) && !children(row).some(node => tag(node) || (node.value || node.textContent || '').trim())) remove(row);
+        }
+    }
     const outer = node => parse5 ? parse5.serialize({ childNodes: [node] }) : node.outerHTML;
     const textContent = node => children(node).map(child => child.value ?? child.textContent ?? '').join('');
     // Include the header itself, but stop before every sibling subtree.
@@ -49,7 +58,9 @@
     }
     function getHeader(homeHTML) {
         if (!homeHTML) return '';
-        const doc = parse(homeHTML), existing = find(doc, shared);
+        const doc = parse(homeHTML);
+        removeYellowUp(doc);
+        const existing = find(doc, shared);
         const editorStyle = find(doc, node => tag(node) === 'style' && (parse5 ? node.attrs.some(a => a.name === 'data-tcg-editor-css') : node.hasAttribute('data-tcg-editor-css')));
         const headerStyle = find(doc, node => tag(node) === 'style' && attr(node, 'id') === 'tcg-header-style');
         const css = editorStyle ? scopedCSS(textContent(editorStyle)) : headerStyle ? textContent(headerStyle) : '';
@@ -63,22 +74,13 @@
     function applyHeader(html, header) {
         if (!header) return html;
         const doc = parse(html), body = find(doc, node => tag(node) === 'body'), head = find(doc, node => tag(node) === 'head');
+        // Also remove copies moved into section navigation by earlier exports.
+        removeYellowUp(body);
         const existing = find(body, shared);
         if (existing) remove(existing);
         else {
             const logo = logoTable(body), navigation = logo && globalRow(logo);
-            if (navigation) {
-                const up = find(navigation, node => tag(node) === 'a' && find(node, image => tag(image) === 'img' && attr(image, 'alt') === 'Вверх'));
-                if (up) {
-                    const section = find(logo.parentNode, node => node !== navigation && ['p', 'nav'].includes(tag(node)) &&
-                        find(node, image => tag(image) === 'img' && /_HBTN\.GIF$/i.test(attr(image, 'src'))));
-                    if (section) insert(section, up, section.firstChild || children(section)[0]);
-                    else {
-                        for (const child of children(navigation)) if (child !== up) remove(child);
-                    }
-                }
-                if (!up || up.parentNode !== navigation) remove(navigation);
-            }
+            if (navigation) remove(navigation);
             if (logo) {
                 let parent = logo.parentNode;
                 remove(logo);

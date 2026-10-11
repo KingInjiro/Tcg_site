@@ -23,7 +23,8 @@ test('all pages share the homepage header without changing their main content', 
         const before = parse5.parse(html), after = parse5.parse(normalized);
         const main = doc => find(doc, node => attr(node, 'role') === 'main' || node.tagName === 'main');
         if (main(before)) assert.ok(parse5.serialize(main(before)) === parse5.serialize(main(after)), file + ': article, prices, forms and widgets unchanged');
-        const up = find(before, node => node.tagName === 'a' && find(node, image => image.tagName === 'img' && attr(image, 'alt') === 'Вверх'));
+        assert.ok(!find(after, node => node.tagName === 'img' && /UP_CMP_-1-010_GBTN\.GIF$/i.test(attr(node, 'src') || '')), file + ': yellow Up button is removed');
+        const up = find(before, node => node.tagName === 'a' && find(node, image => image.tagName === 'img' && attr(image, 'alt') === 'Вверх' && !/_GBTN\.GIF$/i.test(attr(image, 'src') || '')));
         if (up) assert.ok(find(after, node => node.tagName === 'a' && attr(node, 'href') === attr(up, 'href') && find(node, image => image.tagName === 'img' && attr(image, 'alt') === 'Вверх')), file + ': section parent remains reachable');
         const published = publishHTML(html, file, pages, header);
         assert.equal((published.match(/class="site-header"/g) || []).length, 1, file + ': one shared header');
