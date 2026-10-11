@@ -10,6 +10,7 @@ if (window.top === window && 'serviceWorker' in navigator && window.isSecureCont
     });
     const register = () => navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
         .then(registration => {
+            if (!registration) return; // A blocked registration cannot check for updates.
             let lastCheck = Date.now();
             const check = () => {
                 if (document.visibilityState !== 'visible' || !navigator.onLine || Date.now() - lastCheck < 60000) return;

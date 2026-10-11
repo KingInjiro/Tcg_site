@@ -24,7 +24,8 @@
     "test:preservation": "node tests/preservation.browser.cjs",
     "test:accessibility": "node tests/accessibility.browser.cjs",
     "test:app": "node tests/app.browser.cjs",
-    "test:responsive": "node tests/responsive.browser.cjs"
+    "test:responsive": "node tests/responsive.browser.cjs",
+    "test:zoom": "node tests/zoom.browser.cjs"
   },
   "dependencies": {
     "express": "^4.22.3",

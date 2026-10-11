@@ -14,12 +14,13 @@ html[aria-busy="true"]::before {
 
 .site-page {
   width: calc(100% - 16px);
-  max-width: 1600px;
-  margin: 8px auto;
+  margin: 8px;
   overflow-wrap: anywhere;
   font-family: Verdana, Arial, Helvetica, sans-serif;
   font-size: 16px;
   line-height: 1.5;
+  background-image: url("/themes/-1-/background_spring.gif");
+  background-repeat: repeat-x;
 }
 
 /* Keep the inherited table and control fonts after the move from quirks mode to HTML5. */
@@ -120,7 +121,7 @@ body:has(> [data-gjs-type="wrapper"].site-page) {
 
 .home-columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 34%);
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 34%, 420px);
   align-items: start;
   gap: 12px 20px;
   height: auto;

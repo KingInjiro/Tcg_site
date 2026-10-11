@@ -5,6 +5,7 @@ const express = require('express');
 const playwright = require('playwright');
 const { build } = require('../scripts/build');
 const { pageFiles, pageURL } = require('../lib/site-routes');
+const { getHeader, applyHeader } = require('../themes/shared-header');
 
 (async () => {
     const root = path.resolve(__dirname, '..'), output = build();
@@ -21,13 +22,23 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         await context.route('**/*', route => new URL(route.request().url()).origin === origin || route.request().url().startsWith('data:') ? route.continue() : route.abort());
         const page = await context.newPage(), errors = [], failures = [];
         page.on('pageerror', error => errors.push(error.message));
+        // Homepage styles exported by the editor must follow the shared header
+        // (including its root) without changing matching elements in the article.
+        const editedHome = '<style data-tcg-editor-css>#edited-header{padding-top:7px}.shared-label{color:rgb(1,2,3)}</style><header class="site-header" id="edited-header"><p class="shared-label">Shared</p></header>';
+        await page.setContent(applyHeader('<main><p class="shared-label">Article</p></main>', getHeader(editedHome)));
+        assert.deepEqual(await page.evaluate(() => [
+            getComputedStyle(document.querySelector('.site-header')).paddingTop,
+            getComputedStyle(document.querySelector('header p')).color,
+            getComputedStyle(document.querySelector('main p')).color,
+        ]), ['7px', 'rgb(1, 2, 3)', 'rgb(0, 0, 0)'], 'shared editor styles are scoped to the header');
         const sources = engine === 'chromium' ? pageFiles(root) : ['index.html', 'contacts.html', 'feedback.html', 'search.html', '1CPrice.html', '1Cabon.html', 'price01.html', 'price1C.html', 'ListPage/Pege03.html', 'ListPage/Pege06.html'];
         const widths = [320, 390, 768, 900, 1024, 1440, 1920, 2560];
         for (const width of widths) {
             await page.setViewportSize({ width, height: 900 });
+            let referenceHeader;
             for (const file of sources) {
                 await page.goto(origin + pageURL(file));
-                const findings = await page.evaluate(() => {
+                const result = await page.evaluate(() => {
                     const viewport = document.documentElement.clientWidth, problems = [];
                     if (document.documentElement.scrollWidth > viewport + 1) problems.push('page has horizontal overflow');
                     const main = document.querySelector('main, [role="main"]');
@@ -51,8 +62,23 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
                             if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) problems.push('menu hit targets overlap');
                         }
                     }
-                    return [...new Set(problems)];
+                    const headers = document.querySelectorAll('.site-header'), header = headers[0];
+                    if (headers.length !== 1) problems.push('page must have one shared header');
+                    const headerRect = header?.getBoundingClientRect();
+                    if (headerRect && (Math.abs(headerRect.left - 8) > 1 || Math.abs(headerRect.right - (viewport - 8)) > 1)) problems.push('header must follow the viewport edges');
+                    const sidebar = document.querySelector('.site-layout > tbody > tr > td:first-child');
+                    if (sidebar && viewport > 900 && Math.abs(sidebar.getBoundingClientRect().left - 8) > 1) problems.push('left menu must stay at the left edge');
+                    return { findings: [...new Set(problems)], header: header && {
+                        rect: [headerRect.x, headerRect.y, headerRect.width, headerRect.height],
+                        links: [...header.querySelectorAll('nav a')].map(a => a.getAttribute('href')),
+                        images: [...header.querySelectorAll('img')].map(img => [img.getAttribute('src'), img.getBoundingClientRect().width, img.getBoundingClientRect().height]),
+                        font: getComputedStyle(header).font,
+                    } };
                 });
+                const { findings, header } = result;
+                referenceHeader ||= header;
+                if (JSON.stringify(header) !== JSON.stringify(referenceHeader)) findings.push('header appearance differs between pages');
+                if (JSON.stringify(header?.links) !== JSON.stringify(['/', '/feedback/', '/toc/', '/Download/', '/search/', '/ssilki/'])) findings.push('shared menu must keep all six links in the same order');
                 if (findings.length) failures.push({ file, width, findings });
                 if (process.env.TCG_RESPONSIVE_SCREENSHOTS && [390, 768].includes(width) && ['index.html', 'feedback.html', '1Cabon.html', 'price1C.html', 'ListPage/Pege03.html'].includes(file)) {
                     fs.mkdirSync(process.env.TCG_RESPONSIVE_SCREENSHOTS, { recursive: true });

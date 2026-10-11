@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const express = require('express');
 const { chromium } = require('playwright');
 const { pageFiles, pageURL } = require('../lib/site-routes');
+const { getHeader, applyHeader } = require('../themes/shared-header');
 
 (async () => {
     const root = path.resolve(__dirname, '..'), baseline = process.env.TCG_BASELINE_DIR;
@@ -15,7 +16,12 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
     // layout must still match, including the content displaced by taller menus.
     // Responsive checks exercise the real published layout without this adjustment.
     const menuPresentation = fs.readFileSync(path.join(root, 'themes/navigation.css'), 'utf8').split('/* Original FrontPage rollover')[0];
-    const servers = [baseline, path.join(root, 'dist')].map(dir => express().use(express.static(dir)).listen(0, '127.0.0.1'));
+    // The shared header is an approved change; compare the unchanged page content
+    // beneath the same header, including its preserved section navigation.
+    const header = getHeader(fs.readFileSync(path.join(root, 'index.html'), 'utf8'));
+    const reference = express();
+    for (const file of pageFiles(root)) reference.get('/' + file, (_req, res) => res.type('html').send(applyHeader(fs.readFileSync(path.join(baseline, file), 'utf8'), header)));
+    const servers = [reference.use(express.static(baseline)), express().use(express.static(path.join(root, 'dist')))].map(app => app.listen(0, '127.0.0.1'));
     await Promise.all(servers.map(server => new Promise(resolve => server.once('listening', resolve))));
     const origins = servers.map(server => 'http://127.0.0.1:' + server.address().port);
     let browser;

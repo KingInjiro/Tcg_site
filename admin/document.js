@@ -3,6 +3,11 @@
     const escape = value => String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
     const parse = html => new DOMParser().parseFromString(html, 'text/html');
     const attrs = node => Object.fromEntries([...node.attributes].map(attr => [attr.name, attr.value]));
+    let sharedHeader = '';
+    function setSharedHeader(homeHTML) { sharedHeader = window.TCGHeader.getHeader(homeHTML); }
+    function normalizeHTML(html, path) {
+        return window.TCGHeader.applyHeader(html, path === 'index.html' ? window.TCGHeader.getHeader(html) : sharedHeader);
+    }
     function importHTML(html, path) {
         const problem = window.TCGRepository.pageProblem(html);
         if (problem) throw new Error(problem);
@@ -111,7 +116,7 @@
     }
     function template(title, kind) {
         const main = kind === 'services' ? '<section style="display:flex;gap:24px;flex-wrap:wrap"><article style="flex:1;padding:24px;background:#f1f5f9;border-radius:12px"><h2>Перша послуга</h2><p>Опишіть, що ви пропонуєте.</p></article><article style="flex:1;padding:24px;background:#f1f5f9;border-radius:12px"><h2>Друга послуга</h2><p>Додайте переваги для клієнта.</p></article></section>' : '<p>Двічі натисніть на цей текст, щоб написати свій. Додавайте блоки з панелі ліворуч.</p>';
-        return '<!DOCTYPE html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escape(title) + '</title></head><body style="margin:0;font-family:Arial,sans-serif;color:#18263d;background:#fff"><header style="padding:24px 6%;border-bottom:1px solid #e2e8f0"><a href="/" style="color:#196050;font-weight:bold;text-decoration:none">TCG · Головна</a></header><main style="max-width:1000px;margin:0 auto;padding:64px 24px"><h1 style="font-size:42px;line-height:1.15">' + escape(title) + '</h1>' + main + '</main></body></html>';
+        return normalizeHTML('<!DOCTYPE html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + escape(title) + '</title></head><body class="site-page"><main style="max-width:1000px;margin:0 auto;padding:64px 24px"><h1 style="font-size:42px;line-height:1.15">' + escape(title) + '</h1>' + main + '</main></body></html>', 'new-page.html');
     }
     function rebaseCopy(html, sourcePath) {
         const doc = parse(html), base = new URL('/' + sourcePath, location.origin);
@@ -132,5 +137,5 @@
         const map = { а:'a',б:'b',в:'v',г:'h',ґ:'g',д:'d',е:'e',є:'ye',ж:'zh',з:'z',и:'y',і:'i',ї:'yi',й:'y',к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',х:'kh',ц:'ts',ч:'ch',ш:'sh',щ:'shch',ь:'',ю:'yu',я:'ya',ы:'y',э:'e',ъ:'',ё:'yo' };
         return [...title.toLowerCase()].map(ch => map[ch] ?? ch).join('').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
     }
-    window.TCGDocument = { importHTML, register, exportHTML, canvasHead, safeModel, template, rebaseCopy, slug, escape };
+    window.TCGDocument = { importHTML, register, exportHTML, canvasHead, safeModel, template, rebaseCopy, slug, escape, setSharedHeader, normalizeHTML };
 })();

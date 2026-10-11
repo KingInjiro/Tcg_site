@@ -1,5 +1,16 @@
 /* Keep the original GIF lettering and pale yellow palette. Upper buttons are
    compact, with a soft outer glow; the left menu retains its original rollover. */
+.site-page .site-header {
+  width: 100%;
+  color: #000;
+  font-family: Verdana, Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.site-page .site-header a:link { color: rgb(216, 78, 0); }
+.site-page .site-header a:visited { color: rgb(157, 77, 0); }
+
 .site-page .legacy-top-navigation {
   display: flex;
   flex-wrap: wrap;
@@ -31,7 +42,8 @@
 
 .site-page .legacy-top-navigation a > img[src$="_GBTN.GIF"] {
   display: block;
-  width: 120px;
+  /* Override the old inline .top-nav-icon width in the subscription price list. */
+  width: 120px !important;
   max-width: 100%;
   height: auto;
   /* Remove the baked-in rectangular yellow fill, leaving the black lettering.
