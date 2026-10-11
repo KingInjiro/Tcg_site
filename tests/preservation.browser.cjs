@@ -5,7 +5,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const express = require('express');
 const { chromium } = require('playwright');
-const { pageFiles, pageURL } = require('../lib/site-routes');
+const { pageFiles, pageURL, outputFile } = require('../lib/site-routes');
 const { getHeader, applyHeader } = require('../themes/shared-header');
 
 (async () => {
@@ -81,7 +81,7 @@ const { getHeader, applyHeader } = require('../themes/shared-header');
         // Keep original rollover artwork, with an outer glow for upper buttons.
         const buttons = new Map();
         for (const file of sources) {
-            const html = fs.readFileSync(path.join(root, file), 'utf8');
+            const html = fs.readFileSync(path.join(root, 'dist', outputFile(file)), 'utf8');
             for (const match of html.matchAll(/<img\b[^>]*\bsrc="([^"]+_[GHV]BTN\.GIF)"/gi)) if (!buttons.has(match[1])) buttons.set(match[1], file);
         }
         const interactive = await browser.newPage({ serviceWorkers: 'block' }), errors = [];
