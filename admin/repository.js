@@ -64,7 +64,18 @@
         return new TextDecoder().decode(Uint8Array.from(atob(base64.replace(/\s/g, '')), c => c.charCodeAt(0)));
     }
     class GitHub {
-        constructor(token, fetcher = globalThis.fetch) { this.token = token; this.fetcher = fetcher.bind(globalThis); }
+        constructor(token, fetcher = globalThis.fetch, storage) {
+            this.token = token; this.fetcher = fetcher.bind(globalThis);
+            try {
+                this.storage = storage === undefined ? globalThis.localStorage : storage;
+                const pending = JSON.parse(this.storage?.getItem('tcg-publication') || 'null');
+                if (pending && /^[a-f0-9]{40}$/.test(pending.head) && /^[a-f0-9]{40}$/.test(pending.base) && /^cms\/[a-z0-9-]+$/.test(pending.branch)) this.pending = pending;
+            } catch { /* Storage may be disabled. The branch remains in GitHub. */ }
+        }
+        remember(pending) {
+            this.pending = pending;
+            try { if (pending) this.storage?.setItem('tcg-publication', JSON.stringify(pending)); else this.storage?.removeItem('tcg-publication'); } catch { /* Publishing does not require local storage. */ }
+        }
         async api(path, body, method = body ? 'POST' : 'GET') {
             const response = await this.fetcher('https://api.github.com/repos/' + REPO + path, {
                 method, cache: 'no-store', redirect: 'error',
@@ -84,10 +95,11 @@
         }
         async list() {
             const ref = await this.api('/git/ref/heads/' + BRANCH);
-            const commit = await this.api('/git/commits/' + ref.object.sha);
+            const snapshot = this.pending?.head || ref.object.sha;
+            const commit = await this.api('/git/commits/' + snapshot);
             const result = await this.api('/git/trees/' + commit.tree.sha + '?recursive=1');
             if (result.truncated) throw new Error('GitHub повернув неповний список файлів. Публікацію зупинено.');
-            this.head = ref.object.sha;
+            this.head = this.pending && ref.object.sha !== this.pending.head ? this.pending.base : ref.object.sha;
             this.tree = commit.tree.sha;
             this.files = result.tree.filter(file => file.type === 'blob' && file.mode === '100644');
             return { head: this.head, files: this.files };
@@ -98,6 +110,14 @@
             const blob = await this.api('/git/blobs/' + entry.sha);
             if (blob.encoding !== 'base64') throw new Error('Непідтримуваний формат файлу GitHub.');
             return decode(blob.content);
+        }
+        async readImage(path) {
+            const entry = this.files.find(file => file.path === path);
+            if (!entry || !/^images\/editor\/[a-z0-9-]+\.(png|jpe?g|gif|webp)$/.test(path)) throw new Error('Некоректне зображення чернетки.');
+            const blob = await this.api('/git/blobs/' + entry.sha);
+            if (blob.encoding !== 'base64') throw new Error('Непідтримуваний формат зображення.');
+            const base64 = blob.content.replace(/\s/g, ''), ext = path.split('.').pop();
+            return { base64, dataURL: 'data:image/' + (['jpg', 'jpeg'].includes(ext) ? 'jpeg' : ext) + ';base64,' + base64, published: true };
         }
         async publish(changes) {
             validateChanges(changes);
@@ -112,11 +132,36 @@
             }
             const nextTree = await this.api('/git/trees', { base_tree: this.tree, tree });
             const commit = await this.api('/git/commits', { message: 'Оновити сторінки у візуальному редакторі TCG', tree: nextTree.sha, parents: [this.head] });
-            // A concurrent commit makes this non-fast-forward. Never retry with force.
-            await this.api('/git/refs/heads/' + BRANCH, { sha: commit.sha, force: false }, 'PATCH');
-            this.head = commit.sha;
+            const branch = 'cms/' + Date.now().toString(36) + '-' + crypto.randomUUID();
+            await this.api('/git/refs', { ref: 'refs/heads/' + branch, sha: commit.sha });
+            this.remember({ head: commit.sha, base: this.head, branch });
             this.tree = nextTree.sha;
-            return { head: commit.sha, url: 'https://github.com/' + REPO + '/commit/' + commit.sha };
+            return { head: commit.sha, pending: true, url: 'https://github.com/' + REPO + '/commit/' + commit.sha };
+        }
+        async publicationStatus() {
+            if (!this.pending) return null;
+            const { head, branch } = this.pending;
+            const statuses = await this.api('/commits/' + head + '/statuses?per_page=100');
+            const release = statuses.find(item => item.context === 'TCG publication');
+            if (release?.state === 'success') {
+                this.head = head; this.remember(null);
+                return { state: 'success', url: release.target_url, message: 'Перевірки пройдено. Зміни передано на публікацію. Результат розгортання дивіться за посиланням.' };
+            }
+            if (release?.state === 'failure' || release?.state === 'error') {
+                const current = await this.api('/git/ref/heads/main');
+                if (current.object.sha === head) this.head = head;
+                return { state: 'failure', url: release.target_url, message: 'Публікацію зупинено. Чернетку збережено в GitHub. Відкрийте журнал; після усунення причини повторіть невдалий workflow.' };
+            }
+            const runs = await this.api('/actions/workflows/site-checks.yml/runs?event=push&head_sha=' + head + '&per_page=100');
+            const run = runs.workflow_runs.find(item => item.head_sha === head && item.head_branch === branch);
+            if (run?.status === 'completed' && run.conclusion !== 'success') return { state: 'failure', url: run.html_url, message: 'Правки збережені, але перевірки не пройдено. Сайт не оновлено. Виправте помилки за журналом і натисніть «Опублікувати» знову.' };
+            return { state: 'pending', url: release?.target_url || run?.html_url || 'https://github.com/' + REPO + '/actions', message: run?.conclusion === 'success' ? 'Перевірки пройдено. Очікую завершення публікації…' : 'Правки збережено окремо. Тривають перевірки; браузер можна закрити.' };
+        }
+        async checkMail() {
+            const response = await this.fetcher('/api/mail-status', { method: 'POST', cache: 'no-store', redirect: 'error', headers: { Authorization: 'Bearer ' + this.token }, signal: AbortSignal.timeout(45000) });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Перевірка пошти недоступна.');
+            return result;
         }
     }
     class Local {

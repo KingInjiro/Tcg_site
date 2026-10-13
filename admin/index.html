@@ -23,7 +23,7 @@
     <header class="topbar">
       <a class="brand" href="/" target="_blank" rel="noopener" aria-label="Відкрити сайт TCG"><span class="brand-mark">T</span><strong>TCG</strong></a><div class="topbar-divider"></div><span class="editor-label">Редактор сайту</span><div class="topbar-spacer"></div>
       <button id="backup" class="subtle" title="Завантажити неопубліковані правки">Резервна копія</button><button id="restore" class="subtle">Відновити</button><input id="restore-file" type="file" accept="application/json,.json" hidden>
-      <button id="preview" class="secondary">Перегляд</button><button id="publish" class="primary" disabled>Опублікувати</button><button id="export-site" class="secondary" hidden>Архів для хостингу</button><button id="logout" class="subtle">Вийти</button>
+      <button id="preview" class="secondary">Перегляд</button><button id="publish" class="primary" disabled>Опублікувати</button><button id="export-site" class="secondary" hidden>Архів для хостингу</button><button id="check-mail" class="secondary" hidden>Перевірити пошту</button><button id="logout" class="subtle">Вийти</button>
     </header>
     <div id="portable-info" class="portable-info" hidden><span>Ви редагуєте копію на комп’ютері. Щоб оновити сайт в інтернеті, завантажте архів на хостинг.</span><a href="/admin/portable-help.html" target="_blank" rel="noopener">Як це зробити ↗</a></div>
     <div class="workspace">
@@ -34,7 +34,7 @@
       </aside>
       <main class="canvas-column">
         <div class="canvas-toolbar"><div class="page-address"><span aria-hidden="true">◧</span><span id="current-path">Оберіть сторінку</span><span id="dirty-badge" hidden>Чернетка</span></div><div class="canvas-actions"><button id="undo" aria-label="Скасувати дію" title="Скасувати (Ctrl+Z)">↶</button><button id="redo" aria-label="Повторити дію" title="Повторити (Ctrl+Shift+Z)">↷</button><span class="toolbar-divider"></span><button id="desktop" class="active" aria-label="Вигляд на комп’ютері" title="Комп’ютер">▱</button><button id="mobile" aria-label="Вигляд на телефоні" title="Телефон">▯</button></div></div>
-        <div id="editor"></div><footer class="statusbar"><span id="status" role="status">Завантаження…</span><a id="publication" hidden target="_blank" rel="noopener">Збережені зміни ↗</a></footer>
+        <div id="editor"></div><footer class="statusbar"><span id="status" role="status">Завантаження…</span><a id="publication" hidden target="_blank" rel="noopener">Стан публікації ↗</a></footer>
       </main>
       <aside class="right-sidebar">
         <div class="sidebar-heading"><h2>Налаштування</h2><span class="tiny-dot"></span></div><div class="page-settings"><label for="page-title">Назва сторінки</label><input id="page-title" placeholder="Назва сторінки"><small>Відображається у вкладці браузера</small></div>

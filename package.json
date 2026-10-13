@@ -15,6 +15,7 @@
     "export": "node --env-file-if-exists=.env scripts/export-site.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:browser": "node tests/builder.browser.cjs",
+    "test:publishing": "node tests/publishing.browser.cjs",
     "test:content": "node tests/content.browser.cjs",
     "test:calculators": "node tests/calculators.browser.cjs",
     "test:appearance": "node tests/appearance.browser.cjs",
