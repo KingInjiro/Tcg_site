@@ -1,5 +1,6 @@
 const express = require('express');
 const { createContact } = require('./lib/contact');
+const { createMailStatus } = require('./lib/mail-status');
 const { buildSearchIndex } = require('./lib/search-index');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -20,6 +21,7 @@ function createApp({ dev = false, oauth = createOAuth(), contact = createContact
     app.get('/api/auth', oauth.auth);
     app.get('/api/callback', oauth.callback);
     app.all('/api/contact', contact);
+    app.all('/api/mail-status', createMailStatus());
     if (dev) app.get('/themes/search-index.json', (_req, res) => {
         res.set('Cache-Control', 'no-store').json(buildSearchIndex(new Map(pageFiles(root).map(file => [file, fs.readFileSync(path.join(root, file), 'utf8')]))));
     });

@@ -62,8 +62,12 @@ test('GitHub publishing creates one atomic commit for HTML and project data', as
     const commit = requests.find(request => request.url.endsWith('/git/commits') && request.method === 'POST');
     assert.deepEqual(commit.body.parents, ['head-1']);
     const ref = requests.at(-1);
-    assert.equal(ref.method, 'PATCH');
-    assert.deepEqual(ref.body, { sha: 'head-2', force: false });
+    assert.equal(ref.method, 'POST');
+    assert.equal(ref.url.endsWith('/git/refs'), true);
+    assert.match(ref.body.ref, /^refs\/heads\/cms\/[a-z0-9-]+$/);
+    assert.equal(ref.body.sha, 'head-2');
+    assert.equal(github.head, 'head-1', 'main stays unchanged until checks pass');
+    assert.equal(result.pending, true);
     assert.ok(requests.every(request => request.url.startsWith('https://api.github.com/repos/KingInjiro/Tcg_site/')));
     assert.ok(!JSON.stringify(result).includes('private-token'));
 });

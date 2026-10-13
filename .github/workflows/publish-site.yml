@@ -1,0 +1,67 @@
+name: Publish checked site
+run-name: Publish ${{ github.event.workflow_run.head_sha }}
+on:
+  workflow_run:
+    workflows: [Site checks]
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: tcg-site-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'cms/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: site-publishing
+    permissions:
+      contents: write
+      actions: read
+      statuses: write
+    steps:
+      # Only trusted main scripts execute with release credentials.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+      - run: node scripts/release-site.js status pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - id: release
+        run: node scripts/release-site.js prepare
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - if: vars.STATIC_DEPLOY_ENABLED == 'true'
+        run: npm ci --ignore-scripts
+      - name: Upload to static hosting
+        if: vars.STATIC_DEPLOY_ENABLED == 'true'
+        run: node scripts/publish-static.js
+        env:
+          SITE_SOURCE: ${{ steps.release.outputs.source }}
+          SITE_REVISION: ${{ steps.release.outputs.sha }}
+          CONTACT_FORM_ENDPOINT: ${{ vars.CONTACT_FORM_ENDPOINT }}
+          STATIC_PROTOCOL: ${{ vars.STATIC_PROTOCOL }}
+          STATIC_HOST: ${{ vars.STATIC_HOST }}
+          STATIC_PORT: ${{ vars.STATIC_PORT }}
+          STATIC_DIRECTORY: ${{ vars.STATIC_DIRECTORY }}
+          STATIC_USER: ${{ secrets.STATIC_USER }}
+          STATIC_PASSWORD: ${{ secrets.STATIC_PASSWORD }}
+          STATIC_SSH_KEY: ${{ secrets.STATIC_SSH_KEY }}
+          STATIC_KNOWN_HOSTS: ${{ secrets.STATIC_KNOWN_HOSTS }}
+      - if: success()
+        run: node scripts/release-site.js status success
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - if: failure()
+        run: node scripts/release-site.js status failure
+        env:
+          GH_TOKEN: ${{ github.token }}

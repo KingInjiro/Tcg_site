@@ -6,16 +6,16 @@
     const saveLabel = local ? 'Зберегти на комп’ютері' : 'Опублікувати';
     const dirtyMessage = local ? 'Є незбережені зміни' : 'Є неопубліковані зміни';
     const titles = { 'index.html': 'Головна', 'contacts.html': 'Контакти', 'services.html': 'Послуги', 'products.html': 'Продукти', 'news.html': 'Новини', 'price01.html': 'Ціни', 'Download.html': 'Завантаження', 'feedback.html': 'Зворотний зв’язок', 'toc.html': 'Зміст' };
-    const state = { pages: new Map(), assets: [], uploads: new Map(), current: null, repo: null, editor: null, loading: false, busy: false };
+    const state = { pages: new Map(), assets: [], uploads: new Map(), current: null, repo: null, editor: null, loading: false, busy: false, checking: false };
     let assetTarget, assetLimit = 48;
     const clone = value => JSON.parse(JSON.stringify(value));
     const hash = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)))].map(x => x.toString(16).padStart(2, '0')).join('');
     const dirtyPages = () => [...state.pages.values()].filter(page => page.dirty);
     function status(message, error = false) { $('status').textContent = message; $('status').parentElement.classList.toggle('error', error); }
     function updateButtons() {
-        $('publish').disabled = state.busy || state.loading || !dirtyPages().length;
+        $('publish').disabled = state.busy || state.loading || state.checking || !dirtyPages().length;
         $('new-page').disabled = state.busy || state.loading || !state.current;
-        for (const id of ['preview', 'backup', 'restore', 'logout', 'export-site']) $(id).disabled = state.busy || state.loading;
+        for (const id of ['preview', 'backup', 'restore', 'logout', 'export-site', 'check-mail']) $(id).disabled = state.busy || state.loading;
         $('export-site').disabled ||= !state.repo;
         $('preview').disabled ||= !state.current;
         $('page-title').disabled = !state.current;
@@ -213,9 +213,12 @@
         for (const page of pages) state.pages.set(page.path, page);
         D.setSharedHeader(state.pages.get('index.html')?.html || '');
         state.assets = listing.files.filter(file => R.isImage(file.path)).map(file => file.path);
+        if (repo.pending) for (const path of state.assets.filter(path => path.startsWith('images/editor/'))) state.uploads.set(path, await repo.readImage(path));
         $('login-screen').hidden = true; $('app').hidden = false;
         renderPageList();
         await openPage(state.pages.has('index.html') ? 'index.html' : state.pages.keys().next().value);
+        $('check-mail').hidden = local;
+        if (repo.pending) monitorPublication();
     }
     function login() {
         $('login-status').textContent = '';
@@ -244,8 +247,26 @@
         }, 1000);
         window.addEventListener('message', receive);
     }
+    let publicationTimer;
+    async function monitorPublication() {
+        clearTimeout(publicationTimer);
+        state.checking = true; updateButtons();
+        try {
+            const result = await state.repo.publicationStatus();
+            if (!result) { state.checking = false; updateButtons(); return; }
+            // Do not obscure unsaved edits with a background progress message.
+            if (!dirtyPages().length) status(result.message, result.state === 'failure');
+            $('publication').href = result.url; $('publication').hidden = false;
+            state.checking = result.state === 'pending';
+            if (state.checking) publicationTimer = setTimeout(monitorPublication, 10000);
+        } catch (error) {
+            if (!dirtyPages().length) status('Не вдалося отримати стан публікації. Чернетка збережена в GitHub. ' + error.message, true);
+            publicationTimer = setTimeout(monitorPublication, 30000);
+        }
+        updateButtons();
+    }
     async function publish(exportAfter = false) {
-        if (state.busy || state.loading) return;
+        if (state.busy || state.loading || state.checking) return;
         if (exportAfter && !local) return;
         capture();
         const pages = dirtyPages();
@@ -269,7 +290,8 @@
                 for (const path of state.uploads.keys()) if (!state.assets.includes(path)) state.assets.push(path);
                 state.uploads.forEach(asset => { asset.published = true; });
                 if (result.url) { $('publication').href = result.url; $('publication').hidden = false; }
-                status(local ? 'Збережено. Для оновлення сайту в інтернеті створіть архів і завантажте його на хостинг.' : 'Збережено в GitHub. Сайт оновиться після успішного розгортання Vercel.');
+                if (result.pending) monitorPublication();
+                status(local ? 'Збережено. Для оновлення сайту в інтернеті створіть архів і завантажте його на хостинг.' : 'Чернетку збережено в GitHub. Починаються перевірки.');
             }
             if (exportAfter) {
                 status('Створюю архів для хостингу…');
@@ -363,6 +385,13 @@
         window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
     $('login').addEventListener('click', login);
+    $('check-mail').addEventListener('click', async () => {
+        $('check-mail').disabled = true;
+        status('Перевіряю налаштування та захищене з’єднання з поштою…');
+        try { const result = await state.repo.checkMail(); status(result.message, !result.ok); }
+        catch (error) { status(error.message, true); }
+        finally { updateButtons(); }
+    });
     $('publish').addEventListener('click', () => publish());
     $('export-site').addEventListener('click', () => publish(true));
     $('page-search').addEventListener('input', renderPageList);

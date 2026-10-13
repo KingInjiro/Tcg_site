@@ -113,13 +113,18 @@ const { getHeader, applyHeader } = require('../themes/shared-header');
         assert.equal(await phone.evaluate(() => window.responsiveMarker), true, 'touch navigation keeps the SPA document');
         await phone.locator('a[href="/feedback/"]:has(img)').tap();
         await phone.waitForURL(origin + '/feedback/');
+        // pushState precedes the SPA's delayed focus restoration. Wait for the
+        // completed transition before testing input preservation on rotation.
+        await phone.waitForFunction(() => !document.documentElement.hasAttribute('aria-busy'));
         await phone.locator('[name="Name"]').fill('Перевірка повороту екрана');
+        assert.equal(await phone.locator('[name="Name"]').inputValue(), 'Перевірка повороту екрана', 'input is present before rotation');
         await phone.setViewportSize({ width: 844, height: 390 });
         assert.equal(await phone.locator('[name="Name"]').inputValue(), 'Перевірка повороту екрана');
         assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1));
         await phone.setViewportSize({ width: 820, height: 1180 });
         await phone.locator('a[href="/search/"]:has(img)').tap();
         await phone.waitForURL(origin + '/search/');
+        await phone.waitForFunction(() => !document.documentElement.hasAttribute('aria-busy'));
         await phone.locator('#site-search').fill('резервное копирование');
         await phone.locator('[data-site-search] [type="submit"]').tap();
         await phone.locator('#search-results a[href="/ListPage/Pege05/"]').tap();
