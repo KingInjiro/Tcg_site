@@ -98,8 +98,8 @@ const hosting = { STATIC_PROTOCOL: 'sftp', STATIC_HOST: 'host.example.com', STAT
 test('hosting rejects insecure or ambiguous settings and exports assets before HTML, service worker last', () => {
     for (const patch of [{ STATIC_PROTOCOL: 'ftp' }, { STATIC_DIRECTORY: '/' }, { STATIC_DIRECTORY: '../other' }, { STATIC_HOST: '-options' }, { STATIC_SSH_KEY: '' }, { STATIC_KNOWN_HOSTS: '' }, { CONTACT_FORM_ENDPOINT: 'http://example.com/contact' }]) assert.throws(() => configuration({ ...hosting, ...patch }));
     assert.throws(() => orderedFiles([{ path: '../private' }]));
-    const files = [{ path: 'sw.js', content: 'worker' }, { path: 'page/index.html', content: 'page' }, { path: 'images/editor/photo.png', content: 'image' }];
-    assert.deepEqual(orderedFiles(files).map(file => file.path), ['images/editor/photo.png', 'page/index.html', 'sw.js']);
+    const files = [{ path: 'site-version.json', content: 'version' }, { path: 'sw.js', content: 'worker' }, { path: 'page/index.html', content: 'page' }, { path: 'images/editor/photo.png', content: 'image' }];
+    assert.deepEqual(orderedFiles(files).map(file => file.path), ['images/editor/photo.png', 'page/index.html', 'site-version.json', 'sw.js']);
     let batchPath;
     assert.equal(upload(files, hosting, (command, args, options) => {
         assert.equal(command, 'sftp'); assert.ok(args.includes('-oStrictHostKeyChecking=yes')); assert.ok(!JSON.stringify(args).includes('private-key'));
@@ -108,7 +108,7 @@ test('hosting rejects insecure or ambiguous settings and exports assets before H
         const batch = fs.readFileSync(batchPath, 'utf8');
         assert.ok(batch.indexOf('photo.png') < batch.indexOf('index.html')); assert.match(batch, /rename .*sw\.js/);
         assert.doesNotMatch(batch, /(?:^|\n)(?:rm|rmdir) /);
-    }), 3);
+    }), 4);
     assert.equal(fs.existsSync(batchPath), false);
     upload(files, { ...hosting, STATIC_PROTOCOL: 'ftps', STATIC_PASSWORD: 'private-password' }, (command, args) => {
         assert.equal(command, 'curl'); assert.ok(args.includes('--fail-early'));

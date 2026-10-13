@@ -5,6 +5,10 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/site-version.json",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
+    {
       "source": "/admin/:path*",
       "headers": [
         {

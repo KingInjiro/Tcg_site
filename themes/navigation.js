@@ -136,10 +136,15 @@
         document.documentElement.setAttribute('aria-busy', 'true');
         const timeout = setTimeout(() => controller.abort(), 15000);
         try {
-            const response = await fetch(url.href, { headers: { 'X-TCG-Navigation': '1' }, signal: controller.signal });
+            const response = await fetch(url.href, { cache: 'no-cache', headers: { 'X-TCG-Navigation': '1' }, signal: controller.signal });
             if (!response.ok || !response.headers.get('content-type')?.includes('text/html') || new URL(response.url).origin !== location.origin) throw new Error('not a public page');
             const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
             if (doc.querySelector('meta[name="tcg-page"]')?.content !== '1' || doc.querySelector('base')) throw new Error('ordinary navigation required');
+            // A new document needs its own scripts and styles, even if the
+            // worker update has not arrived yet. Never mix two published builds.
+            if (doc.querySelector('meta[name="tcg-build"]')?.content !== document.querySelector('meta[name="tcg-build"]')?.content) {
+                throw new Error('new build requires ordinary navigation');
+            }
             const scripts = [...doc.scripts];
             if (!scripts.every(scriptSupported)) throw new Error('custom page script requires its own document');
             const finalURL = new URL(response.url);

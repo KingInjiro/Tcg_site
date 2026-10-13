@@ -22,7 +22,7 @@ function configuration(env) {
 const quoted = value => '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
 function orderedFiles(files) {
     for (const file of files) if (file.path.startsWith('/') || file.path.split('/').includes('..') || /[\x00-\x1f\x7f\\*?\[\]]/.test(file.path)) throw new Error('Unsupported export filename.');
-    const rank = file => file.path === 'sw.js' ? 2 : /\.html?$/i.test(file.path) ? 1 : 0;
+    const rank = file => file.path === 'sw.js' ? 3 : file.path === 'site-version.json' ? 2 : /\.html?$/i.test(file.path) ? 1 : 0;
     return [...files].sort((a, b) => rank(a) - rank(b) || a.path.localeCompare(b.path));
 }
 

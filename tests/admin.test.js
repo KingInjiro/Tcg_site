@@ -143,5 +143,9 @@ test('build serves the CMS, website and legacy links without exposing server fil
         assert.equal((await fetch(origin + name)).status, 404, name);
     }
     assert.equal((await fetch(origin + '/admin/')).headers.get('cache-control'), 'no-store');
+    const version = await fetch(origin + '/site-version.json');
+    assert.equal(version.status, 200);
+    assert.equal(version.headers.get('cache-control'), 'no-store');
+    assert.match((await version.json()).version, /^[a-f0-9]{20}$/);
     assert.equal((await fetch(origin + '/api/auth')).status, 503);
 });

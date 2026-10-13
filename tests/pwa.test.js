@@ -14,8 +14,11 @@ test('PWA export covers every public page and asset without editor/API/private d
         assert.ok(worker.urls.includes(pageURL(file)), file);
         const html = files.get(outputFile(file)).toString();
         assert.match(html, /rel="manifest" href="\/manifest.json"/);
-        assert.match(html, /src="\/themes\/navigation.js"/);
+        assert.ok(html.includes('src="/themes/navigation.js?v=' + worker.version + '"'));
+        assert.ok(html.includes('<meta name="tcg-build" content="' + worker.version + '">'));
     }
+    assert.equal(JSON.parse(files.get('site-version.json')).version, worker.version);
+    assert.ok(!worker.urls.includes('/site-version.json'), 'version marker is never precached');
     assert.equal(worker.aliases['/contacts.html'], '/contacts/');
     assert.ok(worker.urls.includes('/themes/search-index.json'));
     assert.ok(!worker.urls.some(url => /^\/(?:api|admin|\.tcg-editor)(?:\/|$)/.test(url) || url.includes('contact-config')));
