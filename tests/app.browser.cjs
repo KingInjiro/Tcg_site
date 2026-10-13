@@ -14,7 +14,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
     app.use((req, res, next) => {
         requests.push(req.path);
         if (delayedResources.has(req.path) || (slowImages && /\.(?:gif|png|jpe?g|svg)$/i.test(req.path))) {
-            res.set('Cache-Control', 'no-store');
+            res.set('Cache-Control', 'no-cache');
             setTimeout(next, 250);
         } else next();
     });
@@ -23,11 +23,18 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
     app.get('/contacts/', (req, res, next) => brokenPage && req.get('X-TCG-Navigation') ? res.status(503).send('temporary failure') : next());
     // Make transient stylesheet reloads visible instead of hiding them in the cache.
     app.get(/\.css$/, (_req, res, next) => {
-        res.set('Cache-Control', 'no-store');
+        res.set('Cache-Control', 'no-cache');
         setTimeout(next, 80);
     });
     app.get('/themes/navigation.css', (_req, res) => res.type('css').send(
         fs.readFileSync(path.join(output, 'themes/navigation.css'), 'utf8') + '\n:root { --tcg-test-build: ' + (workerVersion ? 'after' : 'before') + '; }'));
+    const originalVersion = JSON.parse(fs.readFileSync(path.join(output, 'site-version.json'))).version;
+    app.get('/site-version.json', (_req, res) => res.set('Cache-Control', 'no-store').json({ version: originalVersion + (workerVersion ? '-update' : '') }));
+    app.get(/\/$/, (req, res, next) => {
+        const file = path.join(output, req.path, 'index.html');
+        if (!fs.existsSync(file)) return next();
+        res.type('html').set('Cache-Control', 'no-cache').send(fs.readFileSync(file, 'utf8').replaceAll(originalVersion, originalVersion + (workerVersion ? '-update' : '')));
+    });
     app.use(express.static(output));
     const server = app.listen(0, '127.0.0.1');
     await new Promise(resolve => server.once('listening', resolve));
@@ -161,11 +168,16 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             assert.deepEqual(manifest.errors, [], 'manifest parses');
             const install = await cdp.send('Page.getInstallabilityErrors');
             assert.deepEqual(install.installabilityErrors, [], 'Chromium PWA installability requirements');
+            await offline.evaluate(() => new Promise(resolve => {
+                const channel = new MessageChannel();
+                channel.port1.onmessage = () => { channel.port1.close(); resolve(); };
+                navigator.serviceWorker.controller.postMessage({ type: 'TCG_WARM_CACHE' }, [channel.port2]);
+            }));
             const keys = await offline.evaluate(async () => (await (await caches.open((await caches.keys()).find(k => k.startsWith('tgroup-pwa-')))).keys()).map(r => new URL(r.url).pathname));
             for (const file of pageFiles(path.resolve(__dirname, '..'))) assert.ok(keys.includes(pageURL(file)), file + ': precached');
             assert.ok(keys.includes('/themes/navigation.js') && keys.includes('/images/app-icon.svg'));
             assert.ok(!keys.some(key => /^\/(admin|api)(\/|$)/.test(key) || key === '/themes/contact-config.json'));
-            // Being online must not make ready PWA pages wait for a slow server.
+            // Online navigation validates public HTML; the existing SPA keeps shared CSS loaded.
             keys.forEach(key => delayedResources.add(key));
             const cachedClickRequest = requests.length;
             await offline.evaluate(() => { window.documentMarker = 'cached-spa'; });
@@ -178,9 +190,10 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             await offline.goBack(); await offline.waitForURL(origin + searchURL);
             await offline.locator('#search-results a[href="/ListPage/Pege05/"]').waitFor();
             assert.equal(await offline.evaluate(() => window.documentMarker), 'cached-spa');
-            assert.deepEqual(requests.slice(cachedClickRequest).filter(url => delayedResources.has(url)), [], 'cached navigation, modules, search index and images make no server requests');
+            assert.ok(requests.slice(cachedClickRequest).includes('/contacts/'), 'online navigation checks the server instead of returning stale HTML');
+            assert.deepEqual(requests.slice(cachedClickRequest).filter(url => url.endsWith('.css')), [], 'shared CSS stays loaded during same-build SPA navigation');
             delayedResources.clear();
-            console.log('PASS PWA: online cached transitions bypass delayed network; search query/results survive navigation and history');
+            console.log('PASS PWA: online transitions validate HTML and retain shared styles; search query/results survive navigation and history');
             await offlineContext.setOffline(true);
             await offline.goto(origin + '/contacts/');
             assert.equal(await offline.title(), originalTitle);
@@ -209,16 +222,16 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             await otherTab.evaluate(() => { window.documentMarker = 'other-tab-before-update'; });
             workerVersion = true;
             await offline.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
-            await Promise.all([offline, otherTab].map(tab => tab.waitForFunction(() => window.TCGUpdateReady, {}, { timeout: 30000 })));
+            await offline.waitForFunction(() => window.TCGUpdateReady, {}, { timeout: 30000 });
+            await otherTab.waitForFunction(() => !window.documentMarker && getComputedStyle(document.documentElement).getPropertyValue('--tcg-test-build').trim() === 'after', {}, { timeout: 30000 });
             assert.equal(await offline.evaluate(async () => !!(await navigator.serviceWorker.getRegistration()).waiting), false, 'update activates while both tabs remain open');
             assert.equal(await offline.locator('[name="Name"]').inputValue(), 'Не втрачати при оновленні');
             assert.equal(await offline.evaluate(() => window.documentMarker), 'form-before-update', 'activation never reloads an unfinished form');
-            assert.equal(await otherTab.evaluate(() => window.documentMarker), 'other-tab-before-update', 'activation does not interrupt the other tab either');
-            assert.equal(await otherTab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--tcg-test-build').trim()), 'before');
+            assert.equal(await otherTab.evaluate(() => window.documentMarker), undefined, 'a clean open tab applies fresh HTML and CSS without a click');
             await otherTab.locator('a[data-tcg-page][href="/contacts/"]').first().click();
             await otherTab.waitForURL(origin + '/contacts/');
             await otherTab.waitForFunction(() => !window.documentMarker);
-            assert.equal(await otherTab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--tcg-test-build').trim()), 'after', 'next menu click loads the new styles and document together');
+            assert.equal(await otherTab.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--tcg-test-build').trim()), 'after', 'new styles remain active on the next menu click');
             await otherTab.evaluate(() => { window.documentMarker = 'spa-after-update'; });
             await clickRoute('/search/', otherTab);
             assert.equal(await otherTab.evaluate(() => window.documentMarker), 'spa-after-update', 'SPA resumes after applying the update');
@@ -226,7 +239,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             await offline.reload();
             assert.equal(await offline.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--tcg-test-build').trim()), 'after', 'ordinary reload receives new CSS without closing tabs');
             console.log('PASS PWA: Chromium installability, all pages/assets cached, offline SPA/search/images, offline fallback/legacy URLs, private endpoints excluded');
-            console.log('PASS PWA update: activates with two open tabs, preserves unfinished form, new CSS on next click/reload, SPA resumes afterwards');
+            console.log('PASS PWA update: activates with two open tabs, preserves unfinished form, clean tab automatically receives fresh CSS, SPA resumes afterwards');
             await offlineContext.close();
         }
     } finally {

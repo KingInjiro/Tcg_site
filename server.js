@@ -72,6 +72,7 @@ function createApp({ dev = false, oauth = createOAuth(), contact = createContact
         if (reqPath === '/Docs/Sno_for_Buh_ua.ert') res.attachment('Sno_for_Buh_ua.ert');
         req.url = reqPath + (queryIndex < 0 ? '' : req.url.slice(queryIndex));
         if (reqPath === '/sw.js') res.set('Cache-Control', 'no-cache');
+        if (reqPath === '/site-version.json') res.set('Cache-Control', 'no-store');
         next();
     });
     // In local editing mode, serve changed source content immediately.
