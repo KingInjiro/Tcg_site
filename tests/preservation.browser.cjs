@@ -146,7 +146,12 @@ const { getHeader, applyHeader } = require('../themes/shared-header');
         await offline.goto(origins[1] + '/');
         await offline.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 30000 });
         // Activation no longer waits for the background offline download.
-        await offline.waitForFunction(async () => Boolean(await caches.match('/')), {}, { timeout: 30000 });
+        await offline.evaluate(() => new Promise((resolve, reject) => {
+            const channel = new MessageChannel();
+            const timeout = setTimeout(() => { channel.port1.close(); reject(new Error('Offline cache did not finish')); }, 30000);
+            channel.port1.onmessage = () => { clearTimeout(timeout); channel.port1.close(); resolve(); };
+            navigator.serviceWorker.controller.postMessage({ type: 'TCG_WARM_CACHE' }, [channel.port2]);
+        }));
         assert.ok(await offline.evaluate(async () => Boolean(await caches.match('/'))), 'offline homepage is cached');
         console.log('PASS shared service-worker registration and homepage cache');
     } finally {
