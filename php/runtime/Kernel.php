@@ -68,6 +68,9 @@ final class Kernel {
                     foreach ($changes as $file) {
                         $path = $file['path'] ?? ''; $content = $file['content'] ?? null;
                         if (!is_string($path) || !(Files::page($path) || Files::project($path)) || ($file['encoding'] ?? '') !== 'utf-8' || !is_string($content) || isset($seen[strtolower($path)])) throw new Problem('Недозволений або повторний файл.', 403);
+                        $identity = Files::page($path) ? 'page:' . preg_replace('/\.html?$/', '', strtolower($path)) : strtolower($path);
+                        if (isset($seen[$identity])) throw new Problem('Повторна адреса сторінки.', 409);
+                        $seen[$identity] = true;
                         if (Files::page($path)) foreach (array_keys($state['files']) as $existing) {
                             if ($existing !== $path && Files::page($existing) && preg_replace('/\.html?$/', '', strtolower($existing)) === preg_replace('/\.html?$/', '', strtolower($path))) throw new Problem('Цю адресу сторінки вже зайнято.', 409);
                         }
@@ -94,7 +97,7 @@ final class Kernel {
         $key = $input['activationKey'] ?? '';
         if (!is_string($key) || !hash_equals($config['activationHash'], hash('sha256', $key))) { $auth->limit('setup', true); throw new Problem('Неправильний ключ початкового налаштування.', 403); }
         $username = $input['username'] ?? ''; $password = $input['password'] ?? '';
-        if (!is_string($username) || !preg_match('/^[A-Za-z0-9_-]{3,48}$/D', $username) || !is_string($password) || strlen($password) < 14 || strlen($password) > 72) throw new Problem('Логін: 3–48 латинських літер/цифр. Пароль: від 14 до 72 байтів.');
+        if (!is_string($username) || !preg_match('/^[A-Za-z0-9_-]{3,48}$/D', $username) || !is_string($password) || str_contains($password, "\0") || strlen($password) < 14 || strlen($password) > 72) throw new Problem('Логін: 3–48 латинських літер/цифр. Пароль: від 14 до 72 байтів, без нульових символів.');
         return $store->locked(function () use ($store, $app, $username, $password) {
             if ($store->configured()) throw new Problem('Початкове налаштування вже завершене.', 409);
             $seed = require $app . '/seed.php';

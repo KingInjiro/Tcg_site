@@ -92,6 +92,7 @@ test('M1 real PHP: TLS, protected setup, sessions, authorization, CSRF and atomi
     assert.equal((await owner.call('save', { head: original.head, changes }, { headers: { 'X-TCG-CSRF': 'forged' } })).status, 403);
     const saved = await owner.call('save', { head: original.head, changes }); assert.equal(saved.status, 200); assert.equal(saved.data.published, false); assert.notEqual(saved.data.head, original.head);
     assert.equal((await owner.call('save', { head: saved.data.head, changes: [{ ...changes[0], path: 'INDEX.htm' }] })).status, 409, 'case/legacy extensions cannot create conflicting routes');
+    assert.equal((await owner.call('save', { head: saved.data.head, changes: ['new.html', 'new.htm'].map(path => ({ path, content: '<html><body>new</body></html>', encoding: 'utf-8' })) })).status, 409, 'two new pages cannot occupy the same URL');
     assert.equal((await owner.call('save', { head: original.head, changes })).status, 409);
     assert.match((await owner.call('read&path=index.html')).data.content, /Чернетка M1/);
     assert.equal(fs.readFileSync(path.join(f.site, 'index.html'), 'utf8'), before, 'draft save never pretends to publish');
@@ -102,7 +103,10 @@ test('M1 real PHP: TLS, protected setup, sessions, authorization, CSRF and atomi
     const caps = await owner.call('capabilities'); assert.equal(caps.status, 200); assert.equal(caps.data.privateStorage, true); assert.ok(!JSON.stringify(caps.data).includes(f.privateRoot));
     for (const rawPath of ['/.tcg-editor/index.html.json', '/admin/_app/release.php', '/admin/_app/seed.php', '/' + path.basename(f.privateRoot) + '/owner.json']) {
         const result = await attacker.call('', undefined, { rawPath });
-        assert.ok([403, 404].includes(result.status), rawPath); assert.ok(!JSON.stringify(result).includes(f.activationKey));
+        assert.ok((result.status >= 400 && result.status < 500) || (result.status === 200 && result.data.text === before), rawPath + ': unexpected HTTP ' + result.status);
+        assert.ok(!JSON.stringify(result).includes(f.activationKey));
+        assert.ok(!JSON.stringify(result).includes(f.privateRoot));
+        assert.ok(!JSON.stringify(result.data).includes('<?php'), 'PHP source cannot be downloaded');
     }
     const state = JSON.parse(fs.readFileSync(path.join(f.privateRoot, 'state.json'))), object = path.join(f.privateRoot, 'objects', state.files['index.html']);
     const content = fs.readFileSync(object); fs.unlinkSync(object); fs.symlinkSync(path.join(f.site, 'index.html'), object);
@@ -122,6 +126,9 @@ test('M1 real PHP: TLS, protected setup, sessions, authorization, CSRF and atomi
     try { assert.equal((await owner.call('save', { head: saved.data.head, changes })).status, 507, 'quota failure preserves the draft and public site'); }
     finally { fs.unlinkSync(filler); }
     assert.equal((await owner.call('tree')).data.head, saved.data.head);
+    fs.chmodSync(f.privateRoot, 0o755);
+    try { assert.equal((await owner.call('tree')).status, 503, 'world-accessible private storage disables administration'); }
+    finally { fs.chmodSync(f.privateRoot, 0o700); }
     assert.equal((await owner.call('logout', {})).status, 200); assert.equal((await owner.call('tree')).status, 401);
     await owner.session();
     for (let i = 0; i < 8; i++) await owner.call('login', { username: credentials.username, password: 'invalid' });

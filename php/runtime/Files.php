@@ -30,6 +30,7 @@ final class Files {
     public static function directory(string $path): void {
         self::noLinks($path);
         if (!is_dir($path) && !mkdir($path, 0700, true) && !is_dir($path)) throw new Problem('Не вдалося створити приватне сховище.', 503);
+        if ((fileperms($path) & 0077) !== 0) throw new Problem('Приватна папка доступна іншим користувачам сервера. Активацію зупинено.', 503);
         if (!is_writable($path)) throw new Problem('Немає прав запису до сховища.', 503);
     }
     public static function read(string $path): string {
@@ -75,7 +76,7 @@ final class Files {
     public static function html(string $html): void {
         if (strlen($html) > 2000000 || !preg_match('//u', $html) || preg_match('/[\x00-\x08\x0b\x0e-\x1f]/', $html) || str_contains($html, "\xef\xbf\xbd") || !preg_match('/<(?:html|head|body)(?:\s|>)/i', $html)) throw new Problem('Файл не є справною UTF-8 HTML-сторінкою.');
         // Public HTML must never become executable PHP on a differently configured host.
-        if (preg_match('/<\?(?:php|=)|<%/i', $html)) throw new Problem('Серверний код у сторінках заборонений.');
+        if (str_contains($html, '<?') || str_contains($html, '<%')) throw new Problem('Серверний код у сторінках заборонений.');
     }
 }
 
