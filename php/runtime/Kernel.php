@@ -4,6 +4,7 @@ namespace TCG;
 if (!defined('TCG_ENTRY')) { http_response_code(404); exit; }
 require_once __DIR__ . '/Files.php';
 require_once __DIR__ . '/Auth.php';
+require_once __DIR__ . '/Images.php';
 
 final class Kernel {
     public static function serve(string $app): void {
@@ -36,7 +37,7 @@ final class Kernel {
                 $input = Files::json($body);
             }
             if ($method === 'GET' && $action === 'session') {
-                self::respond(['authenticated' => $auth->authenticated(), 'setupRequired' => !$store->configured(), 'csrf' => $auth->csrf()]); return;
+                self::respond(['authenticated' => $auth->authenticated(), 'setupRequired' => !$store->configured(), 'csrf' => $auth->csrf(), 'publicationReady' => false]); return;
             }
             if ($method === 'POST' && $action === 'setup') { self::respond(self::setup($store, $auth, $config, $app, $input)); return; }
             if ($method === 'POST' && $action === 'login') { self::respond($auth->login($input)); return; }
@@ -48,11 +49,17 @@ final class Kernel {
                     'limits' => ['upload' => ini_get('upload_max_filesize'), 'post' => ini_get('post_max_size'), 'memory' => ini_get('memory_limit'), 'privateBytes' => 40 * 1024 * 1024]]); return;
             }
             if ($method === 'GET' && $action === 'tree') {
-                self::respond($store->locked(function () use ($store) {
+                self::respond($store->locked(function () use ($store, $config) {
                     $state = $store->state(); $files = [];
                     foreach ($state['files'] as $path => $sha) $files[] = ['path' => $path, 'sha' => $sha, 'type' => 'blob'];
-                    return ['head' => $state['head'], 'files' => $files];
+                    foreach ($config['assets'] ?? [] as $path) if (preg_match('/\.(?:png|jpe?g|gif|webp)$/i', $path) && !isset($state['files'][$path])) $files[] = ['path' => $path, 'type' => 'blob'];
+                    return ['head' => $state['head'], 'files' => $files, 'draftImages' => array_values(array_filter(array_keys($state['files']), fn($path) => Images::editable($path)))];
                 }, false)); return;
+            }
+            if ($method === 'GET' && $action === 'image') {
+                $path = $_GET['path'] ?? '';
+                if (!is_string($path) || !Images::editable($path)) throw new Problem('Недозволене зображення.', 403);
+                self::respond($store->locked(function () use ($store, $path) { $state = $store->state(); if (!isset($state['files'][$path])) throw new Problem('Зображення не знайдене.', 404); return Images::response($store->object($state['files'][$path]), $path); }, false)); return;
             }
             if ($method === 'GET' && $action === 'read') {
                 $path = $_GET['path'] ?? '';
@@ -60,14 +67,18 @@ final class Kernel {
                 self::respond($store->locked(function () use ($store, $path) { $state = $store->state(); return ['content' => isset($state['files'][$path]) ? $store->object($state['files'][$path]) : null]; }, false)); return;
             }
             if ($method === 'POST' && $action === 'save') {
-                self::respond($store->locked(function () use ($store, $input) {
+                self::respond($store->locked(function () use ($store, $input, $config) {
                     $state = $store->state(); $store->checkHead($state, $input['head'] ?? null);
                     $changes = $input['changes'] ?? null;
                     if (!is_array($changes) || !$changes || count($changes) > 100) throw new Problem('Неправильний список змін.');
-                    $seen = []; $size = 0;
+                    $seen = []; $size = 0; $writes = [];
                     foreach ($changes as $file) {
                         $path = $file['path'] ?? ''; $content = $file['content'] ?? null;
-                        if (!is_string($path) || !(Files::page($path) || Files::project($path)) || ($file['encoding'] ?? '') !== 'utf-8' || !is_string($content) || isset($seen[strtolower($path)])) throw new Problem('Недозволений або повторний файл.', 403);
+                        if (!is_string($path) || !(Files::page($path) || Files::project($path) || Images::editable($path)) || !is_string($content) || isset($seen[strtolower($path)])) throw new Problem('Недозволений або повторний файл.', 403);
+                        if (Images::editable($path)) {
+                            if (in_array($path, $config['assets'] ?? [], true)) throw new Problem('Початкові ресурси можна замінювати лише новим зображенням.', 403);
+                            $content = Images::decode($file);
+                        } elseif (($file['encoding'] ?? '') !== 'utf-8') throw new Problem('Неправильне кодування.');
                         $identity = Files::page($path) ? 'page:' . preg_replace('/\.html?$/', '', strtolower($path)) : strtolower($path);
                         if (isset($seen[$identity])) throw new Problem('Повторна адреса сторінки.', 409);
                         $seen[$identity] = true;
@@ -75,11 +86,12 @@ final class Kernel {
                             if ($existing !== $path && Files::page($existing) && preg_replace('/\.html?$/', '', strtolower($existing)) === preg_replace('/\.html?$/', '', strtolower($path))) throw new Problem('Цю адресу сторінки вже зайнято.', 409);
                         }
                         $seen[strtolower($path)] = true; $size += strlen($content);
-                        if (Files::page($path)) Files::html($content); else { if (strlen($content) > 4000000) throw new Problem('Дані редактора завеликі.', 413); Files::json($content); }
+                        if (Files::page($path)) Files::html($content); elseif (Files::project($path)) { if (strlen($content) > 4000000) throw new Problem('Дані редактора завеликі.', 413); Files::json($content); }
+                        $writes[$path] = $content;
                     }
                     if ($size > 8 * 1024 * 1024) throw new Problem('Забагато змін.', 413);
                     $store->space($size);
-                    foreach ($changes as $file) $state['files'][$file['path']] = $store->put($file['content']);
+                    foreach ($writes as $path => $content) $state['files'][$path] = $store->put($content);
                     $state = $store->commit($state); $store->collect();
                     return ['ok' => true, 'head' => $state['head'], 'published' => false];
                 })); return;

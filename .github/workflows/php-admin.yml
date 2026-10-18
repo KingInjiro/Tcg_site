@@ -33,8 +33,14 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: PHP syntax
         run: find php -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Browser runtime
+        if: matrix.php == '8.3'
+        run: npx playwright install --with-deps chromium
       - name: Real PHP API over verified TLS
         run: node --test tests/php/*.test.cjs
+      - name: Real GrapesJS editor over PHP
+        if: matrix.php == '8.3'
+        run: node --test tests/php/editor.browser.cjs
   old-diagnostic:
     runs-on: ubuntu-24.04
     timeout-minutes: 10

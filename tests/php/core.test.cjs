@@ -1,65 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
 const path = require('node:path');
-const http = require('node:http');
-const https = require('node:https');
-const net = require('node:net');
-const crypto = require('node:crypto');
-const { spawn, execFileSync } = require('node:child_process');
-const { preparePHP } = require('../../scripts/prepare-php');
-const php = process.env.TCG_PHP || 'php';
-const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-async function fixture(t) {
-    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-php-core-'));
-    const site = path.join(directory, 'public');
-    const { activationKey } = preparePHP(site);
-    const secret = crypto.randomBytes(32).toString('hex');
-    const reserve = net.createServer(); await listen(reserve); const backendPort = reserve.address().port; await new Promise(r => reserve.close(r));
-    const processPHP = spawn(php, ['-S', '127.0.0.1:' + backendPort, '-t', site, path.join(__dirname, 'router.php')], { env: { ...process.env, TCG_FIXTURE_SECRET: secret }, stdio: ['ignore', 'pipe', 'pipe'] });
-    let log = ''; processPHP.stderr.on('data', chunk => { log += chunk; });
-    await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('PHP did not start: ' + log)), 10000);
-        processPHP.on('error', reject);
-        processPHP.stderr.on('data', () => { if (log.includes('Development Server')) { clearTimeout(timeout); resolve(); } });
-        processPHP.on('exit', code => { if (code) { clearTimeout(timeout); reject(new Error('PHP exited: ' + log)); } });
-    });
-    const key = path.join(directory, 'tls.key'), cert = path.join(directory, 'tls.crt');
-    execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', key, '-out', cert, '-days', '1', '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], { stdio: 'ignore' });
-    const proxy = (req, res) => {
-        const headers = { ...req.headers }; delete headers['x-tcg-fixture-transport'];
-        if (req.socket.encrypted) headers['x-tcg-fixture-transport'] = secret;
-        const outgoing = http.request({ host: '127.0.0.1', port: backendPort, path: req.url, method: req.method, headers }, upstream => { res.writeHead(upstream.statusCode, upstream.headers); upstream.pipe(res); });
-        outgoing.on('error', () => { res.writeHead(502); res.end(); }); req.pipe(outgoing);
-    };
-    const tls = https.createServer({ key: fs.readFileSync(key), cert: fs.readFileSync(cert) }, proxy), plain = http.createServer(proxy);
-    await listen(tls); await listen(plain);
-    const origin = 'https://localhost:' + tls.address().port;
-    const privateRoot = path.join(directory, '.tcg-' + crypto.createHash('sha256').update(fs.realpathSync(site)).digest('hex').slice(0, 20));
-    t.after(async () => { processPHP.kill(); for (const server of [tls, plain]) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); } fs.rmSync(directory, { recursive: true, force: true }); });
-    const client = () => {
-        let cookie = '', csrf = '';
-        const call = (action, body, options = {}) => new Promise((resolve, reject) => {
-            const insecure = options.insecure;
-            const target = new URL((options.rawPath || '/admin/api.php?action=' + action), insecure ? 'http://localhost:' + plain.address().port : origin);
-            const data = body === undefined ? null : JSON.stringify(body);
-            const headers = { ...(cookie ? { Cookie: cookie } : {}), ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), Origin: origin, 'X-TCG-CSRF': csrf } : {}), ...options.headers };
-            for (const [key, value] of Object.entries(headers)) if (value === null) delete headers[key];
-            const req = (insecure ? http : https).request(target, { method: options.method || (data ? 'POST' : 'GET'), ca: fs.readFileSync(cert), headers }, res => {
-                let text = ''; res.setEncoding('utf8'); res.on('data', chunk => { text += chunk; });
-                res.on('end', () => {
-                    if (res.headers['set-cookie']) cookie = res.headers['set-cookie'][0].split(';')[0];
-                    let result; try { result = JSON.parse(text); } catch { result = { text }; }
-                    if (result.csrf) csrf = result.csrf;
-                    resolve({ status: res.statusCode, data: result, headers: res.headers, cookie, csrf });
-                });
-            }); req.on('error', reject); req.end(data);
-        });
-        return { call, session: () => call('session'), get cookie() { return cookie; } };
-    };
-    return { client, activationKey, site, privateRoot, origin, php: processPHP };
-}
+const { spawn } = require('node:child_process');
+const { fixture, php } = require('./fixture.cjs');
 
 test('M1 real PHP: TLS, protected setup, sessions, authorization, CSRF and atomic private documents', { timeout: 60000 }, async t => {
     const f = await fixture(t), owner = f.client(), attacker = f.client();
@@ -88,12 +32,19 @@ test('M1 real PHP: TLS, protected setup, sessions, authorization, CSRF and atomi
         assert.equal((await owner.call('read&path=' + encodeURIComponent(forbidden))).status, 403, forbidden);
         assert.equal((await owner.call('save', { head: original.head, changes: [{ path: forbidden, content: '<html>bad</html>', encoding: 'utf-8' }] })).status, 403, forbidden);
     }
-    const changes = [{ path: 'index.html', content: home.data.content.replace('</body>', '<p>Чернетка M1</p></body>'), encoding: 'utf-8' }, { path: '.tcg-editor/index.html.json', content: JSON.stringify({ version: 1 }), encoding: 'utf-8' }];
+    const png = fs.readFileSync(path.join(__dirname, '../../images/favicon-32.png')).toString('base64');
+    const changes = [{ path: 'index.html', content: home.data.content.replace('</body>', '<p>Чернетка M1</p></body>'), encoding: 'utf-8' }, { path: '.tcg-editor/index.html.json', content: JSON.stringify({ version: 1 }), encoding: 'utf-8' }, { path: 'images/editor/core-test.png', content: png, encoding: 'base64' }];
     assert.equal((await owner.call('save', { head: original.head, changes }, { headers: { 'X-TCG-CSRF': 'forged' } })).status, 403);
     const saved = await owner.call('save', { head: original.head, changes }); assert.equal(saved.status, 200); assert.equal(saved.data.published, false); assert.notEqual(saved.data.head, original.head);
     assert.equal((await owner.call('save', { head: saved.data.head, changes: [{ ...changes[0], path: 'INDEX.htm' }] })).status, 409, 'case/legacy extensions cannot create conflicting routes');
     assert.equal((await owner.call('save', { head: saved.data.head, changes: ['new.html', 'new.htm'].map(path => ({ path, content: '<html><body>new</body></html>', encoding: 'utf-8' })) })).status, 409, 'two new pages cannot occupy the same URL');
     assert.equal((await owner.call('save', { head: original.head, changes })).status, 409);
+    const image = await owner.call('image&path=images/editor/core-test.png'); assert.equal(image.status, 200); assert.equal(image.data.base64, png);
+    assert.equal((await attacker.call('image&path=images/editor/core-test.png')).status, 401);
+    assert.equal(fs.existsSync(path.join(f.site, 'images/editor/core-test.png')), false, 'draft uploads stay outside the web root');
+    for (const file of [{ path: 'images/editor/forged.jpg', content: png, encoding: 'base64' }, { path: 'images/editor/hidden-code.png', content: Buffer.from('<?php echo 1; ?>').toString('base64'), encoding: 'base64' }]) {
+        assert.equal((await owner.call('save', { head: saved.data.head, changes: [file] })).status, 400, 'server validates decoded image content and MIME');
+    }
     assert.match((await owner.call('read&path=index.html')).data.content, /Чернетка M1/);
     assert.equal(fs.readFileSync(path.join(f.site, 'index.html'), 'utf8'), before, 'draft save never pretends to publish');
     const invalid = [{ ...changes[0], content: '<html><body>allowed</body></html>' }, { path: 'server.php', content: 'bad', encoding: 'utf-8' }];

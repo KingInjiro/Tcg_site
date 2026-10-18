@@ -15,9 +15,15 @@ function preparePHP(destination, { activationKey = crypto.randomBytes(32).toStri
     }
     fs.cpSync(path.join(root, 'php/public/admin'), path.join(destination, 'admin'), { recursive: true });
     fs.cpSync(path.join(root, 'php/runtime'), path.join(destination, 'admin/_app'), { recursive: true });
+    for (const file of ['builder.css', 'builder.js', 'repository.js', 'document.js']) fs.copyFileSync(path.join(root, 'admin', file), path.join(destination, 'admin', file));
+    const editor = fs.readFileSync(path.join(root, 'admin/index.html'), 'utf8').replace('<html lang="uk">', '<html lang="uk" data-tcg-backend="php">').replace('<script defer src="/admin/builder.js"></script>', '<script defer src="/admin/php-repository.js"></script><script defer src="/admin/builder.js"></script>');
+    fs.writeFileSync(path.join(destination, 'admin/index.html'), editor);
+    const grapes = path.dirname(require.resolve('grapesjs'));
+    fs.mkdirSync(path.join(destination, 'admin/vendor'), { recursive: true });
+    for (const [from, to] of [['grapes.min.js', 'grapes.min.js'], ['css/grapes.min.css', 'grapes.min.css'], ['../LICENSE', 'LICENSE.txt']]) fs.copyFileSync(path.join(grapes, from), path.join(destination, 'admin/vendor', to));
     const source = sourceWebsiteFiles(root);
     const seed = Object.fromEntries([...source].filter(([file, content]) => isPage(file) && !pageProblem(content.toString('utf8'))).map(([file, content]) => [file, content.toString('utf8')]));
-    fs.writeFileSync(path.join(destination, 'admin/_app/release.php'), phpArray({ activationHash: crypto.createHash('sha256').update(activationKey).digest('hex'), format: 1 }));
+    fs.writeFileSync(path.join(destination, 'admin/_app/release.php'), phpArray({ activationHash: crypto.createHash('sha256').update(activationKey).digest('hex'), format: 1, assets: [...source.keys()].filter(file => /^(?:images|derived|themes|[\w.-]+\.files)\//.test(file)) }));
     fs.writeFileSync(path.join(destination, 'admin/_app/seed.php'), phpArray(seed));
     // Deliberately never write the activation key anywhere under the web root.
     return { destination, activationKey };
@@ -25,7 +31,7 @@ function preparePHP(destination, { activationKey = crypto.randomBytes(32).toStri
 if (require.main === module) {
     const destination = process.argv[2]; if (!destination) throw new Error('Pass a new staging directory.');
     const result = preparePHP(path.resolve(destination));
-    process.stdout.write('M1 staging only — editor integration and PHP publishing are not complete.\n');
+    process.stdout.write('M2 staging only — autonomous PHP publishing is not complete.\n');
     const keyPath = path.join(path.dirname(result.destination), 'tcg-activation-' + crypto.randomBytes(8).toString('hex') + '.txt');
     fs.writeFileSync(keyPath, result.activationKey + '\n', { mode: 0o600, flag: 'wx' });
     process.stdout.write('Activation key stored outside staging: ' + keyPath + '\n');
