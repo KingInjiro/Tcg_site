@@ -19,8 +19,22 @@
 
 Верифікація: у початковому середовищі немає PHP/Apache/Docker; встановлюється локальний тестовий runtime. Це не обмеження, яке передається власнику. Матриця 8.2–8.5 перевірятиметься в CI; без виконаних перевірок підтримка не вважається підтвердженою. Хостинг батька не перевірений і не змінюється.
 
-## Наступний checkpoint — M1
+## M1 — Secure PHP core
 
-Безпечний старосинтаксичний entrypoint, capability preflight, приватне сховище, захищене перше налаштування, сесії/вхід/вихід, rate limit, CSRF, читання та транзакційні зміни дозволених документів. Додати HTTP-тести реального PHP без production-обходу HTTPS.
+Реалізовано (API, ще без браузерного підключення GrapesJS):
 
-M2–M5 ще не реалізовані. Готового релізного PHP ZIP поки немає.
+- Старосинтаксичні `diagnostic.php` і `api.php`: перевірка версії до включення коду PHP 8.2. Діагностика не записує файли.
+- Приватні документи й сесії — у sibling-каталозі поза document root; symlink-перевірки. Початкова підтримка: корінь окремого домену, право створити приватну папку поряд. За відсутності цих умов — безпечна відмова.
+- Випадковий ключ активації: у staging тільки SHA-256, ключ ніколи не записується під web root. Повторне встановлення заблоковане.
+- password_hash/password_verify, захищені серверні сесії, ротація ID, HttpOnly/Secure/SameSite=Strict, CSRF+Origin, timeout сесії, серверний rate limit.
+- JSON API: session/setup/login/logout/capabilities/tree/read/save. Дозволені HTML і JSON редактора; записи системного коду й PHP-тегів заборонені. Збереження повертає `published:false`: це чернетка, а не публікація.
+- SHA-256 objects, atomic pointer, контрольні суми, revision-конфлікти й nonblocking flock; валідація всього batch до запису. Квота приватного сховища — 40 МБ.
+- Staging-підготовка через `scripts/prepare-php.js` тільки для розробки; це ще не релізний packager.
+
+Змінені файли: php/public/admin/{api,diagnostic}.php; php/runtime/{Files,Auth,Kernel}.php і .htaccess; scripts/prepare-php.js; tests/php/{core.test.cjs,router.php}; package.json; .github/workflows/php-admin.yml; цей звіт.
+
+Локально: реальний PHP 8.3.6 (Ubuntu security package), HTTP API через справжній TLS із перевіреним тестовим сертифікатом. Інтеграційний сценарій перевіряє setup, захоплення інсталяції, вхід/вихід, cookie flags/ротацію, CSRF/Origin, підроблені proxy-заголовки, path traversal, symlink, batch-валідацію, старий revision, глобальний lock, файлову квоту та приватні файли. PASS. Lint п’яти PHP-файлів — PASS.
+
+Перевірка chmod-readonly локально NOT TESTED: процес має UID 0, що обходить звичайні mode bits. У CI цей сценарій запускається звичайним runner-користувачем. Матриця PHP 8.2/8.3/8.4/8.5 і діагностика 5.6/7.4/8.0/8.1 додані до CI; результати ще не отримані. Apache й чисте встановлення фінального ZIP — ще NOT TESTED.
+
+M2–M5 ще не реалізовані. Готового релізного PHP ZIP поки немає. Наступне: PHP adapter і браузерний setup/login, затем повний цикл керування та PHP-генератор.
