@@ -14,7 +14,7 @@
     const dirtyPages = () => [...state.pages.values()].filter(page => page.dirty);
     function status(message, error = false) { $('status').textContent = message; $('status').parentElement.classList.toggle('error', error); }
     function updateButtons() {
-        $('publish').disabled = state.busy || state.loading || state.checking || !dirtyPages().length;
+        $('publish').disabled = state.busy || state.loading || state.checking || (!dirtyPages().length && !(php && state.repo?.unpublished));
         $('new-page').disabled = state.busy || state.loading || !state.current;
         for (const id of ['preview', 'backup', 'restore', 'logout', 'export-site', 'check-mail']) $(id).disabled = state.busy || state.loading;
         $('export-site').disabled ||= !state.repo;
@@ -220,6 +220,7 @@
         $('login-screen').hidden = true; $('app').hidden = false;
         renderPageList();
         await openPage(state.pages.has('index.html') ? 'index.html' : state.pages.keys().next().value);
+        if (php) window.TCGPHP.mount(repo, () => ({ path: state.current, dirty: dirtyPages().length }), status);
         $('check-mail').hidden = local || php;
         if (repo.pending) monitorPublication();
     }
@@ -273,11 +274,11 @@
         if (exportAfter && !local) return;
         capture();
         const pages = dirtyPages();
-        if (!pages.length && !exportAfter) return;
+        if (!pages.length && !exportAfter && !(php && state.repo.unpublished)) return;
         state.busy = true; updateButtons(); $('app').querySelector('.workspace').inert = true; $('publish').textContent = local ? 'Збереження…' : 'Публікація…';
         status('Зберігаю сторінки та зображення…'); $('publication').hidden = true;
         try {
-            if (pages.length) {
+            if (pages.length || (php && state.repo.unpublished)) {
                 const changes = [], saved = new Map();
                 for (const page of pages) {
                     const html = replaceAssets(page.html, true);

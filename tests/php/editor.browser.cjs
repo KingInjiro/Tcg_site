@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright');
 const { fixture } = require('./fixture.cjs');
-test('M2 GrapesJS on real PHP: browser setup/login, text, image, draft save and reopening', { timeout: 90000 }, async t => {
+test('GrapesJS on PHP: setup, text/image, publication, menu, rename/delete and restore', { timeout: 90000 }, async t => {
     const f = await fixture(t);
     const browser = await chromium.launch({ headless: true, executablePath: process.env.TCG_BROWSER_EXECUTABLE || undefined,
         args: ['--no-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors-spki-list=' + f.spki] });
@@ -16,7 +16,7 @@ test('M2 GrapesJS on real PHP: browser setup/login, text, image, draft save and 
     await page.locator('#activation-key').fill(f.activationKey); await page.locator('#php-username').fill('site-owner'); await page.locator('#php-password').fill('Browser test secure password 42');
     await page.locator('#php-login-form button').click();
     await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
-    assert.equal(await page.locator('#publish').innerText(), 'Зберегти чернетку');
+    assert.equal(await page.locator('#publish').innerText(), 'Опублікувати');
     assert.equal(await page.locator('#page-list [data-path]').count(), 51);
     const publicHome = fs.readFileSync(path.join(f.site, 'index.html'), 'utf8');
     await page.locator('#new-page').click(); await page.locator('#new-title').fill('PHP інтеграція'); await page.locator('#new-slug').fill('php-editor-test');
@@ -31,14 +31,37 @@ test('M2 GrapesJS on real PHP: browser setup/login, text, image, draft save and 
     await page.locator('#asset-upload').setInputFiles({ name: 'owner-logo.png', mimeType: 'image/png', buffer: png });
     await page.locator('#asset-dialog').waitFor({ state: 'hidden' });
     await page.locator('#publish').click();
-    await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Чернетку збережено на сервері.'), {}, { timeout: 20000 });
-    assert.equal(fs.readFileSync(path.join(f.site, 'index.html'), 'utf8'), publicHome, 'M2 draft is explicitly not a publication');
+    await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 20000 });
+    assert.notEqual(fs.readFileSync(path.join(f.site, 'index.html'), 'utf8'), publicHome, 'publication updates the actual public site');
+    const visitor = await browser.newPage(); await visitor.goto(f.origin + '/php-editor-test/'); assert.equal(await visitor.locator('h1').innerText(), 'Збережено через PHP');
+    await visitor.locator('img[src^="/images/editor/"]').evaluate(image => image.decode()); await visitor.close();
     await page.reload(); await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     await page.locator('[data-path="php-editor-test.html"]').click();
     await page.waitForFunction(() => document.getElementById('current-path').textContent === '/php-editor-test/');
     await canvas.getByText('Збережено через PHP', { exact: true }).waitFor();
     await canvas.locator('img[src^="data:image/png;base64"]').last().evaluate(image => image.decode());
     assert.equal(await page.locator('#publish').isDisabled(), true, 'restored project starts clean');
+    await page.locator('#php-menu-button').click(); await page.locator('#php-menu-add').click();
+    const row = page.locator('dialog[open] select').last(); await row.selectOption('php-editor-test.html');
+    await page.locator('dialog[open] input[aria-label="Назва пункту"]').last().fill('Моя PHP сторінка');
+    await page.locator('#php-menu-save').click(); await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
+    assert.equal(await page.locator('#publish').isDisabled(), false, 'saved menu changes remain publishable after reloading');
+    await page.locator('[data-path="php-editor-test.html"]').click(); await page.waitForFunction(() => document.getElementById('current-path').textContent === '/php-editor-test/');
+    await page.locator('#php-rename-button').click(); await page.locator('#php-new-address').fill('php-editor-renamed');
+    await page.getByRole('button', { name: 'Перейменувати', exact: true }).click();
+    await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
+    await page.locator('[data-path="php-editor-renamed.html"]').click(); await page.waitForFunction(() => document.getElementById('current-path').textContent === '/php-editor-renamed/');
+    page.once('dialog', dialog => dialog.accept()); await page.locator('#php-delete-button').click();
+    await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
+    assert.equal(await page.locator('[data-path="php-editor-renamed.html"]').count(), 0);
+    await page.locator('#php-versions-button').click(); page.once('dialog', dialog => dialog.accept());
+    await page.locator('dialog[open]').getByRole('button', { name: 'Відновити', exact: true }).first().click();
+    await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
+    await page.locator('[data-path="php-editor-renamed.html"]').waitFor();
+    await page.locator('#publish').click(); await page.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'));
+    const restored = await browser.newPage(); await restored.goto(f.origin + '/php-editor-renamed/'); assert.equal(await restored.locator('h1').innerText(), 'Збережено через PHP');
+    assert.equal(await restored.locator('.site-header nav a[href="/php-editor-renamed/"]').count(), 1);
+    await restored.goto(f.origin + '/php-editor-test.html'); await restored.waitForURL(f.origin + '/php-editor-renamed/'); await restored.close();
     await page.locator('#logout').click(); await page.locator('#php-login-form').waitFor();
     assert.equal(await page.locator('#activation-key').count(), 0, 'setup cannot be reopened after logout');
     assert.deepEqual(errors, []);

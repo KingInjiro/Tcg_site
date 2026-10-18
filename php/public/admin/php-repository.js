@@ -11,14 +11,18 @@
             return data;
         }
         async session() { const result = await this.request('session'); this.publicationReady = !!result.publicationReady; return result; }
-        async list() { const data = await this.request('tree'); this.head = data.head; this.draftImages = data.draftImages || []; return data; }
+        async list() { const data = await this.request('tree'); this.head = data.head; this.unpublished = !!data.unpublished; this.draftImages = data.draftImages || []; this.pages = data.files.filter(file => window.TCGRepository.isPage(file.path)).map(file => file.path); return data; }
         async read(path) { return (await this.request('read&path=' + encodeURIComponent(path))).content; }
         async readImage(path) { return this.request('image&path=' + encodeURIComponent(path)); }
         async publish(changes) {
-            window.TCGRepository.validateChanges(changes);
-            const saved = await this.request('save', { head: this.head, changes }); this.head = saved.head;
+            let saved = { head: this.head, published: false };
+            if (changes.length) {
+                window.TCGRepository.validateChanges(changes);
+                saved = await this.request('save', { head: this.head, changes }); this.head = saved.head; this.unpublished = true;
+                this.pages = [...new Set([...this.pages, ...changes.filter(file => window.TCGRepository.isPage(file.path)).map(file => file.path)])];
+            }
             if (!this.publicationReady) return saved;
-            return this.request('publish', { head: this.head });
+            const result = await this.request('publish', { head: this.head }); this.unpublished = false; return result;
         }
         async logout() { return this.request('logout', {}); }
     }

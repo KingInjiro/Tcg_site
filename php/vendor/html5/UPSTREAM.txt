@@ -1,0 +1,5 @@
+Masterminds HTML5-PHP 2.11.0
+https://github.com/Masterminds/html5-php
+Commit a1e7a2f88ee13635d86fc61cfbdf2306a76ddfc7
+MIT license; original source and license retained.
+No Composer runtime or remote autoloading.

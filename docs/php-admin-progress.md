@@ -50,3 +50,24 @@
 Змінені: admin/builder.js; php/public/admin/{php-repository.js,compatibility.html,compatibility.js}; php/runtime/{Kernel.php,Images.php}; scripts/prepare-php.js; tests/php/{fixture.cjs,core.test.cjs,editor.browser.cjs}; CI workflow; цей звіт.
 
 M3–M5 ще не реалізовані. Готового релізного PHP ZIP поки немає. Наступне: повне керування сторінками/меню/версіями та PHP-генератор. HTML5-PHP готується окремо для генератора; не є готовою M4-публікацією.
+
+
+## M3 — керування сторінками й версіями
+
+Реалізовано PHP delete/rename з підтвердженням і захистом головної; оновлення внутрішніх посилань, ресурсів перенесеної сторінки та redirect aliases. Спільне верхнє меню: додавання, видалення, назва, ціль, перестановка. Незмінені GIF-пункти збережені; лише явно нові/перейменовані текстові пункти використовують додатковий opt-in CSS. Три резервні source-версії з content-addressed dedup і браузерним відновленням. Мікросекундні ID забезпечують порядок швидких послідовних збережень.
+
+Локальні API та Chromium сценарії меню → rename → delete → restore — PASS. Перевірено збереження статейного тексту після зняття посилання й видалення пункту меню, ліміт трьох версій, збереження приватного PNG. Модуль HTML5-PHP 2.11.0 (MIT, pinned a1e7a2f88ee13635d86fc61cfbdf2306a76ddfc7) постачається локально без Composer.
+
+## M4 — автономна PHP-публікація
+
+Реалізовано PHP-генератор HTML, shared header, ресурсів, canonical/legacy URL, search index, site-version, worker і версійних CSS/JS. Усі 51 сторінка пройшли порівняння DOM/тексту/атрибутів/посилань із Node cleanWebsite; пошуковий індекс збігається. Обробку noscript вирівняно з scripting-enabled parse5 без зміни third-party source.
+
+Публікація: глобальний lock, revision, перевірка owned-manifest і зовнішніх змін, staging + rollback journal, SHA-256 перевірка записів, маркер після HTML, worker останнім. Частковий збій відновлюється наступним авторизованим запитом; committed journal очищається без відкату успішної публікації. Файли відвідувачів стають readable атомарно; приватні файли залишаються 0600/0700. Порожні каталоги видалених URL прибираються. Початковий опублікований source-state й попередня опублікована версія зберігаються окремо від незбережених змін.
+
+Браузерний повний цикл на PHP/TLS: setup → редактор → текст/PNG → публікація → справжній visitor URL → повторне відкриття → меню → rename/delete → restore → публікація → legacy redirect — PASS. Немає Node subprocess на сервері. Публічний вигляд ще потребує окремого pixel/geometry regression в M5; DOM parity його не замінює.
+
+Локально одержано native PHP 8.2.34, 8.4.26, 8.5.11 із php-builder (SHA-256 звірені з GitHub release metadata), разом із Ubuntu PHP 8.3.6. Усі три API suite-сценарії M1/M3/M4 пройшли на кожній версії. Це поки staging, не перевірка фінального ZIP і не Apache. Apache/чистий фінальний архів/production залишаються NOT TESTED.
+
+Змінені модулі: php/runtime/{HTML,Routes,Header,Pages,Compiler,Publisher,Files,Kernel}.php; php/vendor/html5 (ліцензія та upstream commit); php/public/admin/php-controls.js, php-repository.js; admin/builder.js; themes/cms-menu.css; scripts/prepare-php.js; tests/php/{pages.test.cjs,publication.test.cjs,editor.browser.cjs}; цей звіт.
+
+Пошта на PHP ще не налаштована й не підтверджена. Наявний contact endpoint чесно відмовляє з повідомленням, а не повертає фальшивий успіх. M5 ще триває; готового ZIP для батька поки немає.

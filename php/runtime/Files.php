@@ -39,7 +39,7 @@ final class Files {
         if ($data === false) throw new Problem('Не вдалося прочитати файл.', 503);
         return $data;
     }
-    public static function atomic(string $path, string $data): void {
+    public static function atomic(string $path, string $data, int $mode = 0600): void {
         self::noLinks($path);
         $directory = dirname($path);
         if (!is_dir($directory) || !is_writable($directory)) throw new Problem('Немає прав запису.', 503);
@@ -47,7 +47,7 @@ final class Files {
         $handle = fopen($temporary, 'x+b');
         if (!$handle) throw new Problem('Не вдалося створити тимчасовий файл.', 503);
         try {
-            chmod($temporary, 0600);
+            if (!chmod($temporary, $mode)) throw new Problem('Не вдалося захистити тимчасовий файл.', 503);
             $offset = 0; $length = strlen($data);
             while ($offset < $length) {
                 $written = fwrite($handle, substr($data, $offset));
@@ -143,6 +143,7 @@ final class Store {
     public function collect(): void {
         $used = array_fill_keys(array_values($this->state()['files']), true);
         foreach (glob($this->root . '/versions/*.json') ?: [] as $version) foreach (Files::json(Files::read($version))['files'] ?? [] as $sha) $used[$sha] = true;
+        if (is_file($this->root . '/published-state.json')) foreach (Files::json(Files::read($this->root . '/published-state.json'))['files'] as $sha) $used[$sha] = true;
         foreach (glob($this->root . '/objects/*') ?: [] as $object) {
             Files::noLinks($object);
             if (!isset($used[basename($object)]) && is_file($object)) unlink($object);

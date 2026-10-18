@@ -19,6 +19,8 @@ final class Kernel {
         });
             Auth::secure();
             self::requirements();
+            require_once __DIR__ . '/Pages.php';
+            require_once __DIR__ . '/Publisher.php';
             $config = require $app . '/release.php';
             if (!is_array($config) || !preg_match('/^[a-f0-9]{64}$/D', $config['activationHash'] ?? '')) throw new Problem('Реліз не пройшов підготовку.', 503);
             $store = new Store(dirname($app, 2)); $store->prepare();
@@ -37,11 +39,33 @@ final class Kernel {
                 $input = Files::json($body);
             }
             if ($method === 'GET' && $action === 'session') {
-                self::respond(['authenticated' => $auth->authenticated(), 'setupRequired' => !$store->configured(), 'csrf' => $auth->csrf(), 'publicationReady' => false]); return;
+                self::respond(['authenticated' => $auth->authenticated(), 'setupRequired' => !$store->configured(), 'csrf' => $auth->csrf(), 'publicationReady' => true]); return;
             }
             if ($method === 'POST' && $action === 'setup') { self::respond(self::setup($store, $auth, $config, $app, $input)); return; }
             if ($method === 'POST' && $action === 'login') { self::respond($auth->login($input)); return; }
             $auth->requireOwner();
+            $publisher = new Publisher($store, $config);
+            if (is_file($store->root . '/publication.json')) $store->locked(fn() => $publisher->recover());
+            if ($method === 'POST' && $action === 'publish') {
+                self::respond($store->locked(function () use ($store, $publisher, $input) { $state = $store->state(); $store->checkHead($state, $input['head'] ?? null); return $publisher->publish($state); })); return;
+            }
+            $pages = new Pages($store);
+            if ($method === 'GET' && $action === 'versions') { self::respond(['versions' => $store->locked(fn() => $pages->versions(), false)]); return; }
+            if ($method === 'GET' && $action === 'menu') { self::respond(['items' => $store->locked(fn() => $pages->menu($store->state()), false)]); return; }
+            if ($method === 'POST' && in_array($action, ['delete', 'rename', 'restore', 'menu'], true)) {
+                self::respond($store->locked(function () use ($action, $store, $pages, $input) {
+                    $state = $store->state(); $store->checkHead($state, $input['head'] ?? null);
+                    if ($action === 'restore') { if (!is_string($input['version'] ?? null)) throw new Problem('Вкажіть резервну версію.'); $state = $pages->restore($state, $input['version']); }
+                    elseif ($action === 'menu') { if (!is_array($input['items'] ?? null)) throw new Problem('Вкажіть пункти меню.'); $state = $pages->menu($state, $input['items']); }
+                    else {
+                        $path = $input['path'] ?? null; if (!is_string($path) || ($input['confirm'] ?? null) !== $path) throw new Problem('Потрібне підтвердження адреси.');
+                        $newPath = $action === 'rename' ? ($input['newPath'] ?? null) : null;
+                        if ($action === 'rename' && !is_string($newPath)) throw new Problem('Вкажіть нову адресу.');
+                        $state = $pages->change($state, $path, $newPath);
+                    }
+                    $store->collect(); return ['head' => $state['head'], 'published' => false];
+                })); return;
+            }
             if ($method === 'POST' && $action === 'logout') { $auth->logout(); self::respond(['ok' => true]); return; }
             if ($method === 'GET' && $action === 'capabilities') {
                 self::respond(['php' => PHP_VERSION, 'https' => true, 'privateStorage' => true, 'write' => true,
@@ -53,7 +77,8 @@ final class Kernel {
                     $state = $store->state(); $files = [];
                     foreach ($state['files'] as $path => $sha) $files[] = ['path' => $path, 'sha' => $sha, 'type' => 'blob'];
                     foreach ($config['assets'] ?? [] as $path) if (preg_match('/\.(?:png|jpe?g|gif|webp)$/i', $path) && !isset($state['files'][$path])) $files[] = ['path' => $path, 'type' => 'blob'];
-                    return ['head' => $state['head'], 'files' => $files, 'draftImages' => array_values(array_filter(array_keys($state['files']), fn($path) => Images::editable($path)))];
+                    $published = is_file($store->root . '/published-state.json') ? Files::json(Files::read($store->root . '/published-state.json')) : null;
+                    return ['head' => $state['head'], 'unpublished' => ($published['head'] ?? null) !== $state['head'], 'files' => $files, 'draftImages' => array_values(array_filter(array_keys($state['files']), fn($path) => Images::editable($path)))];
                 }, false)); return;
             }
             if ($method === 'GET' && $action === 'image') {
@@ -91,6 +116,7 @@ final class Kernel {
                     }
                     if ($size > 8 * 1024 * 1024) throw new Problem('Забагато змін.', 413);
                     $store->space($size);
+                    $pages = new Pages($store); $pages->remember($state, 'Перед збереженням');
                     foreach ($writes as $path => $content) $state['files'][$path] = $store->put($content);
                     $state = $store->commit($state); $store->collect();
                     return ['ok' => true, 'head' => $state['head'], 'published' => false];
@@ -102,7 +128,7 @@ final class Kernel {
         finally { if (function_exists('session_status') && session_status() === PHP_SESSION_ACTIVE) session_write_close(); if (function_exists('restore_error_handler')) restore_error_handler(); }
     }
     private static function requirements(): void {
-        foreach (['json_encode', 'json_decode', 'hash', 'hash_equals', 'random_bytes', 'password_hash', 'password_verify', 'session_start', 'session_regenerate_id', 'flock', 'rename', 'file_put_contents', 'file_get_contents', 'mkdir', 'fopen', 'fwrite', 'fflush', 'chmod'] as $function) if (!function_exists($function)) throw new Problem('Хостинг не підтримує обов’язковий захист або файлову операцію: ' . $function, 503);
+        foreach (['json_encode', 'json_decode', 'hash', 'hash_equals', 'random_bytes', 'password_hash', 'password_verify', 'session_start', 'session_regenerate_id', 'spl_autoload_register', 'flock', 'rename', 'file_put_contents', 'file_get_contents', 'mkdir', 'fopen', 'fwrite', 'fflush', 'chmod'] as $function) if (!function_exists($function)) throw new Problem('Хостинг не підтримує обов’язковий захист або файлову операцію: ' . $function, 503);
     }
     private static function setup(Store $store, Auth $auth, array $config, string $app, array $input): array {
         $auth->limit('setup');
@@ -112,13 +138,17 @@ final class Kernel {
         if (!is_string($username) || !preg_match('/^[A-Za-z0-9_-]{3,48}$/D', $username) || !is_string($password) || str_contains($password, "\0") || strlen($password) < 14 || strlen($password) > 72) throw new Problem('Логін: 3–48 латинських літер/цифр. Пароль: від 14 до 72 байтів, без нульових символів.');
         return $store->locked(function () use ($store, $app, $username, $password) {
             if ($store->configured()) throw new Problem('Початкове налаштування вже завершене.', 409);
+            if (!class_exists(\DOMDocument::class) || !class_exists(\finfo::class) || !function_exists('imagecreatefromstring')) throw new Problem('Для повного редактора й безпечних зображень потрібні PHP DOM, fileinfo та GD.', 503);
             $seed = require $app . '/seed.php';
             if (!is_array($seed) || !isset($seed['index.html'])) throw new Problem('В архіві немає вихідних сторінок.', 503);
             $files = []; $size = 0;
             foreach ($seed as $path => $html) { if (!Files::page($path) || !is_string($html)) throw new Problem('Некоректні вихідні сторінки.', 503); Files::html($html); $size += strlen($html); }
             $store->space($size);
             foreach ($seed as $path => $html) $files[$path] = $store->put($html);
-            $store->commit(['files' => $files, 'menu' => null, 'aliases' => []]);
+            $initial = $store->commit(['files' => $files, 'menu' => null, 'aliases' => []]);
+            $config = require $app . '/release.php';
+            Files::atomic($store->root . '/published-state.json', Files::encode($initial));
+            Files::atomic($store->root . '/published.json', Files::encode($config['managed']));
             $owner = ['id' => bin2hex(random_bytes(32)), 'username' => $username, 'password' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]), 'created' => gmdate('c')];
             Files::atomic($store->root . '/owner.json', Files::encode($owner));
             return ['ok' => true, 'setupRequired' => false];
