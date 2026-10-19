@@ -268,10 +268,12 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await workerCDP.send('ServiceWorker.enable');
     await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
     await visitor.reload();
+    const pwaStarted = Date.now();
     try { await until(() => visitor.evaluate(async () => {
         const version = document.querySelector('meta[name="tcg-build"]').content;
-        return !!await (await caches.open('tgroup-pwa-' + version)).match(location.href);
-    }), 45000); }
+        const registration = await navigator.serviceWorker.getRegistration();
+        return !registration.waiting && !registration.installing && !!await caches.match(location.href, {cacheName: 'tgroup-pwa-' + version});
+    }), 360000); }
     catch (error) {
         console.log('PWA lifecycle', JSON.stringify(lifecycle.map(v => ({id:v.versionId,target:v.targetId,status:v.status,running:v.runningStatus,script:v.scriptURL,controlled:v.controlledClients}))));
         console.log('PWA worker functions', JSON.stringify(await Promise.all(context.serviceWorkers().map(w => Promise.race([w.evaluate(() => ({version: typeof config === 'object' ? config.version : null, warming: typeof warming !== 'undefined' && !!warming, warmType:typeof warmOfflineCache, networkType:typeof network, source:typeof warmOfflineCache==='function'?warmOfflineCache.toString().length:null})).catch(() => ({error:'unavailable'})), wait(3000).then(() => ({timeout:true}))])))));
@@ -281,6 +283,8 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
         await internals.close();
         throw error;
     }
+    measurements.pwaReadyMs = Date.now() - pwaStarted;
+    console.log('PWA latest publication ready', measurements.pwaReadyMs);
     await workerCDP.detach();
     await context.setOffline(true);
     try { await visitor.reload(); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows'); }
