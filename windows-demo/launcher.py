@@ -227,10 +227,16 @@ def run_demo():
         context = ssl.create_default_context(cadata=tls['certificate'])
         origin = f'https://127.0.0.1:{port}'
         wait_for(lambda: json.loads(local_url(origin + '/admin/api.php?action=session', context)).get('setupRequired') is not None, 30, vm)
-        # Verify the actual styles/scripts through the same strict TLS path
-        # before starting Chromium. An API response alone is not UI readiness.
-        for asset in ['/admin/', '/admin/builder.css', '/admin/vendor/grapes.min.css', '/admin/vendor/grapes.min.js']:
-            wait_for(lambda asset=asset: bool(local_url(origin + asset, context)), 30, vm)
+        # Verify all entry-point resources byte-for-byte over strict HTTPS.
+        # The immutable release manifest contains public file hashes only.
+        release_files = json.loads((ROOT / 'runtime/release-manifest.json').read_text('utf-8'))['files']
+        assets = ['admin/index.html', 'admin/builder.css', 'admin/vendor/grapes.min.css', 'admin/vendor/grapes.min.js',
+                  'admin/repository.js', 'themes/routes.js', 'themes/shared-header.js', 'admin/document.js',
+                  'admin/php-repository.js', 'admin/php-controls.js', 'admin/grapes-uk.js', 'admin/builder.js']
+        for asset in assets:
+            data = wait_for(lambda asset=asset: local_url(origin + '/' + asset, context), 30, vm)
+            if hashlib.sha256(data).hexdigest() != release_files[asset]:
+                raise RuntimeError('Локальний сервер повернув пошкоджений ресурс: ' + asset)
         certificate_file = DATA / 'localhost-cert.pem'
         certificate_file.write_text(tls['certificate'], 'utf-8')
         profile = DATA / 'browser-profile'
