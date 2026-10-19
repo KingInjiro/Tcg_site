@@ -112,8 +112,9 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     });
 
     let { context, running } = await launch();
+    const expectedCSS = JSON.parse(fs.readFileSync(path.join(root, 'runtime/release-manifest.json'))).files['admin/builder.css'];
     const burst = async target => Promise.all(Array.from({ length: 24 }, async () => {
-        try { const r = await request(target, '', undefined, { rawPath: '/admin/builder.css' }); return r.status === 200 && crypto.createHash('sha256').update(r.data.text || '').digest('hex') === crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, '../../admin/builder.css'))).digest('hex'); }
+        try { const r = await request(target, '', undefined, { rawPath: '/admin/builder.css' }); return r.status === 200 && crypto.createHash('sha256').update(r.data.text || '').digest('hex') === expectedCSS; }
         catch { return false; }
     }));
     const rawBurst = await burst({ ...running, origin: 'https://127.0.0.1:' + running.guestPort });
@@ -137,6 +138,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('#php-password').fill(credentials.password);
     await admin.locator('#php-login-form button').click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/', {}, { timeout: 180000 });
+    console.log('Checkpoint: secure activation and real page list');
     assert.equal(await admin.locator('#page-list [data-path]').count(), 51);
     await admin.locator('#logout').click();
     await admin.locator('#php-login-form').waitFor();
@@ -192,6 +194,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     const received = await heading.evaluate(node => window.__tcgPointerEvents);
     assert.ok(received.some(e => e.type === 'dblclick' && e.tag === 'H1' && e.trusted), 'real mouse double click reaches the text component');
     assert.equal(await heading.evaluate(node => document.hasFocus()), true, 'canvas receives focus through real mouse input');
+    console.log('Checkpoint: trusted mouse RTE and iframe focus');
     await editable.fill('Збережено у Windows'); await admin.locator('#page-title').click();
     await admin.getByRole('button', { name: 'Зображення', exact: true }).click();
     if (!await admin.locator('#asset-dialog').isVisible()) await admin.locator('#choose-image').click();
@@ -203,6 +206,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('#publish').click();
     await published();
     await sampleProcesses();
+    console.log('Checkpoint: image, preview and real PHP publication');
     let visitor = await context.newPage(); await visitor.goto(running.origin + '/windows-test/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     await visitor.locator('img[src^="/images/editor/"]').evaluate(image => image.decode());
@@ -217,6 +221,14 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('#php-menu-save').click(); await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     await admin.locator('#publish').click(); await published();
     await visitor.reload(); assert.equal(await visitor.locator('.site-header nav a[href="/windows-test/"]').count(), 1);
+    await visitor.goto(running.origin + '/');
+    await visitor.waitForFunction(() => window.TCGNavigation === true);
+    await visitor.evaluate(() => { window.__tcgSPAProbe = 'same document'; });
+    await visitor.locator('.site-header nav a[href="/windows-test/"][data-tcg-page]').click();
+    await visitor.waitForURL(running.origin + '/windows-test/');
+    await visitor.getByRole('heading', { name: 'Збережено у Windows', exact: true }).waitFor();
+    assert.equal(await visitor.evaluate(() => window.__tcgSPAProbe), 'same document', 'SPA changes the page without replacing the document');
+    console.log('Checkpoint: saved project, shared menu and real SPA click');
     const stale = (await api('tree')).data.head;
     assert.equal((await api('save', { head: stale, changes: [{ path: 'images/editor/bad.png', encoding: 'base64', content: Buffer.from('<?php echo 1;').toString('base64') }] })).status, 400);
     await admin.locator('[data-path="windows-test.html"]').click(); await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/windows-test/');
@@ -240,6 +252,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('#publish').click(); await published();
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
+    console.log('Checkpoint: rename, delete, history restoration and legacy URLs');
     await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
     assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tgroup-pwa-'))));
     await visitor.reload();
@@ -260,6 +273,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     assert.ok([].concat(listeners).length >= 2);
     assert.ok([].concat(listeners).every(x => ['127.0.0.1', '::1'].includes(x.LocalAddress)), 'all test listeners are loopback-only');
     // Closing the original admin must close preview windows and all VM processes.
+    console.log('Checkpoint: PWA offline, strict TLS and loopback isolation');
     const originalOrigin = running.origin; await close();
     const movedRoot = root + ' — перенесено';
     fs.renameSync(root, movedRoot); root = movedRoot;
@@ -276,6 +290,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     const reset = spawn('cmd.exe', ['/d', '/c', 'RESET-DEMO.cmd'], { cwd: root, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     reset.stdout.resume(); reset.stderr.resume(); reset.stdin.end('RESET\r\n\r\n');
     await new Promise((resolve, reject) => { reset.on('error', reject); reset.on('exit', code => code === 0 ? resolve() : reject(new Error('RESET failed'))); });
+    console.log('Checkpoint: persistence after folder move and restart; complete RESET');
     assert.equal(fs.existsSync(path.join(root, 'demo-data')), false);
     ({ running } = await launch()); assert.equal((await request(running, 'session')).data.setupRequired, true);
     assert.notEqual(JSON.parse(fs.readFileSync(path.join(root, 'demo-data/settings.json'))).activationKey, settings.activationKey, 'RESET creates a new independent test identity');
