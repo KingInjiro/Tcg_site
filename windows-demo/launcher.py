@@ -171,7 +171,7 @@ def run_demo():
     console = DATA / 'guest.log'
     console.write_bytes(b'')
     log = console.open('ab', buffering=0)
-    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
+    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu/share', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-nic', 'none', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
     print('Запуск ізольованого PHP-сервера. Перший запуск може тривати до двох хвилин…', flush=True)
     control = None
     try:

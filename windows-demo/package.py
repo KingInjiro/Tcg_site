@@ -52,7 +52,14 @@ def package(build, output):
     for file in extracted.iterdir():
         if file.is_file() and (file.suffix.lower() == '.dll' or file.name in ['qemu-img.exe', 'qemu-system-x86_64.exe'] or file.suffix in ['.bin', '.rom', '.fd'] or file.name.upper().startswith(('COPYING', 'LICENSE'))):
             shutil.copy2(file, qemu / file.name)
-    for name in ['share', 'licenses', 'keymaps']:
+    firmware = qemu / 'share'
+    firmware.mkdir()
+    for name in ['bios-256k.bin', 'kvmvapic.bin', 'vgabios-stdvga.bin', 'linuxboot.bin', 'linuxboot_dma.bin', 'efi-virtio.rom']:
+        shutil.copy2(extracted / 'share' / name, firmware / name)
+    for file in (extracted / 'share').glob('*'):
+        if file.is_file() and (file.suffix == '.txt' or file.name.upper().startswith(('COPYING', 'LICENSE'))):
+            shutil.copy2(file, firmware / file.name)
+    for name in ['licenses']:
         if (extracted / name).is_dir():
             shutil.copytree(extracted / name, qemu / name)
     if not (qemu / 'qemu-system-x86_64.exe').is_file():

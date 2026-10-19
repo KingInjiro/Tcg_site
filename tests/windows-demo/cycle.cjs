@@ -141,7 +141,12 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     await visitor.evaluate(async () => { await navigator.serviceWorker.ready; });
-    assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tcg-'))));
+    assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tgroup-pwa-'))));
+    await visitor.reload();
+    await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))));
+    await context.setOffline(true);
+    try { await visitor.reload(); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows'); }
+    finally { await context.setOffline(false); }
     const network = await context.newPage(); await assert.rejects(network.goto('https://example.com/'), /ERR_PROXY_CONNECTION_FAILED/); await network.close();
     const certDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-untrusted-'));
     const openssl = path.join(process.env.ProgramFiles, 'Git/usr/bin/openssl.exe');
