@@ -255,34 +255,33 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     console.log('Checkpoint: rename, delete, history restoration and legacy URLs');
-    // Observe natural PWA activation with no debugger attached. CDP's worker
-    // auto-attach changes the renderer's worker idle/termination lifecycle.
-    // Closing this CDP connection leaves the launcher-owned browser, tabs,
-    // profile and real page scripts running; no worker/cache API is invoked.
+    // Read the exact served worker and its running event handlers. No debugger
+    // command activates/stops workers, changes cache contents or rewrites code.
+    const servedWorker = await request(running, '', undefined, { rawPath: '/sw.js' });
+    assert.equal(servedWorker.status, 200);
+    const expectedWorker = fs.readFileSync(path.join(__dirname, '../../sw.js'), 'utf8').replace(/\r\n/g, '\n').replace('/* TCG_BUILD_CONFIG */', '').trim();
+    const scriptBody = servedWorker.data.text;
+    assert.equal(scriptBody.slice(scriptBody.indexOf('const config =')).trim(), expectedWorker);
+    console.log('Published worker identity', JSON.stringify({bytes: Buffer.byteLength(scriptBody), sha256: crypto.createHash('sha256').update(scriptBody).digest('hex'), headers: {type:servedWorker.headers['content-type'],length:servedWorker.headers['content-length'],modified:servedWorker.headers['last-modified'],etag:servedWorker.headers.etag}}));
+    const lifecycle = [], workerCDP = await context.newCDPSession(visitor);
+    workerCDP.on('ServiceWorker.workerVersionUpdated', e => lifecycle.push(...e.versions));
+    await workerCDP.send('ServiceWorker.enable');
     await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
     await visitor.reload();
-    const pwaState = () => visitor.evaluate(async () => ({
-        build: document.querySelector('meta[name="tcg-build"]')?.content,
-        cached: !!await caches.match(location.href), caches: await caches.keys(),
-        registrations: (await navigator.serviceWorker.getRegistrations()).map(r => ({ active: r.active?.state, waiting: r.waiting?.state, installing: r.installing?.state }))
-    }));
-    await wait(15000);
-    console.log('PWA before CDP disconnect', JSON.stringify(await pwaState()));
-    await browser.close(); // connectOverCDP closes its transport, not Chromium.
-    await wait(30000);
-    browser = await chromium.connectOverCDP('http://127.0.0.1:' + running.debugPort, { timeout: 60000 });
-    context = browser.contexts()[0]; context.setDefaultTimeout(120000);
-    admin = context.pages().find(p => p.url().startsWith(running.origin + '/admin/'));
-    visitor = context.pages().find(p => p.url() === running.origin + '/windows-renamed/');
-    assert.ok(admin && visitor, 'native browser and both tabs survive disconnecting the test inspector');
-    admin.on('pageerror', error => errors.push(error.message));
-    console.log('PWA after CDP disconnect', JSON.stringify(await pwaState()));
-    try { await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))), 60000); }
+    try { await until(() => visitor.evaluate(async () => {
+        const version = document.querySelector('meta[name="tcg-build"]').content;
+        return !!await (await caches.open('tgroup-pwa-' + version)).match(location.href);
+    }), 45000); }
     catch (error) {
-        console.log('PWA diagnostic', JSON.stringify(await pwaState()));
-        console.log('PWA worker globals', JSON.stringify(await Promise.all(context.serviceWorkers().map(w => Promise.race([w.evaluate(() => ({version: typeof config === 'object' ? config.version : null, warming: typeof warming !== 'undefined' && !!warming, pageURLs: typeof config === 'object' ? config.urls.filter(u => u.includes('windows-')) : []})).catch(() => ({error: 'worker unavailable'})), wait(3000).then(() => ({timeout:true}))])))));
+        console.log('PWA lifecycle', JSON.stringify(lifecycle.map(v => ({id:v.versionId,target:v.targetId,status:v.status,running:v.runningStatus,script:v.scriptURL,controlled:v.controlledClients}))));
+        console.log('PWA worker functions', JSON.stringify(await Promise.all(context.serviceWorkers().map(w => Promise.race([w.evaluate(() => ({version: typeof config === 'object' ? config.version : null, warming: typeof warming !== 'undefined' && !!warming, warmType:typeof warmOfflineCache, networkType:typeof network, source:typeof warmOfflineCache==='function'?warmOfflineCache.toString().length:null})).catch(() => ({error:'unavailable'})), wait(3000).then(() => ({timeout:true}))])))));
+        const internals = await context.newPage();
+        await internals.goto('chrome://serviceworker-internals/');
+        console.log('Chromium PWA internals', (await internals.locator('body').innerText()).replace(/https:\/\/127\.0\.0\.1:\d+/g,'<demo-origin>'));
+        await internals.close();
         throw error;
     }
+    await workerCDP.detach();
     await context.setOffline(true);
     try { await visitor.reload(); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows'); }
     finally { await context.setOffline(false); }
