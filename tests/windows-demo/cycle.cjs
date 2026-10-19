@@ -13,8 +13,8 @@ async function until(fn, timeout = 240000) {
     while (Date.now() < end) { const result = await fn(); if (result) return result; await wait(500); }
     throw new Error('Timed out waiting for Windows demo');
 }
-const ps = script => execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true }).trim();
-const trust = () => ps('(Get-ChildItem Cert:\\CurrentUser\\Root).Thumbprint | Sort-Object | ConvertTo-Json -Compress');
+const ps = script => execFileSync('pwsh.exe', ['-NoProfile', '-NonInteractive', '-Command', '$ErrorActionPreference="Stop"; ' + script], { encoding: 'utf8', windowsHide: true }).trim();
+const trust = () => ps('$all = @(); foreach ($location in @("CurrentUser", "LocalMachine")) { $s = [System.Security.Cryptography.X509Certificates.X509Store]::new("Root", $location); $s.Open("ReadOnly"); $all += $s.Certificates.Thumbprint; $s.Close() }; $all | Sort-Object | ConvertTo-Json -Compress');
 function request(running, action, body, { cookie = '', csrf = '', rawPath, origin } = {}) {
     return new Promise((resolve, reject) => {
         const req = https.request(running.origin + (rawPath || '/admin/api.php?action=' + action), {
@@ -32,7 +32,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     let current, browser, admin;
     const pidExists = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
     async function launch() {
-        const command = spawn('cmd.exe', ['/d', '/s', '/c', 'call "' + path.join(root, 'START-DEMO.cmd') + '"'], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+        const command = spawn('cmd.exe', ['/d', '/c', 'START-DEMO.cmd'], { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
         let stderr = ''; command.stderr.on('data', data => stderr += data); command.stdout.resume();
         current = { command };
         const running = await until(() => {
@@ -154,7 +154,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('[data-path="windows-renamed.html"]').waitFor();
     visitor = await context.newPage(); await visitor.goto(running.origin + '/windows-renamed/'); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     await close();
-    const reset = spawn('cmd.exe', ['/d', '/s', '/c', 'call "' + path.join(root, 'RESET-DEMO.cmd') + '"'], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    const reset = spawn('cmd.exe', ['/d', '/c', 'RESET-DEMO.cmd'], { cwd: root, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     reset.stdout.resume(); reset.stderr.resume(); reset.stdin.end('RESET\r\n\r\n');
     await new Promise((resolve, reject) => { reset.on('error', reject); reset.on('exit', code => code === 0 ? resolve() : reject(new Error('RESET failed'))); });
     assert.equal(fs.existsSync(path.join(root, 'demo-data')), false);

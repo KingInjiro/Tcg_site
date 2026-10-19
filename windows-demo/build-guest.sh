@@ -9,8 +9,10 @@ docker build -t tcg-windows-demo-guest -f windows-demo/guest/Dockerfile "$dest/c
 container_id=$(docker create tcg-windows-demo-guest)
 trap 'docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
 docker export "$container_id" | sudo tar --numeric-owner -xf - -C "$dest/root"
-cp "$dest/root/boot/vmlinuz-virt" "$dest/runtime/guest/vmlinuz"
-cp "$dest/root/boot/tcg-initramfs" "$dest/runtime/guest/initramfs"
+sudo cp "$dest/root/boot/vmlinuz-virt" "$dest/runtime/guest/vmlinuz"
+sudo cp "$dest/root/boot/tcg-initramfs" "$dest/runtime/guest/initramfs"
+sudo chown "$(id -u):$(id -g)" "$dest/runtime/guest/vmlinuz" "$dest/runtime/guest/initramfs"
+sudo chmod 644 "$dest/runtime/guest/vmlinuz" "$dest/runtime/guest/initramfs"
 sudo rm -rf "$dest/root/boot" "$dest/root/opt/tcg/Dockerfile"
 # Populate the filesystem without mounting it. Numeric owners are retained.
 truncate -s 512M "$dest/runtime/guest/base.raw"
