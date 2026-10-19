@@ -101,6 +101,17 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         await context.setOffline(false); await probe.close();
         console.log('PASS ' + engine + ': online polling, fresh CSS/JS URLs, SPA publication, dirty-form/reset, outage, partial upload, 404, no reload loop or offline snapshot');
         await context.close();
+        const restricted = await browser.newContext();
+        await restricted.route('https://**/*', route => route.abort());
+        await restricted.addInitScript(() => {
+            Object.defineProperty(navigator.serviceWorker, 'getRegistrations', { value: () => Promise.reject(new DOMException('Browser policy', 'SecurityError')) });
+        });
+        const restrictedPage = await restricted.newPage();
+        await restrictedPage.goto(origin + '/contacts/'); await restrictedPage.waitForLoadState('networkidle');
+        revision = 'restricted-policy'; await signal(restrictedPage); await updated(restrictedPage, revision);
+        assert.equal(await restrictedPage.evaluate(() => navigator.serviceWorker.controller), null);
+        await restricted.close();
+        console.log('PASS ' + engine + ': online publication also works when browser policy rejects Service Worker API');
         if (engine !== 'chromium') return;
 
         for (const generation of ['previous', 'legacy']) {

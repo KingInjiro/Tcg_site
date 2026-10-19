@@ -40,17 +40,21 @@
     async function retire() {
         if (cleaning) return cleaning;
         cleaning = (async () => {
-            if (!navigator.serviceWorker || !window.isSecureContext) return;
-            const controlled = tcgWorker(navigator.serviceWorker.controller);
-            for (const registration of await navigator.serviceWorker.getRegistrations()) {
-                const workers = [registration.active, registration.waiting, registration.installing].filter(Boolean);
-                if (registration.scope !== new URL('/', location.origin).href || !workers.length || !workers.every(tcgWorker)) continue;
-                // Unregister directly, without waiting for worker activation.
-                if (!await registration.unregister()) throw new Error('TCG unregister did not complete');
+            const controlled = tcgWorker(navigator.serviceWorker?.controller);
+            try {
+                if (navigator.serviceWorker && window.isSecureContext) {
+                    for (const registration of await navigator.serviceWorker.getRegistrations()) {
+                        const workers = [registration.active, registration.waiting, registration.installing].filter(Boolean);
+                        if (registration.scope !== new URL('/', location.origin).href || !workers.length || !workers.every(tcgWorker)) continue;
+                        // Unregister directly, without waiting for worker activation.
+                        if (!await registration.unregister()) throw new Error('TCG unregister did not complete');
+                    }
+                }
+            } finally {
+                if (window.caches) await Promise.all((await caches.keys()).filter(name => name.startsWith('tgroup-pwa-')).map(name => caches.delete(name)));
+                detach = controlled;
+                cleanURL(); ready();
             }
-            if (window.caches) await Promise.all((await caches.keys()).filter(name => name.startsWith('tgroup-pwa-')).map(name => caches.delete(name)));
-            detach = controlled;
-            cleanURL(); ready();
         })().finally(() => { cleaning = null; });
         return cleaning;
     }
@@ -67,7 +71,12 @@
         applying = true;
         const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
         try {
-            await retire();
+            try { await retire(); }
+            catch {
+                // A browser policy may deny SW APIs even on an ordinary online
+                // page. It must not block publication when no TCG worker controls it.
+                if (tcgWorker(navigator.serviceWorker?.controller)) return;
+            }
             target.searchParams.set(token, version);
             const probe = new URL(target); probe.searchParams.set('tcg-probe', Date.now().toString(36));
             const response = await fetch(probe, { cache: 'no-store', signal: controller.signal });

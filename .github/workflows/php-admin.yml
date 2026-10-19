@@ -3,7 +3,7 @@ on:
   push:
     branches: ['feature/autonomous-php-admin']
   pull_request:
-    paths: ['php/**', 'scripts/prepare-php.js', 'scripts/package-php.js', 'tests/php/**', '.github/workflows/php-admin.yml']
+    paths: ['php/**', 'scripts/prepare-php.js', 'scripts/package-php.js', 'tests/php/**', 'lib/**', 'themes/**', 'sw.js', '.github/workflows/php-admin.yml']
 permissions:
   contents: read
 concurrency:
