@@ -54,7 +54,7 @@ def package(build, output):
             shutil.copy2(file, qemu / file.name)
     firmware = qemu / 'share'
     firmware.mkdir()
-    for name in ['bios-256k.bin', 'kvmvapic.bin', 'vgabios-stdvga.bin', 'linuxboot.bin', 'linuxboot_dma.bin', 'efi-virtio.rom']:
+    for name in ['bios-256k.bin', 'kvmvapic.bin', 'vgabios-stdvga.bin', 'linuxboot_dma.bin', 'efi-virtio.rom']:
         shutil.copy2(extracted / 'share' / name, firmware / name)
     for file in (extracted / 'share').glob('*'):
         if file.is_file() and (file.suffix == '.txt' or file.name.upper().startswith(('COPYING', 'LICENSE'))):
