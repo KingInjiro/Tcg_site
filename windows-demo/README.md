@@ -62,3 +62,8 @@ At initial checkpoint, the original release comparison, 40 Node tests and 6 PHP
 tests pass locally. Windows packaging/startup failures are being corrected; a
 candidate is not a finished distributable until the full Windows job succeeds.
 No production hosting claim follows from these tests. Main is unchanged.
+
+The launcher grants Windows AppContainer/LPAC read/execute permissions only on
+the shipped browser directory, as required by Chromium outside an installer.
+Private demo data and parent directories receive no such permissions. The
+browser sandbox stays enabled; browser extensions are disabled.

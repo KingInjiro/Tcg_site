@@ -143,6 +143,19 @@ def wait_for(callback, timeout, child=None):
     raise RuntimeError('Час запуску вичерпано. Подробиці — у demo-data/guest.log.')
 
 
+def prepare_browser_sandbox():
+    # A ZIP has no installer to grant Chromium's Windows LPAC sandbox RX on
+    # its own binaries. Never grant this on private data or parent directories.
+    browser = ROOT / 'runtime/browser'
+    for directory, dirs, files in os.walk(browser, followlinks=False):
+        for name in dirs + files:
+            no_links(Path(directory) / name)
+    try:
+        subprocess.run(['icacls.exe', str(browser), '/grant', '*S-1-15-2-1:(OI)(CI)RX', '*S-1-15-2-2:(OI)(CI)RX', '/T', '/L', '/Q'], check=True, stdout=subprocess.DEVNULL, creationflags=CHILD_FLAGS)
+    except subprocess.CalledProcessError:
+        raise RuntimeError('Не вдалося надати ізольованим процесам Chromium доступ до файлів браузера. Скопіюйте комплект у власну локальну папку на NTFS.') from None
+
+
 def reset():
     if not DATA.exists():
         print('Тестове середовище вже чисте.')
@@ -167,6 +180,7 @@ def run_demo():
         raise RuntimeError('Для тестового диска і профілю браузера потрібен щонайменше 1 ГБ вільного місця після розпакування.')
     print('Перевірка комплекту…', flush=True)
     check_runtime()
+    prepare_browser_sandbox()
     cfg_file = DATA / 'settings.json'
     if cfg_file.exists():
         cfg = json.loads(cfg_file.read_text('utf-8'))
@@ -219,7 +233,7 @@ def run_demo():
         proxy = RejectExternalProxy(('127.0.0.1', 0), RejectExternalRequest)
         threading.Thread(target=proxy.serve_forever, daemon=True).start()
         browser_log = (DATA / 'browser.log').open('wb', buffering=0)
-        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--enable-logging=stderr', '--log-level=1', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=browser_log, stderr=browser_log)
+        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--disable-extensions', '--enable-logging=stderr', '--log-level=1', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=browser_log, stderr=browser_log)
         runtime = {'origin': origin, 'debugPort': debug_port, 'vmPid': vm.pid, 'browserPid': browser.pid, 'launcherPid': os.getpid(), 'certificate': str(certificate_file)}
         print('\nВідкрито справжню адмінпанель: ' + origin + '/admin/', flush=True)
         print('Окремий ТЕСТОВИЙ ключ для першого налаштування:\n' + cfg['activationKey'], flush=True)
