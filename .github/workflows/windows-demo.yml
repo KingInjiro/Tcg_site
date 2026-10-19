@@ -1,0 +1,75 @@
+name: Portable Windows demo
+on:
+  pull_request:
+    paths: ['windows-demo/**', 'scripts/prepare-windows-demo.cjs', 'tests/windows-demo/**', '.github/workflows/windows-demo.yml']
+permissions:
+  contents: read
+concurrency:
+  group: windows-demo-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Byte-transparent TLS transport tests
+        run: python3 -m unittest discover -s tests/windows-demo -p '*_test.py'
+      - name: Original release identity and guest build
+        run: |
+          mkdir -p "$RUNNER_TEMP/tcg-build"
+          bash windows-demo/build-guest.sh "$RUNNER_TEMP/tcg-build"
+      - name: Package portable components, hash every runtime file
+        run: python3 windows-demo/package.py "$RUNNER_TEMP/tcg-build" "$RUNNER_TEMP/TCG-TEST-WINDOWS.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-demo-candidate
+          path: ${{ runner.temp }}/TCG-TEST-WINDOWS.zip
+          compression-level: 0
+          retention-days: 14
+  windows:
+    needs: bundle
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-demo-candidate
+          path: ${{ runner.temp }}/tcg-input
+      - name: Clean extraction in a path with spaces and Ukrainian characters
+        shell: pwsh
+        run: |
+          $demo = Join-Path $env:RUNNER_TEMP 'TCG перевірка з пробілами'
+          Expand-Archive -LiteralPath "$env:RUNNER_TEMP/tcg-input/TCG-TEST-WINDOWS.zip" -DestinationPath $demo
+          "TCG_WINDOWS_DEMO=$demo" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Real START-DEMO and PHP/GrapesJS browser cycle
+        run: node --test tests/windows-demo/cycle.cjs
+      - name: Diagnostic log on failure (no keys, passwords or private disk)
+        if: failure()
+        shell: pwsh
+        run: |
+          if (Test-Path "$env:TCG_WINDOWS_DEMO/demo-data/guest.log") { Get-Content "$env:TCG_WINDOWS_DEMO/demo-data/guest.log" -Tail 100 }
+          if (Test-Path "$env:TCG_WINDOWS_DEMO/demo-data/browser.log") { Get-Content "$env:TCG_WINDOWS_DEMO/demo-data/browser.log" -Tail 40 }
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: windows-rte-debug
+          path: ${{ runner.temp }}/tcg-rte-debug.png
+          if-no-files-found: ignore
+          retention-days: 3
