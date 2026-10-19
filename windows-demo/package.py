@@ -37,6 +37,8 @@ def package(build, output):
             z.extractall(unpacked)
         src = unpacked / entry.get('prefix', '')
         shutil.copytree(src, stage / 'runtime' / name)
+        if name == 'python':
+            shutil.copy2(SOURCE / 'transport.py', stage / 'runtime/python/transport.py')
         if name == 'browser':
             for unnecessary in ['interactive_ui_tests.exe', 'setup.exe', 'elevation_service.exe', 'elevated_tracing_service.exe']:
                 (stage / 'runtime/browser' / unnecessary).unlink(missing_ok=True)

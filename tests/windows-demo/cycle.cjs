@@ -112,6 +112,13 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     });
 
     let { context, running } = await launch();
+    const burst = async target => Promise.all(Array.from({ length: 24 }, async () => {
+        try { const r = await request(target, '', undefined, { rawPath: '/admin/builder.css' }); return r.status === 200 && crypto.createHash('sha256').update(r.data.text || '').digest('hex') === crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname, '../../admin/builder.css'))).digest('hex'); }
+        catch { return false; }
+    }));
+    const rawBurst = await burst({ ...running, origin: 'https://127.0.0.1:' + running.guestPort });
+    console.log('QEMU direct burst failures', rawBurst.filter(ok => !ok).length);
+    for (let round = 0; round < 3; round++) assert.ok((await burst(running)).every(Boolean), 'queued TLS transport serves all concurrent resources intact');
     assert.equal((await request(running, 'tree')).status, 401);
     const session = await request(running, 'session');
     assert.equal(session.data.setupRequired, true);

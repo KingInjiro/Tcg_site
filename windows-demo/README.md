@@ -67,3 +67,14 @@ The launcher grants Windows AppContainer/LPAC read/execute permissions only on
 the shipped browser directory, as required by Chromium outside an installer.
 Private demo data and parent directories receive no such permissions. The
 browser sandbox stays enabled; browser extensions are disabled.
+
+Windows startup investigation: libslirp's host forwarding uses `listen(s, 1)`
+(`src/socket.c`, `tcpx_listen`). Winsock refuses new connections when that queue
+is full. Parallel Chromium resources were intermittently refused (builder.css,
+then repository.js), leaving the real editor unstyled/uninitialized. The launcher
+now owns a loopback TCP listener with backlog 128 and a bounded 64-connection
+forwarder to QEMU. It retries only refused TCP establishment before reading or
+forwarding ANY client byte. Established TLS/HTTP streams are never reconnected
+or replayed. TLS still terminates and is validated against Apache's original
+localhost certificate, not in the forwarder. Tests include direct-vs-queued
+Windows bursts and real TLS concurrency/write-once/negative-trust checks.

@@ -20,6 +20,8 @@ import threading
 import urllib.error
 import urllib.request
 
+from transport import TLSForwarder
+
 sys.stdout.reconfigure(encoding='utf-8')
 sys.stderr.reconfigure(encoding='utf-8')
 
@@ -197,6 +199,9 @@ def run_demo():
         if probe.connect_ex(('127.0.0.1', port)) == 0:
             raise RuntimeError('Тестову адресу зайняла інша програма. Закрийте іншу копію демо й повторіть запуск.')
     control_port = free_port()
+    guest_port = free_port()
+    while guest_port in (port, control_port):
+        guest_port = free_port()
     stop_token = secrets.token_urlsafe(32)
     boot = DATA / 'boot.json'
     boot.write_text(json.dumps({'activationKey': cfg['activationKey'], 'stopToken': stop_token}), 'utf-8')
@@ -209,10 +214,11 @@ def run_demo():
     console = DATA / 'guest.log'
     console.write_bytes(b'')
     log = console.open('ab', buffering=0)
-    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu/share', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rootfstype=ext4 modules=virtio_pci,virtio_blk,ext4 rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-nic', 'none', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
+    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu/share', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rootfstype=ext4 modules=virtio_pci,virtio_blk,ext4 rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-nic', 'none', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{guest_port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
     print('Запуск ізольованого PHP-сервера. Перший запуск може тривати до двох хвилин…', flush=True)
     control = None
     proxy = None
+    forward = None
     browser_log = None
     try:
         control = wait_for(lambda: socket.create_connection(('127.0.0.1', control_port), 2), 30, vm)
@@ -224,6 +230,8 @@ def run_demo():
 
         tls = wait_for(tls_from_console, 180, vm)
         boot.unlink(missing_ok=True)
+        forward = TLSForwarder(port, guest_port)
+        threading.Thread(target=forward.serve_forever, daemon=True).start()
         context = ssl.create_default_context(cadata=tls['certificate'])
         origin = f'https://127.0.0.1:{port}'
         wait_for(lambda: json.loads(local_url(origin + '/admin/api.php?action=session', context)).get('setupRequired') is not None, 30, vm)
@@ -247,7 +255,7 @@ def run_demo():
         threading.Thread(target=proxy.serve_forever, daemon=True).start()
         browser_log = (DATA / 'browser.log').open('wb', buffering=0)
         browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--disable-extensions', '--enable-logging=stderr', '--log-level=1', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--start-maximized', '--new-window', origin + '/admin/'], stdout=browser_log, stderr=browser_log)
-        runtime = {'origin': origin, 'debugPort': debug_port, 'vmPid': vm.pid, 'browserPid': browser.pid, 'launcherPid': os.getpid(), 'certificate': str(certificate_file)}
+        runtime = {'origin': origin, 'guestPort': guest_port, 'debugPort': debug_port, 'vmPid': vm.pid, 'browserPid': browser.pid, 'launcherPid': os.getpid(), 'certificate': str(certificate_file)}
         print('\nВідкрито справжню адмінпанель: ' + origin + '/admin/', flush=True)
         print('Окремий ТЕСТОВИЙ ключ для першого налаштування:\n' + cfg['activationKey'], flush=True)
         print('\nВведіть цей ключ у браузері та створіть власні тестові логін і пароль (від 14 символів).\nЗміни зберігаються між запусками. Для завершення закрийте початкову вкладку адмінпанелі або натисніть Ctrl+C у цьому вікні.', flush=True)
@@ -290,6 +298,9 @@ def run_demo():
                 child.kill()
         # Job's handle is intentionally owned until process exit; all browser
         # descendants are then killed even if their original parent has exited.
+        if forward is not None:
+            forward.shutdown()
+            forward.server_close()
         if proxy is not None:
             proxy.shutdown()
             proxy.server_close()

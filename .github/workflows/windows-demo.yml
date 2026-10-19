@@ -20,6 +20,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts
+      - name: Byte-transparent TLS transport tests
+        run: python3 -m unittest discover -s tests/windows-demo -p '*_test.py'
       - name: Original release identity and guest build
         run: |
           mkdir -p "$RUNNER_TEMP/tcg-build"
