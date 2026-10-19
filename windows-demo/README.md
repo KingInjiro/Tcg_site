@@ -32,7 +32,7 @@ certificate and SPKI reach the launcher through the private VM console. Python
 validates HTTPS using this certificate; the dedicated portable Chromium profile
 trusts only this SPKI using `--ignore-certificate-errors-spki-list`. No broad TLS
 override or system trust-store modification is used. Chromium is restricted to
-loopback via a dead external proxy and disabled background networking. External
+loopback via a rejecting local proxy and disabled background networking. External
 SMTP, financial feeds and other external integrations cannot be tested offline.
 
 The Python launcher joins a Windows Job with KILL_ON_JOB_CLOSE before spawning

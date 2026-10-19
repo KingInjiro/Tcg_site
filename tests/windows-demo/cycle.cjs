@@ -148,7 +148,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await context.setOffline(true);
     try { await visitor.reload(); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows'); }
     finally { await context.setOffline(false); }
-    const network = await context.newPage(); await assert.rejects(network.goto('https://example.com/'), /ERR_PROXY_CONNECTION_FAILED/); await network.close();
+    const network = await context.newPage(); await assert.rejects(network.goto('https://example.com/'), /ERR_TUNNEL_CONNECTION_FAILED|ERR_PROXY_CONNECTION_FAILED/); await network.close();
     const certDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-untrusted-'));
     const openssl = path.join(process.env.ProgramFiles, 'Git/usr/bin/openssl.exe');
     execFileSync(openssl, ['req', '-new', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', path.join(certDir, 'key.pem'), '-out', path.join(certDir, 'cert.pem'), '-days', '1', '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1'], { stdio: 'ignore' });
@@ -159,7 +159,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     finally { await certificateProbe.close(); untrusted.closeAllConnections(); await new Promise(resolve => untrusted.close(resolve)); fs.rmSync(certDir, { recursive: true, force: true }); }
     const listeners = JSON.parse(ps(`Get-NetTCPConnection -State Listen | Where-Object { $_.OwningProcess -in @(${running.vmPid},${running.browserPid}) } | Select-Object LocalAddress,LocalPort | ConvertTo-Json -Compress`));
     assert.ok([].concat(listeners).length >= 2);
-    assert.ok([].concat(listeners).every(x => x.LocalAddress === '127.0.0.1'), 'all test listeners are loopback-only');
+    assert.ok([].concat(listeners).every(x => ['127.0.0.1', '::1'].includes(x.LocalAddress)), 'all test listeners are loopback-only');
     // Closing the original admin must close preview windows and all VM processes.
     const originalOrigin = running.origin; await close();
     ({ context, running } = await launch()); assert.equal(running.origin, originalOrigin);

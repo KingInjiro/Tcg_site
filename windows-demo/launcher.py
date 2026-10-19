@@ -11,10 +11,12 @@ from pathlib import Path
 import secrets
 import shutil
 import socket
+import socketserver
 import ssl
 import subprocess
 import sys
 import time
+import threading
 import urllib.error
 import urllib.request
 
@@ -103,6 +105,20 @@ def free_port():
         return s.getsockname()[1]
 
 
+class RejectExternalProxy(socketserver.ThreadingTCPServer):
+    daemon_threads = True
+
+
+class RejectExternalRequest(socketserver.BaseRequestHandler):
+    def handle(self):
+        self.request.settimeout(1)
+        try:
+            self.request.recv(8192)
+            self.request.sendall(b'HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+        except OSError:
+            pass
+
+
 def check_runtime():
     files = json.loads((ROOT / 'runtime-manifest.json').read_text('utf-8'))
     for name, expected in files.items():
@@ -179,6 +195,7 @@ def run_demo():
     vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu/share', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rootfstype=ext4 modules=virtio_pci,virtio_blk,ext4 rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-nic', 'none', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
     print('Запуск ізольованого PHP-сервера. Перший запуск може тривати до двох хвилин…', flush=True)
     control = None
+    proxy = None
     try:
         control = wait_for(lambda: socket.create_connection(('127.0.0.1', control_port), 2), 30, vm)
 
@@ -196,9 +213,12 @@ def run_demo():
         certificate_file.write_text(tls['certificate'], 'utf-8')
         profile = DATA / 'browser-profile'
         debug_port = free_port()
-        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', '--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Own the rejecting proxy socket; a pre-existing service must never be
+        # able to occupy a supposedly dead proxy port and forward data outside.
+        proxy = RejectExternalProxy(('127.0.0.1', 0), RejectExternalRequest)
+        threading.Thread(target=proxy.serve_forever, daemon=True).start()
+        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         runtime = {'origin': origin, 'debugPort': debug_port, 'vmPid': vm.pid, 'browserPid': browser.pid, 'launcherPid': os.getpid(), 'certificate': str(certificate_file)}
-        (DATA / 'running.json').write_text(json.dumps(runtime), 'utf-8')
         print('\nВідкрито справжню адмінпанель: ' + origin + '/admin/', flush=True)
         print('Окремий ТЕСТОВИЙ ключ для першого налаштування:\n' + cfg['activationKey'], flush=True)
         print('\nВведіть цей ключ у браузері та створіть власні тестові логін і пароль (від 14 символів).\nЗміни зберігаються між запусками. Для завершення закрийте початкову вкладку адмінпанелі або натисніть Ctrl+C у цьому вікні.', flush=True)
@@ -207,6 +227,7 @@ def run_demo():
             return json.loads(local_url(f'http://127.0.0.1:{debug_port}/json/list'))
 
         admin_id = wait_for(lambda: next((t['id'] for t in tabs() if t.get('type') == 'page' and t.get('url', '').startswith(origin + '/admin/')), None), 30, browser)
+        (DATA / 'running.json').write_text(json.dumps(runtime), 'utf-8')
         misses = 0
         while vm.poll() is None and browser.poll() is None:
             time.sleep(0.5)
@@ -240,6 +261,9 @@ def run_demo():
                 child.kill()
         # Job's handle is intentionally owned until process exit; all browser
         # descendants are then killed even if their original parent has exited.
+        if proxy is not None:
+            proxy.shutdown()
+            proxy.server_close()
         log.close()
 
 
