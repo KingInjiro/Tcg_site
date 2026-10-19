@@ -64,13 +64,19 @@ class ForwardTLS(socketserver.BaseRequestHandler):
             self.request.settimeout(10)
             upstream.settimeout(10)
             peers = {self.request: upstream, upstream: self.request}
+            readers = list(peers)
             idle = time.monotonic() + 90
-            while not self.server.stopping.is_set() and time.monotonic() < idle:
-                ready, _, _ = select.select(list(peers), [], [], 0.5)
+            while readers and not self.server.stopping.is_set() and time.monotonic() < idle:
+                ready, _, _ = select.select(readers, [], [], 0.5)
                 for source in ready:
                     data = source.recv(65536)
                     if not data:
-                        return
+                        # Preserve half-close and drain the other direction.
+                        # In particular, acknowledge a graceful TLS/TCP close
+                        # before releasing an exclusive Windows listener.
+                        readers.remove(source)
+                        peers[source].shutdown(socket.SHUT_WR)
+                        continue
                     peers[source].sendall(data)
                     idle = time.monotonic() + 90
         except OSError:

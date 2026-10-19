@@ -9,6 +9,7 @@ const crypto = require('node:crypto');
 const { spawn, execFileSync } = require('node:child_process');
 const { chromium } = require('playwright');
 let root = process.env.TCG_WINDOWS_DEMO;
+const privateFill = async (locator, value) => { try { await locator.fill(value); } catch { throw new Error('Could not fill a private setup/login field'); } };
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function until(fn, timeout = 240000) {
     const end = Date.now() + timeout;
@@ -133,9 +134,9 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     assert.equal((await request(running, 'setup', { activationKey: settings.activationKey, ...credentials })).status, 403, 'CSRF is mandatory');
     try { await admin.locator('#activation-key').waitFor({ timeout: 30000 }); }
     catch (error) { console.log('Setup failure', await admin.locator('#login-status').textContent()); await admin.screenshot({ path: path.join(process.env.RUNNER_TEMP, 'tcg-rte-debug.png'), fullPage: true }); throw error; }
-    await admin.locator('#activation-key').fill(settings.activationKey);
+    await privateFill(admin.locator('#activation-key'), settings.activationKey);
     await admin.locator('#php-username').fill(credentials.username);
-    await admin.locator('#php-password').fill(credentials.password);
+    await privateFill(admin.locator('#php-password'), credentials.password);
     await admin.locator('#php-login-form button').click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/', {}, { timeout: 180000 });
     console.log('Checkpoint: secure activation and real page list');
@@ -144,7 +145,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('#php-login-form').waitFor();
     assert.equal(await admin.locator('#activation-key').count(), 0);
     await admin.locator('#php-username').fill(credentials.username);
-    await admin.locator('#php-password').fill(credentials.password);
+    await privateFill(admin.locator('#php-password'), credentials.password);
     await admin.locator('#php-login-form button').click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     const api = async (action, body) => admin.evaluate(async ({ action, body }) => {
@@ -250,13 +251,23 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     await admin.locator('[data-path="windows-renamed.html"]').waitFor();
     await admin.locator('#publish').click(); await published();
+    await visitor.bringToFront();
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     console.log('Checkpoint: rename, delete, history restoration and legacy URLs');
     await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
     assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tgroup-pwa-'))));
     await visitor.reload();
-    await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))));
+    try { await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))), 120000); }
+    catch (error) {
+        console.log('PWA diagnostic', JSON.stringify(await visitor.evaluate(async () => ({
+            visible: document.visibilityState, online: navigator.onLine, build: document.querySelector('meta[name="tcg-build"]')?.content,
+            caches: await caches.keys(), controller: navigator.serviceWorker.controller?.scriptURL,
+            registrations: await Promise.all((await navigator.serviceWorker.getRegistrations()).map(async r => ({ active: r.active?.state, installing: r.installing?.state, waiting: r.waiting?.state }))),
+            storedPageKeys: (await Promise.all((await caches.keys()).map(async name => (await (await caches.open(name)).keys()).map(r => new URL(r.url).pathname).filter(p => p.includes('windows-'))))).flat()
+        }))));
+        throw error;
+    }
     await context.setOffline(true);
     try { await visitor.reload(); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows'); }
     finally { await context.setOffline(false); }
@@ -264,11 +275,13 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     const certDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-untrusted-'));
     const openssl = path.join(process.env.ProgramFiles, 'Git/usr/bin/openssl.exe');
     execFileSync(openssl, ['req', '-new', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', path.join(certDir, 'key.pem'), '-out', path.join(certDir, 'cert.pem'), '-days', '1', '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1'], { stdio: 'ignore' });
+    const fixtureSockets = new Set();
     const untrusted = https.createServer({ key: fs.readFileSync(path.join(certDir, 'key.pem')), cert: fs.readFileSync(path.join(certDir, 'cert.pem')) }, (_, res) => res.end('unexpected trust'));
+    untrusted.on('connection', socket => { fixtureSockets.add(socket); socket.once('close', () => fixtureSockets.delete(socket)); });
     await new Promise(resolve => untrusted.listen(0, '127.0.0.1', resolve));
     const certificateProbe = await context.newPage();
     try { await assert.rejects(certificateProbe.goto('https://127.0.0.1:' + untrusted.address().port), /ERR_CERT_AUTHORITY_INVALID/, 'the demo browser must reject other self-signed certificates'); }
-    finally { await certificateProbe.close(); untrusted.closeAllConnections(); await new Promise(resolve => untrusted.close(resolve)); fs.rmSync(certDir, { recursive: true, force: true }); }
+    finally { await certificateProbe.close(); for (const socket of fixtureSockets) socket.destroy(); untrusted.closeAllConnections(); await new Promise(resolve => untrusted.close(resolve)); fs.rmSync(certDir, { recursive: true, force: true }); }
     const listeners = JSON.parse(ps(`Get-NetTCPConnection -State Listen | Where-Object { $_.OwningProcess -in @(${running.vmPid},${running.browserPid},${running.launcherPid}) } | Select-Object LocalAddress,LocalPort | ConvertTo-Json -Compress`));
     assert.ok([].concat(listeners).length >= 2);
     assert.ok([].concat(listeners).every(x => ['127.0.0.1', '::1'].includes(x.LocalAddress)), 'all test listeners are loopback-only');
@@ -281,7 +294,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     assert.equal((await request(running, 'session')).data.setupRequired, false);
     assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'demo-data/settings.json'))).activationKey, settings.activationKey, 'test identity survives moving and restarting the folder');
     if (await admin.locator('#php-login-form').isVisible()) {
-        await admin.locator('#php-username').fill(credentials.username); await admin.locator('#php-password').fill(credentials.password); await admin.locator('#php-login-form button').click();
+        await admin.locator('#php-username').fill(credentials.username); await privateFill(admin.locator('#php-password'), credentials.password); await admin.locator('#php-login-form button').click();
     }
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/', {}, { timeout: 180000 });
     await admin.locator('[data-path="windows-renamed.html"]').waitFor();
