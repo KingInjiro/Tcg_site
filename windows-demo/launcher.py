@@ -196,6 +196,7 @@ def run_demo():
     print('Запуск ізольованого PHP-сервера. Перший запуск може тривати до двох хвилин…', flush=True)
     control = None
     proxy = None
+    browser_log = None
     try:
         control = wait_for(lambda: socket.create_connection(('127.0.0.1', control_port), 2), 30, vm)
 
@@ -217,7 +218,8 @@ def run_demo():
         # able to occupy a supposedly dead proxy port and forward data outside.
         proxy = RejectExternalProxy(('127.0.0.1', 0), RejectExternalRequest)
         threading.Thread(target=proxy.serve_forever, daemon=True).start()
-        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        browser_log = (DATA / 'browser.log').open('wb', buffering=0)
+        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--enable-logging=stderr', '--log-level=1', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=browser_log, stderr=browser_log)
         runtime = {'origin': origin, 'debugPort': debug_port, 'vmPid': vm.pid, 'browserPid': browser.pid, 'launcherPid': os.getpid(), 'certificate': str(certificate_file)}
         print('\nВідкрито справжню адмінпанель: ' + origin + '/admin/', flush=True)
         print('Окремий ТЕСТОВИЙ ключ для першого налаштування:\n' + cfg['activationKey'], flush=True)
@@ -264,6 +266,8 @@ def run_demo():
         if proxy is not None:
             proxy.shutdown()
             proxy.server_close()
+        if browser_log is not None:
+            browser_log.close()
         log.close()
 
 

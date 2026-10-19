@@ -62,3 +62,4 @@ jobs:
         shell: pwsh
         run: |
           if (Test-Path "$env:TCG_WINDOWS_DEMO/demo-data/guest.log") { Get-Content "$env:TCG_WINDOWS_DEMO/demo-data/guest.log" -Tail 100 }
+          if (Test-Path "$env:TCG_WINDOWS_DEMO/demo-data/browser.log") { Get-Content "$env:TCG_WINDOWS_DEMO/demo-data/browser.log" -Tail 40 }

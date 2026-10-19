@@ -42,7 +42,12 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
             try { return JSON.parse(fs.readFileSync(path.join(root, 'demo-data/running.json'))); } catch { return null; }
         });
         current.running = running;
-        browser = await chromium.connectOverCDP('http://127.0.0.1:' + running.debugPort);
+        const protocolDebug = require(path.join(path.dirname(require.resolve('playwright-core/package.json')), 'lib/utilsBundle.js')).debug;
+        // Diagnostic only before any key/password is entered. Never log editor
+        // interactions or credentials to CI protocol output.
+        protocolDebug.enable('pw:protocol');
+        try { browser = await chromium.connectOverCDP('http://127.0.0.1:' + running.debugPort, { timeout: 60000 }); }
+        finally { protocolDebug.disable(); }
         const context = browser.contexts()[0]; context.setDefaultTimeout(120000);
         admin = await until(() => context.pages().find(p => p.url().startsWith(running.origin + '/admin/')));
         admin.on('pageerror', error => errors.push(error.message));

@@ -6,7 +6,8 @@ const { preparePHP } = require('./prepare-php');
 const root = path.resolve(__dirname, '..');
 const target = path.resolve(process.argv[2]);
 const expected = JSON.parse(fs.readFileSync(path.join(root, 'windows-demo/release-manifest.json')));
-preparePHP(target, { activationKey: 'unusable-seed-replaced-before-demo-start' });
+// No known seed password/key exists, even if boot configuration is interrupted.
+preparePHP(target, { activationKey: crypto.randomBytes(32).toString('base64url') });
 const files = {};
 function visit(directory) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
