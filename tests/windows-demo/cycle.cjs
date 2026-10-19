@@ -108,7 +108,22 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     for (let attempt = 0; attempt < 3; attempt++) {
         await heading.dblclick({ delay: 120 });
         try { await editable.waitFor({ state: 'visible', timeout: 3000 }); break; }
-        catch (error) { if (attempt === 2) throw error; await heading.click(); }
+        catch (error) {
+            if (attempt === 2) {
+                console.log('RTE diagnostic', JSON.stringify(await admin.evaluate(() => {
+                    const ed = window.grapesjs.editors[window.grapesjs.editors.length - 1], selected = ed.getSelected();
+                    const body = ed.Canvas.getBody();
+                    return { focus: document.hasFocus(), frameFocus: body.ownerDocument.hasFocus(),
+                        selection: selected ? { type: selected.get('type'), tag: selected.get('tagName'), editable: selected.get('editable') } : null,
+                        headings: ed.getWrapper().find('h1').map(h => ({ type: h.get('type'), editable: h.get('editable'), content: h.get('content') })),
+                        editables: Array.from(body.querySelectorAll('[contenteditable]')).map(n => ({ tag: n.tagName, value: n.getAttribute('contenteditable') })),
+                        heading: body.querySelector('h1')?.outerHTML };
+                })));
+                await admin.screenshot({ path: path.join(process.env.RUNNER_TEMP, 'tcg-rte-debug.png'), fullPage: true });
+                throw error;
+            }
+            await heading.click();
+        }
     }
     await editable.fill('Збережено у Windows'); await admin.locator('#page-title').click();
     await admin.getByRole('button', { name: 'Зображення', exact: true }).click();

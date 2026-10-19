@@ -63,3 +63,11 @@ jobs:
         run: |
           if (Test-Path "$env:TCG_WINDOWS_DEMO/demo-data/guest.log") { Get-Content "$env:TCG_WINDOWS_DEMO/demo-data/guest.log" -Tail 100 }
           if (Test-Path "$env:TCG_WINDOWS_DEMO/demo-data/browser.log") { Get-Content "$env:TCG_WINDOWS_DEMO/demo-data/browser.log" -Tail 40 }
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: windows-rte-debug
+          path: ${{ runner.temp }}/tcg-rte-debug.png
+          if-no-files-found: ignore
+          retention-days: 3
