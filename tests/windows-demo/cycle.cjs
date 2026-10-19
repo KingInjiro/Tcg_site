@@ -42,15 +42,23 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
             try { return JSON.parse(fs.readFileSync(path.join(root, 'demo-data/running.json'))); } catch { return null; }
         });
         current.running = running;
-        const protocolDebug = require(path.join(path.dirname(require.resolve('playwright-core/package.json')), 'lib/utilsBundle.js')).debug;
-        // Diagnostic only before any key/password is entered. Never log editor
-        // interactions or credentials to CI protocol output.
-        protocolDebug.enable('pw:protocol');
-        try { browser = await chromium.connectOverCDP('http://127.0.0.1:' + running.debugPort, { timeout: 60000 }); }
-        finally { protocolDebug.disable(); }
+        browser = await chromium.connectOverCDP('http://127.0.0.1:' + running.debugPort, { timeout: 60000 });
         const context = browser.contexts()[0]; context.setDefaultTimeout(120000);
         admin = await until(() => context.pages().find(p => p.url().startsWith(running.origin + '/admin/')));
-        await admin.setViewportSize({ width: 1600, height: 1000 });
+        await admin.bringToFront();
+        await admin.waitForLoadState('load');
+        // Keep the real desktop viewport: CDP device metrics must not extend
+        // the canvas beyond the native Windows window's input surface.
+        const ui = await admin.evaluate(() => ({
+            sheets: [...document.querySelectorAll('link[rel=stylesheet]')].map(l => ({ path: new URL(l.href).pathname, loaded: !!l.sheet })),
+            viewport: [innerWidth, innerHeight], screen: [screen.width, screen.height],
+            bodyMargin: getComputedStyle(document.body).margin
+        }));
+        console.log('Native admin layout', JSON.stringify(ui));
+        if (ui.sheets.some(s => !s.loaded)) {
+            await admin.screenshot({ path: path.join(process.env.RUNNER_TEMP, 'tcg-rte-debug.png'), fullPage: true });
+            assert.fail('The real admin stylesheet failed to load; mouse/RTE tests cannot proceed');
+        }
         admin.on('pageerror', error => errors.push(error.message));
         return { context, running };
     }
@@ -105,6 +113,11 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     const canvas = admin.frameLocator('.gjs-frame');
     const heading = canvas.getByText('Тест Windows', { exact: true });
     const editable = canvas.locator('[contenteditable="true"]');
+    await heading.evaluate(node => {
+        window.__tcgPointerEvents = [];
+        for (const type of ['pointerdown', 'mousedown', 'click', 'dblclick', 'focusin']) document.addEventListener(type, e => window.__tcgPointerEvents.push({ type, tag: e.target.tagName, id: e.target.id, trusted: e.isTrusted }), true);
+    });
+    console.log('Canvas input geometry', JSON.stringify({ heading: await heading.boundingBox(), frame: await admin.locator('.gjs-frame').boundingBox() }));
     for (let attempt = 0; attempt < 3; attempt++) {
         await heading.dblclick({ delay: 120 });
         try { await editable.waitFor({ state: 'visible', timeout: 3000 }); break; }
@@ -117,7 +130,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
                         selection: selected ? { type: selected.get('type'), tag: selected.get('tagName'), editable: selected.get('editable') } : null,
                         headings: ed.getWrapper().find('h1').map(h => ({ type: h.get('type'), editable: h.get('editable'), content: h.get('content') })),
                         editables: Array.from(body.querySelectorAll('[contenteditable]')).map(n => ({ tag: n.tagName, value: n.getAttribute('contenteditable') })),
-                        heading: body.querySelector('h1')?.outerHTML };
+                        heading: body.querySelector('h1')?.outerHTML, pointerEvents: body.ownerDocument.defaultView.__tcgPointerEvents };
                 })));
                 await admin.screenshot({ path: path.join(process.env.RUNNER_TEMP, 'tcg-rte-debug.png'), fullPage: true });
                 throw error;

@@ -227,6 +227,10 @@ def run_demo():
         context = ssl.create_default_context(cadata=tls['certificate'])
         origin = f'https://127.0.0.1:{port}'
         wait_for(lambda: json.loads(local_url(origin + '/admin/api.php?action=session', context)).get('setupRequired') is not None, 30, vm)
+        # Verify the actual styles/scripts through the same strict TLS path
+        # before starting Chromium. An API response alone is not UI readiness.
+        for asset in ['/admin/', '/admin/builder.css', '/admin/vendor/grapes.min.css', '/admin/vendor/grapes.min.js']:
+            wait_for(lambda asset=asset: bool(local_url(origin + asset, context)), 30, vm)
         certificate_file = DATA / 'localhost-cert.pem'
         certificate_file.write_text(tls['certificate'], 'utf-8')
         profile = DATA / 'browser-profile'
@@ -236,7 +240,7 @@ def run_demo():
         proxy = RejectExternalProxy(('127.0.0.1', 0), RejectExternalRequest)
         threading.Thread(target=proxy.serve_forever, daemon=True).start()
         browser_log = (DATA / 'browser.log').open('wb', buffering=0)
-        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--disable-extensions', '--enable-logging=stderr', '--log-level=1', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=browser_log, stderr=browser_log)
+        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-gpu', '--disable-extensions', '--enable-logging=stderr', '--log-level=1', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost, EXCLUDE 127.0.0.1', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', f'--proxy-server=http://127.0.0.1:{proxy.server_address[1]}', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--start-maximized', '--new-window', origin + '/admin/'], stdout=browser_log, stderr=browser_log)
         runtime = {'origin': origin, 'debugPort': debug_port, 'vmPid': vm.pid, 'browserPid': browser.pid, 'launcherPid': os.getpid(), 'certificate': str(certificate_file)}
         print('\nВідкрито справжню адмінпанель: ' + origin + '/admin/', flush=True)
         print('Окремий ТЕСТОВИЙ ключ для першого налаштування:\n' + cfg['activationKey'], flush=True)
