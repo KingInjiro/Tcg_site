@@ -34,7 +34,7 @@ final class Compiler {
             if ($node->tagName === 'meta' && in_array($node->getAttribute('name'), ['tcg-page', 'theme-color', 'tcg-build'], true)) HTML::remove($node);
             if ($node->tagName === 'script' && in_array(strtok($node->getAttribute('src'), '?'), ['/themes/clean-urls.js', '/themes/service-worker.js', '/themes/navigation.js'], true)) HTML::remove($node);
         }
-        $fragment = '<link rel="canonical" data-tcg-canonical href="' . Routes::url($file) . '"><meta name="tcg-page" content="1"><link rel="manifest" href="/manifest.json"><meta name="theme-color" content="#000000">' . self::ICONS . '<script src="/themes/clean-urls.js" defer></script><script src="/themes/service-worker.js" defer></script><script src="/themes/navigation.js" defer></script>';
+        $fragment = '<link rel="canonical" data-tcg-canonical href="' . Routes::url($file) . '"><meta name="tcg-page" content="1">' . self::ICONS . '<script src="/themes/clean-urls.js" defer></script><script src="/themes/service-worker.js" defer></script><script src="/themes/navigation.js" defer></script>';
         foreach (HTML::fragment($doc, $fragment) as $node) $head->appendChild($node);
         return HTML::document($doc);
     }
@@ -78,18 +78,18 @@ final class Compiler {
         $outputs['themes/contact-config.json'] = Files::encode(['endpoint' => '/admin/contact.php']);
         $entries = []; foreach ($pageURLs as $url => $file) $entries[$url] = $outputs[$file];
         foreach (array_merge($static, $outputs) as $file => $data) if (preg_match('~^(?:images|derived|themes|[\w.-]+\.files)/~', $file) && preg_match('/\.(css|js|png|jpe?g|gif|webp|svg|woff2?)$/i', $file)) $entries['/' . $file] = $data;
-        foreach (['manifest.json', 'favicon.ico', 'themes/offline.html', 'themes/search-index.json'] as $file) if (isset($outputs[$file]) || isset($static[$file])) $entries['/' . $file] = $outputs[$file] ?? $static[$file];
+        foreach (['favicon.ico', 'themes/search-index.json'] as $file) if (isset($outputs[$file]) || isset($static[$file])) $entries['/' . $file] = $outputs[$file] ?? $static[$file];
         ksort($entries); $hash = hash_init('sha256'); hash_update($hash, $this->config['compiler']);
         $sw = Files::read(__DIR__ . '/worker.txt'); hash_update($hash, $sw);
         foreach ($entries as $url => $data) { hash_update($hash, $url); hash_update($hash, $data); }
         $version = substr(hash_final($hash), 0, 20);
         foreach ($pageURLs as $file) {
             $html = preg_replace('~</head>~i', '<meta name="tcg-build" content="' . $version . '"></head>', $outputs[$file], 1);
-            $outputs[$file] = preg_replace_callback('~<(?:link|script)\b[^>]*>~i', fn($tag) => preg_replace_callback('~\b(href|src)="(/[^"?]+\.(?:css|js))"~i', fn($m) => isset($entries[rawurldecode($m[2])]) ? $m[1] . '="' . $m[2] . '?v=' . $version . '"' : $m[0], $tag[0]), $html);
+            $outputs[$file] = preg_replace_callback('~<(?:link|script)\b[^>]*>~i', fn($tag) => preg_replace_callback('~\b(href|src)="(/[^"?]+\.(?:css|js))(?:\?v=[a-z0-9-]{1,80})?"~i', fn($m) => isset($entries[rawurldecode($m[2])]) ? $m[1] . '="' . $m[2] . '?v=' . $version . '"' : $m[0], $tag[0]), $html);
         }
-        $urls = array_map(static fn($url) => implode('/', array_map('rawurlencode', explode('/', rawurldecode($url)))), array_keys($entries));
-        $worker = ['version' => $version, 'urls' => $urls, 'aliases' => $aliases];
-        $outputs['sw.js'] = str_replace('/* TCG_BUILD_CONFIG */', 'self.TCG_PWA = ' . Files::encode($worker) . ';', $sw);
+        // Keep the no-fetch retirement worker at the old URL, independent of
+        // each publication's version. No offline manifest is generated.
+        $outputs['sw.js'] = $sw;
         $outputs['site-version.json'] = Files::encode(['version' => $version]) . "\n";
         return ['files' => $outputs, 'version' => $version];
     }

@@ -124,7 +124,8 @@
             ++sequence;
             pending?.abort();
             history.scrollRestoration = 'auto';
-            pop ? location.reload() : location.assign(url.href);
+            url.searchParams.set('tcg-online', window.TCGUpdateVersion || document.querySelector('meta[name="tcg-build"]')?.content || 'latest');
+            pop ? location.replace(url.href) : location.assign(url.href);
             return;
         }
         const current = ++sequence;
@@ -140,9 +141,10 @@
             if (!response.ok || !response.headers.get('content-type')?.includes('text/html') || new URL(response.url).origin !== location.origin) throw new Error('not a public page');
             const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
             if (doc.querySelector('meta[name="tcg-page"]')?.content !== '1' || doc.querySelector('base')) throw new Error('ordinary navigation required');
-            // A new document needs its own scripts and styles, even if the
-            // worker update has not arrived yet. Never mix two published builds.
-            if (doc.querySelector('meta[name="tcg-build"]')?.content !== document.querySelector('meta[name="tcg-build"]')?.content) {
+            // Load a complete new snapshot independently of any former worker.
+            const nextVersion = doc.querySelector('meta[name="tcg-build"]')?.content;
+            if (nextVersion !== document.querySelector('meta[name="tcg-build"]')?.content) {
+                if (nextVersion) url.searchParams.set('tcg-online', nextVersion);
                 throw new Error('new build requires ordinary navigation');
             }
             const scripts = [...doc.scripts];
@@ -193,7 +195,7 @@
             }
             await position(finalURL, pop ? saved : null);
         } catch {
-            if (current === sequence) { history.scrollRestoration = 'auto'; pop ? location.reload() : location.assign(url.href); }
+            if (current === sequence) { history.scrollRestoration = 'auto'; pop ? location.replace(url.href) : location.assign(url.href); }
         } finally {
             clearTimeout(timeout);
             if (!committed) for (const sheet of temporary) sheet.remove();
