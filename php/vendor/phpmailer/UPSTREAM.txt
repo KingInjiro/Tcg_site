@@ -1,0 +1,5 @@
+PHPMailer v7.1.1
+https://github.com/PHPMailer/PHPMailer
+Commit 1bc1716a507a65e039d4ac9d9adebbbd0d346e15
+LGPL-2.1 license; unmodified source and license included.
+SMTP transport only. No Composer or remote includes in production.

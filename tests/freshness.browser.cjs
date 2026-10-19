@@ -50,6 +50,10 @@ const { build } = require('../scripts/build');
         const page = await context.newPage();
         await page.goto(origin + '/contacts/');
         assert.equal(await marker(page), 'one');
+        // Initial helper and pageshow version checks must finish before the fixture
+        // changes the server build; otherwise a correct automatic reload can remove
+        // the synthetic link between evaluate() and click(), especially in Firefox.
+        await page.waitForLoadState('networkidle');
         revision = 'two';
         await page.evaluate(() => { const link = document.createElement('a'); link.href = '/products/'; link.dataset.tcgPage = ''; link.id = 'next-test'; link.textContent = 'Next'; document.body.prepend(link); });
         await page.locator('#next-test').click();

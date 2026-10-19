@@ -3,7 +3,8 @@
     const $ = id => document.getElementById(id);
     const R = window.TCGRepository, D = window.TCGDocument, U = window.TCGRoutes;
     const local = ['localhost', '127.0.0.1'].includes(location.hostname) && new URLSearchParams(location.search).get('local') === 'true';
-    const saveLabel = local ? 'Зберегти на комп’ютері' : 'Опублікувати';
+    const php = document.documentElement.dataset.tcgBackend === 'php';
+    let saveLabel = local ? 'Зберегти на комп’ютері' : 'Опублікувати';
     const dirtyMessage = local ? 'Є незбережені зміни' : 'Є неопубліковані зміни';
     const titles = { 'index.html': 'Головна', 'contacts.html': 'Контакти', 'services.html': 'Послуги', 'products.html': 'Продукти', 'news.html': 'Новини', 'price01.html': 'Ціни', 'Download.html': 'Завантаження', 'feedback.html': 'Зворотний зв’язок', 'toc.html': 'Зміст' };
     const state = { pages: new Map(), assets: [], uploads: new Map(), current: null, repo: null, editor: null, loading: false, busy: false, checking: false };
@@ -13,7 +14,7 @@
     const dirtyPages = () => [...state.pages.values()].filter(page => page.dirty);
     function status(message, error = false) { $('status').textContent = message; $('status').parentElement.classList.toggle('error', error); }
     function updateButtons() {
-        $('publish').disabled = state.busy || state.loading || state.checking || !dirtyPages().length;
+        $('publish').disabled = state.busy || state.loading || state.checking || (!dirtyPages().length && !(php && state.repo?.unpublished));
         $('new-page').disabled = state.busy || state.loading || !state.current;
         for (const id of ['preview', 'backup', 'restore', 'logout', 'export-site', 'check-mail']) $(id).disabled = state.busy || state.loading;
         $('export-site').disabled ||= !state.repo;
@@ -100,6 +101,7 @@
         for (const id of ['blocks', 'styles', 'traits', 'layers', 'editor']) $(id).replaceChildren();
         const editor = window.grapesjs.init({
             container: '#editor', height: '100%', width: 'auto', fromElement: false, storageManager: false,
+            i18n: php ? { locale: 'uk', localeFallback: 'uk', detectLocale: false, messages: { uk: window.TCGGrapesUK } } : undefined,
             telemetry: false, noticeOnUnload: false, allowScripts: false, nativeDnD: false,
             protectedCss: '', baseCss: '', canvasCss: '', keepUnusedStyles: true, avoidInlineStyle: false,
             panels: { defaults: [] }, selectorManager: { componentFirst: true },
@@ -131,7 +133,7 @@
           try {
             if (page.project) editor.loadProjectData(D.safeModel(replaceAssets(page.project, false)));
             else {
-                const imported = D.importHTML(page.html, page.path);
+                const imported = D.importHTML(replaceAssets(page.html, false), page.path);
                 page.meta = imported.meta;
                 editor.setComponents(imported.body);
                 if (imported.css) editor.addStyle(imported.css);
@@ -209,15 +211,18 @@
         const pages = await R.loadPages(repo, listing.files, (done, total) => { $('login-status').textContent = 'Перевірка сторінок… ' + done + '/' + total; });
         if (!pages.length) throw new Error('У репозиторії немає справних HTML-сторінок для редагування.');
         state.repo = repo;
+        if (php) { saveLabel = repo.publicationReady ? 'Опублікувати' : 'Зберегти чернетку'; $('publish').textContent = saveLabel; }
         state.paths = new Set(listing.files.map(file => file.path.toLowerCase().replace(/\.html?$/i, '')));
         for (const page of pages) state.pages.set(page.path, page);
         D.setSharedHeader(state.pages.get('index.html')?.html || '');
         state.assets = listing.files.filter(file => R.isImage(file.path)).map(file => file.path);
         if (repo.pending) for (const path of state.assets.filter(path => path.startsWith('images/editor/'))) state.uploads.set(path, await repo.readImage(path));
+        if (php) for (const path of repo.draftImages) state.uploads.set(path, await repo.readImage(path));
         $('login-screen').hidden = true; $('app').hidden = false;
         renderPageList();
         await openPage(state.pages.has('index.html') ? 'index.html' : state.pages.keys().next().value);
-        $('check-mail').hidden = local;
+        if (php) window.TCGPHP.mount(repo, () => ({ path: state.current, dirty: dirtyPages().length }), status);
+        $('check-mail').hidden = local || php;
         if (repo.pending) monitorPublication();
     }
     function login() {
@@ -270,11 +275,11 @@
         if (exportAfter && !local) return;
         capture();
         const pages = dirtyPages();
-        if (!pages.length && !exportAfter) return;
+        if (!pages.length && !exportAfter && !(php && state.repo.unpublished)) return;
         state.busy = true; updateButtons(); $('app').querySelector('.workspace').inert = true; $('publish').textContent = local ? 'Збереження…' : 'Публікація…';
         status('Зберігаю сторінки та зображення…'); $('publication').hidden = true;
         try {
-            if (pages.length) {
+            if (pages.length || (php && state.repo.unpublished)) {
                 const changes = [], saved = new Map();
                 for (const page of pages) {
                     const html = replaceAssets(page.html, true);
@@ -291,7 +296,7 @@
                 state.uploads.forEach(asset => { asset.published = true; });
                 if (result.url) { $('publication').href = result.url; $('publication').hidden = false; }
                 if (result.pending) monitorPublication();
-                status(local ? 'Збережено. Для оновлення сайту в інтернеті створіть архів і завантажте його на хостинг.' : 'Чернетку збережено в GitHub. Починаються перевірки.');
+                status(php ? (result.published ? 'Опубліковано. Відвідувачі можуть відкрити актуальний сайт.' : 'Чернетку збережено на сервері. Публікація в цьому checkpoint ще недоступна.') : local ? 'Збережено. Для оновлення сайту в інтернеті створіть архів і завантажте його на хостинг.' : 'Чернетку збережено в GitHub. Починаються перевірки.');
             }
             if (exportAfter) {
                 status('Створюю архів для хостингу…');
@@ -384,7 +389,7 @@
         const url = URL.createObjectURL(new Blob([doc.documentElement.outerHTML], { type: 'text/html' }));
         window.open(url, '_blank', 'noopener'); setTimeout(() => URL.revokeObjectURL(url), 60000);
     }
-    $('login').addEventListener('click', login);
+    if (!php) $('login').addEventListener('click', login);
     $('check-mail').addEventListener('click', async () => {
         $('check-mail').disabled = true;
         status('Перевіряю налаштування та захищене з’єднання з поштою…');
@@ -413,7 +418,7 @@
     $('backup').addEventListener('click', backup); $('restore').addEventListener('click', () => $('restore-file').click());
     $('restore-file').addEventListener('change', event => restore(event.target.files[0]).catch(error => status(error.message, true)).finally(() => { event.target.value = ''; }));
     $('preview').addEventListener('click', preview);
-    $('logout').addEventListener('click', () => { if (!dirtyPages().length || confirm(dirtyMessage + '. Вийти й відкинути їх?')) { state.pages.clear(); state.repo.token = ''; location.reload(); } });
+    $('logout').addEventListener('click', async () => { if (!dirtyPages().length || confirm(dirtyMessage + '. Вийти й відкинути їх?')) { try { if (php) await state.repo.logout(); state.pages.clear(); state.repo.token = ''; location.reload(); } catch (error) { status(error.message, true); } } });
     window.addEventListener('beforeunload', event => { if (dirtyPages().length) { event.preventDefault(); event.returnValue = ''; } });
     if (local) {
         $('login').textContent = 'Відкрити редактор →';
@@ -423,5 +428,6 @@
         $('backup').textContent = 'Копія чернетки'; $('backup').title = 'Лише незбережені правки. Це не повна копія проєкту.';
         $('asset-note').textContent = 'PNG, JPG, WebP або GIF до 2 МБ. Нові зображення збережуться разом зі сторінкою та потраплять в архів для хостингу.';
     }
+    if (php && window.grapesjs && R && D) window.TCGPHP.boot(start);
     if (!window.grapesjs || !R || !D) { $('login').disabled = true; $('login-status').textContent = 'Не вдалося завантажити редактор. Оновіть сторінку.'; }
 })();
