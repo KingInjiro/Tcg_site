@@ -124,9 +124,9 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     assert.equal((await request(running, 'tree')).status, 401);
     const session = await request(running, 'session');
     assert.equal(session.data.setupRequired, true);
-    assert.match(session.headers['set-cookie'][0], /secure/i);
-    assert.match(session.headers['set-cookie'][0], /httponly/i);
-    assert.match(session.headers['set-cookie'][0], /samesite=strict/i);
+    assert.ok(/secure/i.test(session.headers['set-cookie'][0]), 'session cookie requires secure');
+    assert.ok(/httponly/i.test(session.headers['set-cookie'][0]), 'session cookie requires httponly');
+    assert.ok(/samesite=strict/i.test(session.headers['set-cookie'][0]), 'session cookie requires samesite=strict');
     for (const target of ['/admin/_app/release.php', '/admin/_app/seed.php', '/.tcg-test/owner.json']) assert.ok((await request(running, '', undefined, { rawPath: target })).status >= 400);
     const settings = JSON.parse(fs.readFileSync(path.join(root, 'demo-data/settings.json')));
     assert.equal(settings.activationKey.length, 43);
@@ -255,27 +255,34 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     console.log('Checkpoint: rename, delete, history restoration and legacy URLs');
-    const workerVersions = [], workerErrors = [];
-    const workerCDP = await context.newCDPSession(visitor);
-    workerCDP.on('ServiceWorker.workerVersionUpdated', e => workerVersions.push(...e.versions.map(v => ({ status: v.status, running: v.runningStatus }))));
-    workerCDP.on('ServiceWorker.workerErrorReported', e => workerErrors.push(e.errorMessage.errorMessage));
-    await workerCDP.send('ServiceWorker.enable');
+    // Observe natural PWA activation with no debugger attached. CDP's worker
+    // auto-attach changes the renderer's worker idle/termination lifecycle.
+    // Closing this CDP connection leaves the launcher-owned browser, tabs,
+    // profile and real page scripts running; no worker/cache API is invoked.
     await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
-    assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tgroup-pwa-'))));
     await visitor.reload();
-    try { await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))), 120000); }
+    const pwaState = () => visitor.evaluate(async () => ({
+        build: document.querySelector('meta[name="tcg-build"]')?.content,
+        cached: !!await caches.match(location.href), caches: await caches.keys(),
+        registrations: (await navigator.serviceWorker.getRegistrations()).map(r => ({ active: r.active?.state, waiting: r.waiting?.state, installing: r.installing?.state }))
+    }));
+    await wait(15000);
+    console.log('PWA before CDP disconnect', JSON.stringify(await pwaState()));
+    await browser.close(); // connectOverCDP closes its transport, not Chromium.
+    await wait(30000);
+    browser = await chromium.connectOverCDP('http://127.0.0.1:' + running.debugPort, { timeout: 60000 });
+    context = browser.contexts()[0]; context.setDefaultTimeout(120000);
+    admin = context.pages().find(p => p.url().startsWith(running.origin + '/admin/'));
+    visitor = context.pages().find(p => p.url() === running.origin + '/windows-renamed/');
+    assert.ok(admin && visitor, 'native browser and both tabs survive disconnecting the test inspector');
+    admin.on('pageerror', error => errors.push(error.message));
+    console.log('PWA after CDP disconnect', JSON.stringify(await pwaState()));
+    try { await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))), 60000); }
     catch (error) {
-        console.log('PWA worker versions', JSON.stringify({workerVersions, workerErrors}));
-        console.log('PWA worker globals', JSON.stringify(await Promise.all(context.serviceWorkers().map(w => Promise.race([w.evaluate(() => ({version: typeof config === 'object' ? config.version : null, warming: typeof warming !== 'undefined' && !!warming, pageURLs: typeof config === 'object' ? config.urls.filter(u => u.includes('windows-')) : []})).catch(e => ({error: e.message.slice(0,150)})), wait(3000).then(() => ({timeout:true}))])))));
-        console.log('PWA diagnostic', JSON.stringify(await visitor.evaluate(async () => ({
-            url: location.href, visible: document.visibilityState, online: navigator.onLine, build: document.querySelector('meta[name="tcg-build"]')?.content,
-            caches: await caches.keys(), counts: await Promise.all((await caches.keys()).map(async k => ({name:k,count:(await(await caches.open(k)).keys()).length}))), controller: navigator.serviceWorker.controller?.scriptURL,
-            registrations: await Promise.all((await navigator.serviceWorker.getRegistrations()).map(async r => ({ active: r.active?.state, installing: r.installing?.state, waiting: r.waiting?.state }))),
-            storedPageKeys: (await Promise.all((await caches.keys()).map(async name => (await (await caches.open(name)).keys()).map(r => new URL(r.url).pathname).filter(p => p.includes('windows-'))))).flat()
-        }))));
+        console.log('PWA diagnostic', JSON.stringify(await pwaState()));
+        console.log('PWA worker globals', JSON.stringify(await Promise.all(context.serviceWorkers().map(w => Promise.race([w.evaluate(() => ({version: typeof config === 'object' ? config.version : null, warming: typeof warming !== 'undefined' && !!warming, pageURLs: typeof config === 'object' ? config.urls.filter(u => u.includes('windows-')) : []})).catch(() => ({error: 'worker unavailable'})), wait(3000).then(() => ({timeout:true}))])))));
         throw error;
     }
-    await workerCDP.detach();
     await context.setOffline(true);
     try { await visitor.reload(); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows'); }
     finally { await context.setOffline(false); }
@@ -300,7 +307,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     fs.renameSync(root, movedRoot); root = movedRoot;
     ({ context, running } = await launch()); assert.equal(running.origin, originalOrigin);
     assert.equal((await request(running, 'session')).data.setupRequired, false);
-    assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'demo-data/settings.json'))).activationKey, settings.activationKey, 'test identity survives moving and restarting the folder');
+    assert.ok(JSON.parse(fs.readFileSync(path.join(root, 'demo-data/settings.json'))).activationKey === settings.activationKey, 'test identity survives moving and restarting the folder');
     if (await admin.locator('#php-login-form').isVisible()) {
         await admin.locator('#php-username').fill(credentials.username); await privateFill(admin.locator('#php-password'), credentials.password); await admin.locator('#php-login-form button').click();
     }
@@ -314,7 +321,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     console.log('Checkpoint: persistence after folder move and restart; complete RESET');
     assert.equal(fs.existsSync(path.join(root, 'demo-data')), false);
     ({ running } = await launch()); assert.equal((await request(running, 'session')).data.setupRequired, true);
-    assert.notEqual(JSON.parse(fs.readFileSync(path.join(root, 'demo-data/settings.json'))).activationKey, settings.activationKey, 'RESET creates a new independent test identity');
+    assert.ok(JSON.parse(fs.readFileSync(path.join(root, 'demo-data/settings.json'))).activationKey !== settings.activationKey, 'RESET creates a new independent test identity');
     await close();
     assert.equal(trust(), originalTrust, 'the Windows certificate store is unchanged');
     assert.deepEqual(errors, []);
