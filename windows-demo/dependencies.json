@@ -1,0 +1,15 @@
+{
+  "python": {
+    "url": "https://www.python.org/ftp/python/3.13.16/python-3.13.16-embed-amd64.zip",
+    "sha256": "97dae5274cc54867065e8d5a3226e48c35017ed332a0fdb0e27d5b5821961297"
+  },
+  "browser": {
+    "url": "https://commondatastorage.googleapis.com/chromium-browser-snapshots/Win_x64/1721646/chrome-win.zip",
+    "sha256": "1eca43df827263a89da318645085f46fb51be30cbef13bb880069d1f8adc5e56",
+    "prefix": "chrome-win"
+  },
+  "qemu": {
+    "url": "https://qemu.weilnetz.de/w64/qemu-w64-setup-20260811.exe",
+    "sha512": "5bcf9eed634e8575a37b74f445af41a2fe4106da512d0c30c368301d4c105037fdfab40a5287367a28a957624cddebbc8c07e16c88ab6634f554cdf3d16bf543"
+  }
+}
