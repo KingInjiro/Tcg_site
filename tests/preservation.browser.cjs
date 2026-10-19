@@ -141,19 +141,16 @@ const { getHeader, applyHeader } = require('../themes/shared-header');
         assert.deepEqual(errors, []);
         assert.ok(checkedUpperPixels, 'rounded corners and hover glow are checked in the rendered pixels');
         console.log('PASS ' + buttons.size + ' original GIF buttons: upper background/legacy rollover on hover and keyboard focus, no resizing; legacy redirects preserve query/hash');
-        const offline = await browser.newPage();
-        await offline.route('**/*', route => new URL(route.request().url()).origin === origins[1] ? route.continue() : route.abort());
-        await offline.goto(origins[1] + '/');
-        await offline.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 30000 });
-        // Activation no longer waits for the background offline download.
-        await offline.evaluate(() => new Promise((resolve, reject) => {
-            const channel = new MessageChannel();
-            const timeout = setTimeout(() => { channel.port1.close(); reject(new Error('Offline cache did not finish')); }, 30000);
-            channel.port1.onmessage = () => { clearTimeout(timeout); channel.port1.close(); resolve(); };
-            navigator.serviceWorker.controller.postMessage({ type: 'TCG_WARM_CACHE' }, [channel.port2]);
-        }));
-        assert.ok(await offline.evaluate(async () => Boolean(await caches.match('/'))), 'offline homepage is cached');
-        console.log('PASS shared service-worker registration and homepage cache');
+        const online = await browser.newPage();
+        await online.route('**/*', route => new URL(route.request().url()).origin === origins[1] ? route.continue() : route.abort());
+        await online.goto(origins[1] + '/');
+        await online.waitForLoadState('networkidle');
+        assert.equal(await online.locator('link[rel="manifest"]').count(), 0);
+        assert.deepEqual(await online.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map(r => r.scope)), []);
+        assert.deepEqual(await online.evaluate(async () => (await caches.keys()).filter(key => key.startsWith('tgroup-pwa-'))), []);
+        assert.equal(await online.evaluate(() => navigator.serviceWorker.controller), null);
+        console.log('PASS public pages do not install workers, manifests or offline caches');
+
     } finally {
         await browser?.close();
         await Promise.all(servers.map(server => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); }));

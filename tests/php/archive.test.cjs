@@ -17,6 +17,11 @@ test('Ready PHP ZIP: public root, private activation sidecar, complete owned fil
     for (const [file, sha] of Object.entries({ ...config.staticFiles, ...config.managed })) assert.equal(hash(files.get(file)), sha, file + ': hash');
     for (const name of ['index.html', 'contacts/index.html', 'contacts.html', 'sw.js', 'site-version.json', 'INSTALL.txt', 'admin/index.html', 'admin/api.php', 'admin/contact.php', 'admin/diagnostic.php', 'admin/_app/Environment.php', 'admin/_app/Publisher.php', 'admin/_app/vendor/phpmailer/LICENSE', 'admin/vendor/grapes.min.js', 'admin/vendor/grapes.min.css']) assert.ok(files.has(name), name);
     assert.deepEqual(JSON.parse(files.get('themes/contact-config.json')), { endpoint: '/admin/contact.php' });
+    assert.equal(files.has('manifest.json'), false);
+    assert.equal(files.has('themes/offline.html'), false);
+    assert.doesNotMatch(files.get('sw.js').toString(), /addEventListener\(['"]fetch/);
+    assert.doesNotMatch(files.get('themes/service-worker.js').toString(), /\.register\s*\(|TCG_WARM_CACHE/);
+    for (const [name, data] of files) if (name.endsWith('.html') && !name.startsWith('admin/')) assert.doesNotMatch(data.toString(), /rel=["']manifest["']/);
     let bytes = 0;
     for (const [name, data] of files) {
         assert.ok(!/(^|\/)(?:\.git|node_modules|tests|dist|exports|\.env|\.tcg-editor|\.tcg-[a-f0-9]+)(?:\/|$)/.test(name), name);

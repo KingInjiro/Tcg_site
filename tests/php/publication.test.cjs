@@ -16,7 +16,7 @@ function snapshot(html) {
         return { tag: node.tagName || node.nodeName, attrs: (node.attrs || []).map(a => [a.name, a.value]).sort(([a], [b]) => a.localeCompare(b)), children: (node.childNodes || []).map(map).filter(Boolean) };
     } return map(doc);
 }
-test('M4 PHP compiler and transactional publication preserve existing documents, assets, routes and PWA', { timeout: 60000 }, async t => {
+test('M4 PHP compiler and transactional publication preserve existing documents, assets, routes and online versioning', { timeout: 60000 }, async t => {
     const f = await fixture(t), owner = f.client(); await owner.session();
     const credentials = { activationKey: f.activationKey, username: 'site-owner', password: 'Secure publication test 42' };
     assert.equal((await owner.call('setup', credentials)).status, 200); assert.equal((await owner.call('login', credentials)).status, 200);
@@ -31,21 +31,25 @@ test('M4 PHP compiler and transactional publication preserve existing documents,
     const index = JSON.parse(fs.readFileSync(path.join(f.site, 'themes/search-index.json')));
     assert.deepEqual(index, JSON.parse(expected.get('themes/search-index.json')), 'search index parity');
     const worker = fs.readFileSync(path.join(f.site, 'sw.js'), 'utf8');
-    const config = JSON.parse(worker.match(/^self\.TCG_PWA = (.+);$/m)[1]);
-    assert.equal(config.version, JSON.parse(fs.readFileSync(path.join(f.site, 'site-version.json'))).version);
-    assert.ok(config.urls.includes('/contacts/')); assert.ok(!config.urls.some(url => /^\/(admin|api)\//.test(url)));
-    for (const url of config.urls) assert.ok(fs.existsSync(path.join(f.site, decodeURI(url), url.endsWith('/') ? 'index.html' : '')), url);
-    assert.equal((await owner.call('publish', { head })).data.version, config.version, 'unchanged publication is deterministic');
+    assert.equal(worker, fs.readFileSync(path.join(root, 'sw.js'), 'utf8'));
+    const version = JSON.parse(fs.readFileSync(path.join(f.site, 'site-version.json'))).version;
+    assert.doesNotMatch(worker, /addEventListener\(['"]fetch/);
+    assert.equal(fs.existsSync(path.join(f.site, 'manifest.json')), false);
+    assert.equal(fs.existsSync(path.join(f.site, 'themes/offline.html')), false);
+    assert.equal((await owner.call('publish', { head })).data.version, version, 'unchanged publication is deterministic');
     const metadata = await owner.call('save', { head, changes: [{ path: '.tcg-editor/index.html.json', encoding: 'utf-8', content: JSON.stringify({ version: 1, test: 'project-only update' }) }] });
     assert.equal(metadata.status, 200); head = metadata.data.head;
     assert.equal((await owner.call('publish', { head })).status, 200);
     assert.equal((await owner.call('tree')).data.unpublished, false, 'project-only changes finish publication without unnecessary public writes');
     const leftover = path.join(f.privateRoot, 'transaction', 'new'); fs.mkdirSync(leftover, { recursive: true, mode: 0o700 }); fs.writeFileSync(path.join(leftover, 'incomplete-staging'), 'disposable');
     assert.equal((await owner.call('publish', { head })).status, 200); assert.equal(fs.existsSync(path.join(f.privateRoot, 'transaction')), false, 'uncommitted staging leftovers are reclaimed');
-    const html = '<!doctype html><html lang="uk"><head><title>Публікація</title></head><body><h1>Живий PHP сайт</h1></body></html>';
+    const html = '<!doctype html><html lang="uk"><head><title>Публікація</title><link rel="stylesheet" href="/themes/navigation.css?v=old"></head><body><h1>Живий PHP сайт</h1></body></html>';
     const changed = await owner.call('save', { head, changes: [{ path: 'php-publication.html', content: html, encoding: 'utf-8' }] }); assert.equal(changed.status, 200); head = changed.data.head;
-    const next = await owner.call('publish', { head }); assert.equal(next.status, 200, next.data.error); assert.notEqual(next.data.version, config.version);
-    assert.match(fs.readFileSync(path.join(f.site, 'php-publication/index.html'), 'utf8'), /Живий PHP сайт/);
+    const next = await owner.call('publish', { head }); assert.equal(next.status, 200, next.data.error); assert.notEqual(next.data.version, version);
+    const newHTML = fs.readFileSync(path.join(f.site, 'php-publication/index.html'), 'utf8');
+    assert.match(newHTML, /Живий PHP сайт/);
+    assert.ok(newHTML.includes('/themes/navigation.css?v=' + next.data.version));
+    assert.doesNotMatch(newHTML, /\?v=old|rel="manifest"/);
     const deleted = await owner.call('delete', { head, path: 'php-publication.html', confirm: 'php-publication.html' }); head = deleted.data.head;
     assert.equal((await owner.call('publish', { head })).status, 200);
     assert.equal(fs.existsSync(path.join(f.site, 'php-publication/index.html')), false); assert.equal(fs.existsSync(path.join(f.site, 'php-publication.html')), false);

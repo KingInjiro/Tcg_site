@@ -13,7 +13,7 @@ const snapshot = page => page.evaluate(() => {
             node.tagName === 'IMG' ? [node.getAttribute('src'), node.naturalWidth, node.naturalHeight] : null];
     });
 });
-test('PHP public site: all 51 page layouts, GIF hover, SPA, PWA offline and fresh publication', { timeout: 180000 }, async t => {
+test('PHP public site: all 51 page layouts, GIF hover, SPA, no offline caching and fresh publication', { timeout: 180000 }, async t => {
     const f = await fixture(t), owner = f.client(); await owner.session();
     const credentials = { activationKey: f.activationKey, username: 'site-owner', password: 'Visitor browser secure password 42' };
     assert.equal((await owner.call('setup', credentials)).status, 200); assert.equal((await owner.call('login', credentials)).status, 200);
@@ -48,20 +48,13 @@ test('PHP public site: all 51 page layouts, GIF hover, SPA, PWA offline and fres
     assert.notEqual(await upper.evaluate(node => getComputedStyle(node).boxShadow), 'none', 'original upper hover glow remains');
     const left = page.locator('img[src*="_VBTN.GIF"],img[src*="_HBTN.GIF"]').first();
     if (await left.count()) { const src = await left.getAttribute('src'); await left.hover(); assert.ok((await left.evaluate(node => getComputedStyle(node).content)).includes(src.replace(/\.GIF$/i, '_A.GIF')), 'legacy rollover artwork remains'); }
-    await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 30000 });
-    await page.evaluate(() => new Promise((resolve, reject) => {
-        const channel = new MessageChannel(), timer = setTimeout(() => reject(new Error('PWA warmup timed out')), 30000);
-        channel.port1.onmessage = () => { clearTimeout(timer); resolve(); };
-        navigator.serviceWorker.controller.postMessage({ type: 'TCG_WARM_CACHE' }, [channel.port2]);
-    }));
+    await page.waitForLoadState('networkidle');
+    assert.equal(await page.locator('link[rel="manifest"]').count(), 0);
+    assert.deepEqual(await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).map(r => r.scope)), []);
+    assert.deepEqual(await page.evaluate(async () => (await caches.keys()).filter(key => key.startsWith('tgroup-pwa-'))), []);
     await page.evaluate(() => { window.phpSPAMarker = 'kept'; });
     await page.locator('.site-header a[href="/contacts/"]').first().click(); await page.waitForURL(f.origin + '/contacts/');
     assert.equal(await page.evaluate(() => window.phpSPAMarker), 'kept', 'SPA does not reload the document');
-    await context.setOffline(true); await page.goto(f.origin + '/contacts/');
-    assert.ok(await page.locator('body').innerText());
-    assert.ok(await page.evaluate(async () => (await fetch('/themes/search-index.json')).ok), 'search index works offline');
-    assert.ok(await page.evaluate(async () => (await fetch('/images/favicon-32.png')).ok), 'local images work offline');
-    await context.setOffline(false);
     const home = (await owner.call('read&path=index.html')).data.content;
     const saved = await owner.call('save', { head, changes: [{ path: 'index.html', content: home.replace('</body>', '<!-- browser freshness test --></body>'), encoding: 'utf-8' }] }); head = saved.data.head;
     const updated = await owner.call('publish', { head }); assert.equal(updated.status, 200, updated.data.error);

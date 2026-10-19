@@ -2,23 +2,6 @@
 <html><head>
 <title>404 Not Found</title>
 
-<link rel="manifest" href="/manifest.json">
-
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(err => {
-                console.log('SW registration failed: ', err);
-            });
-        });
-    }
-</script>
-
-
-
-
-
-
 <style>
   /* Safe font increase */
   body, p, td, span, div, a, font, li {

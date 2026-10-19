@@ -71,7 +71,7 @@ function createApp({ dev = false, oauth = createOAuth(), contact = createContact
         if (fs.existsSync(file) && !isPublicContent(file)) return res.sendStatus(404);
         if (reqPath === '/Docs/Sno_for_Buh_ua.ert') res.attachment('Sno_for_Buh_ua.ert');
         req.url = reqPath + (queryIndex < 0 ? '' : req.url.slice(queryIndex));
-        if (reqPath === '/sw.js') res.set('Cache-Control', 'no-cache');
+        if (reqPath === '/sw.js' || /\.html?$/i.test(reqPath) || reqPath.endsWith('/')) res.set('Cache-Control', 'no-store');
         if (reqPath === '/site-version.json') res.set('Cache-Control', 'no-store');
         next();
     });
