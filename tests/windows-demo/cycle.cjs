@@ -33,7 +33,8 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     let current, browser, admin;
     const pidExists = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
     async function launch() {
-        const command = spawn('cmd.exe', ['/d', '/c', 'START-DEMO.cmd'], { cwd: root, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+        const cleanEnv = { ...process.env, PATH: [path.join(process.env.SystemRoot, 'System32'), process.env.SystemRoot].join(';') };
+        const command = spawn('cmd.exe', ['/d', '/c', 'START-DEMO.cmd'], { cwd: root, env: cleanEnv, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
         let stderr = ''; command.stderr.on('data', data => stderr += data); command.stdout.resume();
         current = { command };
         const running = await until(() => {
@@ -140,7 +141,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('#publish').click(); await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
-    await visitor.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
     assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tgroup-pwa-'))));
     await visitor.reload();
     await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))));

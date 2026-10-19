@@ -1,13 +1,15 @@
 #!/bin/sh
 set -eu
+trap 'result=$?; if [ "$result" -ne 0 ]; then echo "TCG-BOOT-FAILED ($result)" >&2; sync; /sbin/poweroff -f; fi' EXIT
 mount -o remount,rw /
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-mount -t devtmpfs devtmpfs /dev || true
+mountpoint -q /proc || mount -t proc proc /proc
+mountpoint -q /sys || mount -t sysfs sysfs /sys
+mountpoint -q /dev || mount -t devtmpfs devtmpfs /dev
 mkdir -p /run /dev/pts /dev/shm
-mount -t tmpfs tmpfs /run
-mount -t devpts devpts /dev/pts
-mount -t tmpfs tmpfs /dev/shm
+mountpoint -q /run || mount -t tmpfs tmpfs /run
+mountpoint -q /dev/pts || mount -t devpts devpts /dev/pts
+mountpoint -q /dev/shm || mount -t tmpfs tmpfs /dev/shm
+mkdir -p /run/apache2
 umask 077
 hostname tcg-local-demo
 modprobe virtio_net
