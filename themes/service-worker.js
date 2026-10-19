@@ -32,7 +32,8 @@
     }
     function cleanURL() {
         const url = new URL(location.href);
-        if (url.searchParams.get(token) === build() && !tcgWorker(navigator.serviceWorker?.controller)) {
+        if (url.searchParams.has(token) && !tcgWorker(navigator.serviceWorker?.controller) &&
+            ([build(), build() + '-retired'].includes(url.searchParams.get(token)) || pendingVersion === build())) {
             url.searchParams.delete(token);
             history.replaceState(history.state, '', url);
         }
@@ -65,7 +66,11 @@
         const version = pendingVersion || build(), original = location.href, target = new URL(original);
         // The URL guard works even when sessionStorage is unavailable. Leave
         // the token if a stale or partial response did not advance the HTML.
-        if (target.searchParams.get(token) === version) return;
+        const retired = version + '-retired', seen = target.searchParams.get(token);
+        // A SPA new-build URL may already have the normal version token while
+        // this document is still controlled. Permit one detached navigation,
+        // with its own URL guard when browser storage is unavailable.
+        if (seen === retired || seen === version && !detach) return;
         const attempt = JSON.stringify([version, target.pathname, target.search]);
         try { if (sessionStorage.getItem('tcg-online-attempt') === attempt) return; } catch { /* URL guard remains. */ }
         applying = true;
@@ -77,7 +82,7 @@
                 // page. It must not block publication when no TCG worker controls it.
                 if (tcgWorker(navigator.serviceWorker?.controller)) return;
             }
-            target.searchParams.set(token, version);
+            target.searchParams.set(token, detach ? retired : version);
             const probe = new URL(target); probe.searchParams.set('tcg-probe', Date.now().toString(36));
             const response = await fetch(probe, { cache: 'no-store', signal: controller.signal });
             if (new URL(response.url).origin !== location.origin) return;
@@ -105,7 +110,7 @@
             const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
             if (response.ok) {
                 const version = (await response.json()).version;
-                if (typeof version === 'string' && /^[a-z0-9-]{1,80}$/i.test(version)) pendingVersion = version;
+                if (typeof version === 'string' && /^[a-z0-9-]{1,80}$/i.test(version)) { pendingVersion = version; cleanURL(); }
             }
         } catch { /* Keep the current page while the server is unavailable. */ }
         finally { clearTimeout(timeout); checking = false; }

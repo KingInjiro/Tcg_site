@@ -11,7 +11,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
     const base = JSON.parse(fs.readFileSync(path.join(output, 'site-version.json'))).version;
     const read = file => fs.readFileSync(path.join(output, file), 'utf8');
     const fixture = file => fs.readFileSync(path.join(__dirname, 'fixtures', file), 'utf8');
-    let revision = 'one', worker = 'retired', helper = 'online', unavailable = false, partial = false, removed = false;
+    let revision = 'one', worker = 'retired', helper = 'online', unavailable = false, partial = false, removed = false, staleNavigation = false;
     let workerRequests = 0, navigationRequests = 0, blockWorkerUpdates = false;
     // Real published URL/alias list and worker/helper from pre-retirement ead5a5e.
     const previousConfig = JSON.parse(fixture('pwa-release-config.json'));
@@ -39,7 +39,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         navigationRequests++;
         if (unavailable) return res.status(503).send('Temporarily unavailable');
         if (removed && req.path === '/contacts/') return res.status(404).type('html').send('<h1>Removed</h1>');
-        let content = fs.readFileSync(file, 'utf8').replaceAll(base, partial ? 'incomplete' : revision);
+        let content = fs.readFileSync(file, 'utf8').replaceAll(base, partial || staleNavigation && req.query['tcg-online'] && !req.query['tcg-probe'] ? 'incomplete' : revision);
         if (helper === 'legacy') content = content.replace(/<meta name="tcg-build"[^>]+>/, '');
         res.set('Cache-Control', 'no-cache').type('html').send(content);
     });
@@ -93,6 +93,15 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         await page.addInitScript(() => Object.defineProperty(window, 'sessionStorage', { get() { throw new Error('Storage disabled'); } }));
         const before = navigationRequests; await page.reload(); await page.waitForLoadState('networkidle'); await page.waitForTimeout(500);
         assert.ok(navigationRequests - before <= 1, 'no automatic reload loop');
+        // A server can change between probe and navigation. Even without storage,
+        // an inconsistent navigation response must not trigger an endless reload.
+        revision = 'loop-guard'; staleNavigation = true; await signal(page);
+        await page.waitForFunction(() => new URL(location.href).searchParams.get('tcg-online') === 'loop-guard' && document.querySelector('meta[name="tcg-build"]')?.content === 'incomplete');
+        await page.waitForLoadState('networkidle');
+        const guarded = navigationRequests;
+        for (let i = 0; i < 3; i++) { await signal(page); await page.waitForTimeout(150); }
+        assert.equal(navigationRequests, guarded, 'the URL guard prevents retries when sessionStorage is disabled');
+        staleNavigation = false; await page.reload(); await updated(page, revision);
         removed = true; assert.equal((await page.goto(origin + '/contacts/')).status(), 404); removed = false;
         // Offline requests must fail, rather than silently serving TCG snapshots.
         const probe = await context.newPage(); await probe.goto(origin + '/contacts/'); await noTCG(probe);
@@ -108,6 +117,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         });
         const restrictedPage = await restricted.newPage();
         await restrictedPage.goto(origin + '/contacts/'); await restrictedPage.waitForLoadState('networkidle');
+        assert.equal(await restrictedPage.evaluate(async () => { try { await navigator.serviceWorker.getRegistrations(); return 'allowed'; } catch (error) { return error.name; } }), 'SecurityError');
         revision = 'restricted-policy'; await signal(restrictedPage); await updated(restrictedPage, revision);
         assert.equal(await restrictedPage.evaluate(() => navigator.serviceWorker.controller), null);
         await restricted.close();
@@ -146,6 +156,7 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
             await updated(old, 'new-' + generation); await noTCG(old);
             await old.waitForFunction(() => navigator.serviceWorker.controller === null);
             assert.equal(await old.evaluate(() => navigator.serviceWorker.controller), null);
+            await old.waitForFunction(() => !new URL(location.href).searchParams.has('tcg-online'));
             assert.equal(await old.evaluate(async () => await (await caches.open('foreign-application')).match('/foreign-value').then(r => r.text())), 'keep');
             assert.ok(await old.evaluate(async () => Boolean(await navigator.serviceWorker.getRegistration('/foreign/'))));
             await dirty.reload(); await updated(dirty, revision); await noTCG(dirty);
@@ -157,10 +168,15 @@ const { pageFiles, pageURL } = require('../lib/site-routes');
         const directContext = await browser.newContext(), direct = await directContext.newPage();
         await directContext.route('https://**/*', route => route.abort());
         await direct.goto(origin + '/contacts/'); await direct.waitForFunction(() => !!navigator.serviceWorker.controller);
+        await direct.waitForLoadState('networkidle');
+        await direct.addInitScript(() => Object.defineProperty(window, 'sessionStorage', { get() { throw new Error('Storage disabled'); } }));
         revision = 'new-direct'; helper = 'online'; blockWorkerUpdates = true;
-        await direct.goto(origin + '/feedback/', { waitUntil: 'commit' }); await updated(direct, revision); await noTCG(direct);
+        await direct.locator('.site-header a[href="/feedback/"]').first().click();
+        await direct.waitForURL(url => url.pathname === '/feedback/');
+        await updated(direct, revision); await noTCG(direct);
         await direct.waitForFunction(() => navigator.serviceWorker.controller === null);
         assert.equal(await direct.evaluate(() => navigator.serviceWorker.controller), null);
+        assert.equal(new URL(direct.url()).search, '', 'temporary retirement URL is cleaned after detachment');
         // Any automatic browser update check receives 503. Cleanup succeeds
         // despite no replacement script being available to install or activate.
         assert.equal(blockWorkerUpdates, true);
