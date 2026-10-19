@@ -28,7 +28,8 @@
     "test:freshness": "node tests/freshness.browser.cjs",
     "test:php": "node --test tests/php/*.test.cjs",
     "test:responsive": "node tests/responsive.browser.cjs",
-    "test:zoom": "node tests/zoom.browser.cjs"
+    "test:zoom": "node tests/zoom.browser.cjs",
+    "package:php": "node scripts/package-php.js"
   },
   "dependencies": {
     "express": "^4.22.3",

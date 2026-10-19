@@ -13,13 +13,24 @@ final class Auth {
     }
     public function start(): void {
         self::secure();
-        $settings = ['session.use_strict_mode' => '1', 'session.use_only_cookies' => '1', 'session.use_trans_sid' => '0', 'session.cookie_secure' => '1', 'session.cookie_httponly' => '1', 'session.cookie_samesite' => 'Strict', 'session.gc_maxlifetime' => (string) self::LIFETIME];
+        $settings = ['session.save_handler' => 'files', 'session.use_strict_mode' => '1', 'session.use_only_cookies' => '1', 'session.use_trans_sid' => '0', 'session.cookie_secure' => '1', 'session.cookie_httponly' => '1', 'session.cookie_samesite' => 'Strict', 'session.gc_maxlifetime' => (string) self::LIFETIME];
         foreach ($settings as $key => $value) {
             ini_set($key, $value);
             if ((string) ini_get($key) !== $value) throw new Problem('Хостинг не дозволяє захищені налаштування сесії.', 503);
         }
         session_name('TCGAdmin'); session_save_path($this->store->root . '/sessions');
         session_set_cookie_params(['lifetime' => 0, 'path' => '/admin/', 'secure' => true, 'httponly' => true, 'samesite' => 'Strict']);
+        // Bounded server-side sessions even when the host disables its GC cron.
+        $directory = $this->store->root . '/sessions'; $count = 0;
+        foreach (glob($directory . '/sess_*') ?: [] as $file) {
+            Files::noLinks($file);
+            if (is_file($file) && filemtime($file) < time() - self::LIFETIME) { if (!unlink($file)) throw new Problem('Не вдалося очистити прострочені сесії.', 503); }
+            else $count++;
+        }
+        $cookie = $_COOKIE['TCGAdmin'] ?? '';
+        $existing = is_string($cookie) && preg_match('/^[A-Za-z0-9,-]{16,128}$/D', $cookie) && is_file($directory . '/sess_' . $cookie);
+        if ($count >= 512 && !$existing) throw new Problem('Ліміт одночасних сесій вичерпано. Повторіть пізніше.', 429);
+        if ($existing) Files::noLinks($directory . '/sess_' . $cookie);
         if (!session_start()) throw new Problem('Захищену сесію не створено.', 503);
         $now = time();
         if (isset($_SESSION['owner']) && (($now - ($_SESSION['seen'] ?? 0)) > self::IDLE || ($now - ($_SESSION['created'] ?? 0)) > self::LIFETIME)) $this->logout();

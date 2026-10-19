@@ -50,6 +50,26 @@
             }
             if (!versions.length) { const text = document.createElement('p'); text.textContent = 'Попередніх версій поки немає.'; d.body.append(text); }
         }), document.getElementById('preview'));
+        topbar.insertBefore(button('Пошта', 'php-mail-button', async () => {
+            const settings = await repo.request('mail-settings'), d = dialog('Контактні форми — SMTP'), form = document.createElement('form'), inputs = {};
+            for (const [key, title, type] of [['host','SMTP-сервер','text'],['port','Порт','number'],['username','SMTP-логін','text'],['password','SMTP-пароль (порожнє поле зберігає чинний)','password'],['from','Адреса відправника','email'],['to','Адреса одержувача','email']]) {
+                const label = document.createElement('label'); label.textContent = title; const input = document.createElement('input'); input.type = type; input.name = key;
+                input.value = key === 'password' ? '' : settings[key] || (key === 'port' ? '465' : ''); input.required = key !== 'password'; if (key === 'password') input.autocomplete = 'new-password';
+                inputs[key] = input; label.append(input); form.append(label);
+            }
+            const security = document.createElement('select'); security.name = 'security'; security.add(new Option('TLS відразу (SMTPS)', 'smtps')); security.add(new Option('STARTTLS', 'starttls')); security.value = settings.security || 'smtps'; form.append(security);
+            const enabled = document.createElement('input'); enabled.type = 'checkbox'; enabled.checked = !!settings.enabled; enabled.style.width = 'auto'; const label = document.createElement('label'); label.append(enabled, document.createTextNode(' Увімкнути контактні форми після перевірки SMTP')); form.append(label);
+            const save = document.createElement('button'); save.type = 'submit'; save.className = 'primary'; save.textContent = 'Зберегти налаштування'; form.append(save);
+            form.addEventListener('submit', async event => { event.preventDefault(); save.disabled = true;
+                try { const input = Object.fromEntries(Object.entries(inputs).map(([key, field]) => [key, key === 'port' ? Number(field.value) : field.value])); const result = await repo.request('mail-settings', { ...input, security: security.value, enabled: enabled.checked }); d.error.textContent = result.message; }
+                catch (error) { d.error.textContent = error.message; } finally { save.disabled = false; }
+            });
+            const verify = document.createElement('button'); verify.type = 'button'; verify.className = 'secondary'; verify.textContent = 'Перевірити TLS та SMTP без надсилання'; verify.addEventListener('click', async () => { verify.disabled = true;
+                try { d.error.textContent = (await repo.request('mail-verify', {})).message; } catch (error) { d.error.textContent = error.message; } finally { verify.disabled = false; }
+            });
+            const note = document.createElement('p'); note.textContent = 'Перевірка з’єднання не підтверджує доставку до скриньки. Після неї відкрийте контактну форму сайту й надішліть власне тестове повідомлення. Пароль не показується й не входить до резервних версій сторінок.';
+            d.body.append(form, verify, note);
+        }), document.getElementById('preview'));
         const settings = document.querySelector('.page-settings');
         settings.append(button('Змінити адресу', 'php-rename-button', async () => {
             const path = info().path; if (path === 'index.html') throw new Error('Адреса головної сторінки залишається /.');

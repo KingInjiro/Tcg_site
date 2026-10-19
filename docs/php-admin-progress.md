@@ -71,3 +71,11 @@ M3–M5 ще не реалізовані. Готового релізного PH
 Змінені модулі: php/runtime/{HTML,Routes,Header,Pages,Compiler,Publisher,Files,Kernel}.php; php/vendor/html5 (ліцензія та upstream commit); php/public/admin/php-controls.js, php-repository.js; admin/builder.js; themes/cms-menu.css; scripts/prepare-php.js; tests/php/{pages.test.cjs,publication.test.cjs,editor.browser.cjs}; цей звіт.
 
 Пошта на PHP ще не налаштована й не підтверджена. Наявний contact endpoint чесно відмовляє з повідомленням, а не повертає фальшивий успіх. M5 ще триває; готового ZIP для батька поки немає.
+
+## M5 — release verification (триває)
+
+Checkpoint M3–M4 af894c5 пройшов CI PHP 8.2–8.5 і стару діагностику: https://github.com/KingInjiro/Tcg_site/actions/runs/39159348206. Додано PHPMailer 7.1.1 (LGPL-2.1, pinned 1bc1716a507a65e039d4ac9d9adebbbd0d346e15), налаштування SMTP у браузері та same-origin public contact endpoint. Локальний TLS SMTP fixture підтвердив авторизацію, прийняття листа, фіксованого адресата, Reply-To, відмову при неправильному сертифікаті/RCPT, replay та header injection. Зовнішніх листів не надсилалося; SMTP власника не перевірено.
+
+Додано validated packager із ZIP у корені сайту, SHA-256 manifest та окремим приватним ключем поза ZIP. Фінальний артефакт ще не перевірено. Тести можуть розпаковувати один готовий ZIP у чисте середовище для кожного запуску. Apache TLS matrix запускається в ізольованих CI-контейнерах без mod_rewrite/AllowOverride; Docker не є production-залежністю. Browser visitor test порівнює всі 51 сторінку на 1440/390px до/після PHP-публікації, GIF hover, SPA, offline PWA та актуалізацію build. Результати цих нових перевірок ще очікуються.
+
+Поточні локальні результати: 40 чинних unit tests PASS; HTML validation 52 outputs: 0 errors/notices; чотири PHP API сценарії PASS на 8.3. Виправлено неправильне задання SMTP Timelimit (параметр належить SMTP instance, не PHPMailer). Обмежено кількість session-файлів 512, додано очищення прострочених сесій незалежно від hosting GC.

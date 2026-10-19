@@ -12,6 +12,7 @@ function preparePHP(destination, { activationKey = crypto.randomBytes(32).toStri
     if (fs.existsSync(destination)) throw new Error('Destination must be a new directory.');
     fs.mkdirSync(destination, { recursive: true });
     const initial = websiteFiles(root);
+    fs.copyFileSync(path.join(root, 'php/public/INSTALL.txt'), path.join(destination, 'INSTALL.txt'));
     for (const file of initial) {
         const target = path.join(destination, file.path); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, file.content);
     }
@@ -28,6 +29,10 @@ function preparePHP(destination, { activationKey = crypto.randomBytes(32).toStri
     const seed = Object.fromEntries([...source].filter(([file, content]) => isPage(file) && !pageProblem(content.toString('utf8'))).map(([file, content]) => [file, content.toString('utf8')]));
     const managedPaths = new Set(['sw.js', 'site-version.json', 'themes/search-index.json', 'themes/contact-config.json']);
     for (const file of Object.keys(seed)) for (const name of [file, outputFile(file)]) { managedPaths.add(name); managedPaths.add(name.replace(/\.html?$/i, '.htm')); }
+    const contact = initial.find(file => file.path === 'themes/contact-config.json');
+    if (!contact) throw new Error('Contact configuration missing.');
+    contact.content = Buffer.from(JSON.stringify({ endpoint: '/admin/contact.php' }));
+    fs.writeFileSync(path.join(destination, contact.path), contact.content);
     const hashes = initial.map(file => [file.path, crypto.createHash('sha256').update(file.content).digest('hex')]);
     const managed = Object.fromEntries(hashes.filter(([name]) => managedPaths.has(name)));
     const staticFiles = Object.fromEntries(hashes.filter(([name]) => !managedPaths.has(name)));
@@ -43,7 +48,7 @@ function preparePHP(destination, { activationKey = crypto.randomBytes(32).toStri
 if (require.main === module) {
     const destination = process.argv[2]; if (!destination) throw new Error('Pass a new staging directory.');
     const result = preparePHP(path.resolve(destination));
-    process.stdout.write('M2 staging only — autonomous PHP publishing is not complete.\n');
+    process.stdout.write('PHP staging prepared. Use scripts/package-php.js for a validated distributable ZIP.\n');
     const keyPath = path.join(path.dirname(result.destination), 'tcg-activation-' + crypto.randomBytes(8).toString('hex') + '.txt');
     fs.writeFileSync(keyPath, result.activationKey + '\n', { mode: 0o600, flag: 'wx' });
     process.stdout.write('Activation key stored outside staging: ' + keyPath + '\n');

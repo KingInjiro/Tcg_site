@@ -3,7 +3,7 @@ on:
   push:
     branches: ['feature/autonomous-php-admin']
   pull_request:
-    paths: ['php/**', 'scripts/prepare-php.js', 'tests/php/**', '.github/workflows/php-admin.yml']
+    paths: ['php/**', 'scripts/prepare-php.js', 'scripts/package-php.js', 'tests/php/**', '.github/workflows/php-admin.yml']
 permissions:
   contents: read
 concurrency:
@@ -41,6 +41,45 @@ jobs:
       - name: Real GrapesJS editor over PHP
         if: matrix.php == '8.3'
         run: node --test tests/php/editor.browser.cjs
+  apache:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4', '8.5']
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, fileinfo, gd
+          coverage: none
+      - run: npm ci --ignore-scripts
+      - name: Build isolated test-only Apache image
+        run: docker build --build-arg PHP_VERSION=${{ matrix.php }} --build-arg TCG_UID=$(id -u) --build-arg TCG_GID=$(id -g) -t tcg-apache-test -f tests/php/apache.Dockerfile .
+      - name: Ready ZIP clean installs on Apache TLS, rewrite/htaccess disabled
+        env:
+          TCG_APACHE_IMAGE: tcg-apache-test
+        run: |
+          node scripts/package-php.js /tmp/tcg-test-release > /tmp/tcg-test-package.json
+          export TCG_PHP_ZIP=$(node -p 'require("/tmp/tcg-test-package.json").archivePath')
+          export TCG_ACTIVATION_KEY_FILE=$(node -p 'require("/tmp/tcg-test-package.json").activationPath')
+          node --test tests/php/*.test.cjs
+      - name: Browser runtime
+        if: matrix.php == '8.3'
+        run: npx playwright install --with-deps chromium
+      - name: Apache GrapesJS and public website
+        if: matrix.php == '8.3'
+        env:
+          TCG_APACHE_IMAGE: tcg-apache-test
+        run: node --test tests/php/editor.browser.cjs tests/php/visitor.browser.cjs
   old-diagnostic:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -60,6 +99,7 @@ jobs:
         run: |
           php -l php/public/admin/diagnostic.php
           php -l php/public/admin/api.php
+          php -l php/public/admin/contact.php
           php php/public/admin/diagnostic.php > /tmp/tcg-diagnostic.json
           php -r '$d=json_decode(file_get_contents("/tmp/tcg-diagnostic.json"),true); if (!$d || $d["supported"] !== false) exit(1);'
           php php/public/admin/api.php > /tmp/tcg-unsupported.json

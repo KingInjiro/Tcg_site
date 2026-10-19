@@ -21,6 +21,7 @@ final class Kernel {
             self::requirements();
             require_once __DIR__ . '/Pages.php';
             require_once __DIR__ . '/Publisher.php';
+            require_once __DIR__ . '/Mail.php';
             $config = require $app . '/release.php';
             if (!is_array($config) || !preg_match('/^[a-f0-9]{64}$/D', $config['activationHash'] ?? '')) throw new Problem('Реліз не пройшов підготовку.', 503);
             $store = new Store(dirname($app, 2)); $store->prepare();
@@ -49,6 +50,9 @@ final class Kernel {
             if ($method === 'POST' && $action === 'publish') {
                 self::respond($store->locked(function () use ($store, $publisher, $input) { $state = $store->state(); $store->checkHead($state, $input['head'] ?? null); return $publisher->publish($state); })); return;
             }
+            if ($method === 'GET' && $action === 'mail-settings') { self::respond((new Mail($store))->settings()); return; }
+            if ($method === 'POST' && $action === 'mail-settings') { self::respond($store->locked(fn() => (new Mail($store))->save($input))); return; }
+            if ($method === 'POST' && $action === 'mail-verify') { self::respond($store->locked(fn() => (new Mail($store))->verify())); return; }
             $pages = new Pages($store);
             if ($method === 'GET' && $action === 'versions') { self::respond(['versions' => $store->locked(fn() => $pages->versions(), false)]); return; }
             if ($method === 'GET' && $action === 'menu') { self::respond(['items' => $store->locked(fn() => $pages->menu($store->state()), false)]); return; }

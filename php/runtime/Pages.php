@@ -31,6 +31,7 @@ final class Pages {
         if ($newPath !== null) {
             if (!Files::page($newPath)) throw new Problem('Некоректна нова адреса.');
             foreach ($pages as $existing) if ($existing !== $path && strtolower(Routes::url($existing)) === strtolower(Routes::url($newPath))) throw new Problem('Адресу вже зайнято.', 409);
+            foreach ($state['aliases'] as $old => $target) if ($target !== $path && strtolower(Routes::url($old)) === strtolower(Routes::url($newPath))) throw new Problem('Адреса збережена як попереднє посилання іншої сторінки.', 409);
             if ($newPath === $path) return $state;
         }
         $this->remember($state, $newPath === null ? 'Перед видаленням ' . $path : 'Перед перейменуванням ' . $path);
