@@ -55,7 +55,10 @@ def protect_data():
     sid = next(csv.reader([user.strip()]))[-1]
     if not sid.startswith('S-1-5-'):
         raise RuntimeError('Не вдалося визначити власника тестових даних.')
-    subprocess.run(['icacls.exe', str(DATA), '/inheritance:r', '/grant:r', f'*{sid}:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', '/Q'], check=True, stdout=subprocess.DEVNULL, creationflags=CHILD_FLAGS)
+    try:
+        subprocess.run(['icacls.exe', str(DATA), '/inheritance:r', '/grant:r', f'*{sid}:(OI)(CI)F', '*S-1-5-18:(OI)(CI)F', '/Q'], check=True, stdout=subprocess.DEVNULL, creationflags=CHILD_FLAGS)
+    except subprocess.CalledProcessError:
+        raise RuntimeError('Не вдалося захистити тестові дані. Перемістіть комплект у власну локальну папку на NTFS.') from None
     if not existed:
         (DATA / 'marker').write_text(MARKER, 'utf-8')
 
@@ -144,6 +147,8 @@ def reset():
 def run_demo():
     protect_data()
     contain_children()
+    if shutil.disk_usage(ROOT).free < 1024 ** 3:
+        raise RuntimeError('Для тестового диска і профілю браузера потрібен щонайменше 1 ГБ вільного місця після розпакування.')
     print('Перевірка комплекту…', flush=True)
     check_runtime()
     cfg_file = DATA / 'settings.json'
@@ -171,7 +176,7 @@ def run_demo():
     console = DATA / 'guest.log'
     console.write_bytes(b'')
     log = console.open('ab', buffering=0)
-    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu/share', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-nic', 'none', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
+    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu/share', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rootfstype=ext4 modules=virtio_pci,virtio_blk,ext4 rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-nic', 'none', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
     print('Запуск ізольованого PHP-сервера. Перший запуск може тривати до двох хвилин…', flush=True)
     control = None
     try:
@@ -191,7 +196,7 @@ def run_demo():
         certificate_file.write_text(tls['certificate'], 'utf-8')
         profile = DATA / 'browser-profile'
         debug_port = free_port()
-        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', '--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        browser = start([ROOT / 'runtime/browser/chrome.exe', f'--user-data-dir={profile}', '--no-first-run', '--no-default-browser-check', '--disable-background-networking', '--dns-prefetch-disable', '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost', '--disable-client-side-phishing-detection', '--safebrowsing-disable-auto-update', '--disable-component-update', '--disable-sync', '--disable-domain-reliability', '--disable-breakpad', '--disable-quic', '--force-webrtc-ip-handling-policy=disable_non_proxied_udp', '--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost', '--disable-features=MediaRouter,OptimizationHints,AutofillServerCommunication', '--password-store=basic', '--remote-debugging-address=127.0.0.1', f'--remote-debugging-port={debug_port}', '--ignore-certificate-errors-spki-list=' + tls['spki'], '--new-window', origin + '/admin/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         runtime = {'origin': origin, 'debugPort': debug_port, 'vmPid': vm.pid, 'browserPid': browser.pid, 'launcherPid': os.getpid(), 'certificate': str(certificate_file)}
         (DATA / 'running.json').write_text(json.dumps(runtime), 'utf-8')
         print('\nВідкрито справжню адмінпанель: ' + origin + '/admin/', flush=True)
@@ -241,6 +246,10 @@ def run_demo():
 def main():
     if sys.platform != 'win32' or ctypes.sizeof(ctypes.c_void_p) != 8:
         raise RuntimeError('Цей комплект призначений для 64-бітної Windows 10/11.')
+    native = ctypes.create_string_buffer(64)
+    ctypes.WinDLL('kernel32').GetNativeSystemInfo(ctypes.byref(native))
+    if int.from_bytes(native.raw[:2], 'little') != 9:
+        raise RuntimeError('Потрібен комп’ютер із процесором Intel/AMD x64. Windows ARM цим комплектом не підтримується.')
     no_links(ROOT)
     no_links(ROOT / 'demo.lock')
     lock = (ROOT / 'demo.lock').open('a+b')
