@@ -50,6 +50,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
         finally { protocolDebug.disable(); }
         const context = browser.contexts()[0]; context.setDefaultTimeout(120000);
         admin = await until(() => context.pages().find(p => p.url().startsWith(running.origin + '/admin/')));
+        await admin.setViewportSize({ width: 1600, height: 1000 });
         admin.on('pageerror', error => errors.push(error.message));
         return { context, running };
     }
@@ -91,6 +92,10 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
         return { status: r.status, data: await r.json() };
     }, { action, body });
     const caps = await api('capabilities'); assert.equal(caps.data.privateStorage, true); assert.equal(caps.data.write, true);
+    const published = async () => {
+        await admin.waitForFunction(() => { const s = document.getElementById('status'); return s.textContent.startsWith('Опубліковано.') || s.parentElement.classList.contains('error'); }, {}, { timeout: 180000 });
+        assert.match(await admin.locator('#status').innerText(), /^Опубліковано\./);
+    };
     assert.match(caps.data.php, /^8\.[2-5]\./);
     assert.equal((await api('read&path=..%2Findex.html')).status, 403);
     await admin.locator('#new-page').click();
@@ -98,8 +103,14 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.getByRole('button', { name: 'Створити сторінку', exact: true }).click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/windows-test/');
     const canvas = admin.frameLocator('.gjs-frame');
-    await canvas.getByText('Тест Windows', { exact: true }).dblclick();
-    await canvas.locator('[contenteditable="true"]').fill('Збережено у Windows'); await admin.locator('#page-title').click();
+    const heading = canvas.getByText('Тест Windows', { exact: true });
+    const editable = canvas.locator('[contenteditable="true"]');
+    for (let attempt = 0; attempt < 3; attempt++) {
+        await heading.dblclick({ delay: 120 });
+        try { await editable.waitFor({ state: 'visible', timeout: 3000 }); break; }
+        catch (error) { if (attempt === 2) throw error; await heading.click(); }
+    }
+    await editable.fill('Збережено у Windows'); await admin.locator('#page-title').click();
     await admin.getByRole('button', { name: 'Зображення', exact: true }).click();
     if (!await admin.locator('#asset-dialog').isVisible()) await admin.locator('#choose-image').click();
     await admin.locator('#asset-upload').setInputFiles({ name: 'demo-logo.png', mimeType: 'image/png', buffer: fs.readFileSync(path.join(__dirname, '../../images/favicon-32.png')) });
@@ -108,7 +119,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     const preview = await previewEvent; await preview.waitForLoadState();
     assert.equal(await preview.locator('h1').innerText(), 'Збережено у Windows'); await preview.close();
     await admin.locator('#publish').click();
-    await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
+    await published();
     let visitor = await context.newPage(); await visitor.goto(running.origin + '/windows-test/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     await visitor.locator('img[src^="/images/editor/"]').evaluate(image => image.decode());
@@ -121,7 +132,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.locator('dialog[open] select').last().selectOption('windows-test.html');
     await admin.locator('dialog[open] input[aria-label="Назва пункту"]').last().fill('Windows демо');
     await admin.locator('#php-menu-save').click(); await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
-    await admin.locator('#publish').click(); await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
+    await admin.locator('#publish').click(); await published();
     await visitor.reload(); assert.equal(await visitor.locator('.site-header nav a[href="/windows-test/"]').count(), 1);
     const stale = (await api('tree')).data.head;
     assert.equal((await api('save', { head: stale, changes: [{ path: 'images/editor/bad.png', encoding: 'base64', content: Buffer.from('<?php echo 1;').toString('base64') }] })).status, 400);
@@ -130,20 +141,20 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.getByRole('button', { name: 'Перейменувати', exact: true }).click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     assert.equal((await api('publish', { head: stale })).status, 409);
-    await admin.locator('#publish').click(); await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
+    await admin.locator('#publish').click(); await published();
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     await admin.locator('[data-path="windows-renamed.html"]').click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/windows-renamed/');
     admin.once('dialog', dialog => dialog.accept()); await admin.locator('#php-delete-button').click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
-    await admin.locator('#publish').click(); await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
+    await admin.locator('#publish').click(); await published();
     assert.equal((await request(running, '', undefined, { rawPath: '/windows-renamed/' })).status, 404);
     await visitor.goto(running.origin + '/'); assert.equal(await visitor.locator('a[href="/windows-renamed/"]').count(), 0);
     await admin.locator('#php-versions-button').click(); admin.once('dialog', dialog => dialog.accept());
     await admin.locator('dialog[open]').getByRole('button', { name: 'Відновити', exact: true }).first().click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     await admin.locator('[data-path="windows-renamed.html"]').waitFor();
-    await admin.locator('#publish').click(); await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
+    await admin.locator('#publish').click(); await published();
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
@@ -162,7 +173,7 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     const certificateProbe = await context.newPage();
     try { await assert.rejects(certificateProbe.goto('https://127.0.0.1:' + untrusted.address().port), /ERR_CERT_AUTHORITY_INVALID/, 'the demo browser must reject other self-signed certificates'); }
     finally { await certificateProbe.close(); untrusted.closeAllConnections(); await new Promise(resolve => untrusted.close(resolve)); fs.rmSync(certDir, { recursive: true, force: true }); }
-    const listeners = JSON.parse(ps(`Get-NetTCPConnection -State Listen | Where-Object { $_.OwningProcess -in @(${running.vmPid},${running.browserPid}) } | Select-Object LocalAddress,LocalPort | ConvertTo-Json -Compress`));
+    const listeners = JSON.parse(ps(`Get-NetTCPConnection -State Listen | Where-Object { $_.OwningProcess -in @(${running.vmPid},${running.browserPid},${running.launcherPid}) } | Select-Object LocalAddress,LocalPort | ConvertTo-Json -Compress`));
     assert.ok([].concat(listeners).length >= 2);
     assert.ok([].concat(listeners).every(x => ['127.0.0.1', '::1'].includes(x.LocalAddress)), 'all test listeners are loopback-only');
     // Closing the original admin must close preview windows and all VM processes.

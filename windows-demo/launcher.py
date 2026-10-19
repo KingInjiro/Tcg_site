@@ -190,9 +190,12 @@ def run_demo():
     if not isinstance(cfg.get('httpsPort'), int) or not 1024 <= cfg['httpsPort'] <= 65535 or len(cfg.get('activationKey', '')) != 43:
         raise RuntimeError('Тестові налаштування пошкоджені. Використайте RESET-DEMO.cmd.')
     port = cfg['httpsPort']
-    # Check the persistent origin is available; never silently switch origins.
+    # A closed TCP listener can remain in TIME_WAIT. A bind probe without
+    # SO_REUSEADDR would wrongly reject an immediate restart on Windows.
     with socket.socket() as probe:
-        probe.bind(('127.0.0.1', port))
+        probe.settimeout(0.5)
+        if probe.connect_ex(('127.0.0.1', port)) == 0:
+            raise RuntimeError('Тестову адресу зайняла інша програма. Закрийте іншу копію демо й повторіть запуск.')
     control_port = free_port()
     stop_token = secrets.token_urlsafe(32)
     boot = DATA / 'boot.json'
