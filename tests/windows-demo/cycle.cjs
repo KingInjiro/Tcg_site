@@ -255,19 +255,27 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows');
     console.log('Checkpoint: rename, delete, history restoration and legacy URLs');
+    const workerVersions = [], workerErrors = [];
+    const workerCDP = await context.newCDPSession(visitor);
+    workerCDP.on('ServiceWorker.workerVersionUpdated', e => workerVersions.push(...e.versions.map(v => ({ status: v.status, running: v.runningStatus }))));
+    workerCDP.on('ServiceWorker.workerErrorReported', e => workerErrors.push(e.errorMessage.errorMessage));
+    await workerCDP.send('ServiceWorker.enable');
     await visitor.waitForFunction(() => Boolean(navigator.serviceWorker.controller), {}, { timeout: 120000 });
     assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tgroup-pwa-'))));
     await visitor.reload();
     try { await until(() => visitor.evaluate(async () => !!(await caches.match(location.href))), 120000); }
     catch (error) {
+        console.log('PWA worker versions', JSON.stringify({workerVersions, workerErrors}));
+        console.log('PWA worker globals', JSON.stringify(await Promise.all(context.serviceWorkers().map(w => Promise.race([w.evaluate(() => ({version: typeof config === 'object' ? config.version : null, warming: typeof warming !== 'undefined' && !!warming, pageURLs: typeof config === 'object' ? config.urls.filter(u => u.includes('windows-')) : []})).catch(e => ({error: e.message.slice(0,150)})), wait(3000).then(() => ({timeout:true}))])))));
         console.log('PWA diagnostic', JSON.stringify(await visitor.evaluate(async () => ({
-            visible: document.visibilityState, online: navigator.onLine, build: document.querySelector('meta[name="tcg-build"]')?.content,
-            caches: await caches.keys(), controller: navigator.serviceWorker.controller?.scriptURL,
+            url: location.href, visible: document.visibilityState, online: navigator.onLine, build: document.querySelector('meta[name="tcg-build"]')?.content,
+            caches: await caches.keys(), counts: await Promise.all((await caches.keys()).map(async k => ({name:k,count:(await(await caches.open(k)).keys()).length}))), controller: navigator.serviceWorker.controller?.scriptURL,
             registrations: await Promise.all((await navigator.serviceWorker.getRegistrations()).map(async r => ({ active: r.active?.state, installing: r.installing?.state, waiting: r.waiting?.state }))),
             storedPageKeys: (await Promise.all((await caches.keys()).map(async name => (await (await caches.open(name)).keys()).map(r => new URL(r.url).pathname).filter(p => p.includes('windows-'))))).flat()
         }))));
         throw error;
     }
+    await workerCDP.detach();
     await context.setOffline(true);
     try { await visitor.reload(); assert.equal(await visitor.locator('h1').innerText(), 'Збережено у Windows'); }
     finally { await context.setOffline(false); }
