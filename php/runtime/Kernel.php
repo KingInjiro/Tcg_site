@@ -5,6 +5,7 @@ if (!defined('TCG_ENTRY')) { http_response_code(404); exit; }
 require_once __DIR__ . '/Files.php';
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/Images.php';
+require_once __DIR__ . '/Environment.php';
 
 final class Kernel {
     public static function serve(string $app): void {
@@ -72,9 +73,7 @@ final class Kernel {
             }
             if ($method === 'POST' && $action === 'logout') { $auth->logout(); self::respond(['ok' => true]); return; }
             if ($method === 'GET' && $action === 'capabilities') {
-                self::respond(['php' => PHP_VERSION, 'https' => true, 'privateStorage' => true, 'write' => true,
-                    'extensions' => ['dom' => class_exists(\DOMDocument::class), 'fileinfo' => class_exists(\finfo::class), 'gd' => function_exists('imagecreatefromstring'), 'zip' => class_exists(\ZipArchive::class), 'mbstring' => function_exists('mb_strlen'), 'curl' => function_exists('curl_init'), 'openssl' => extension_loaded('openssl')],
-                    'limits' => ['upload' => ini_get('upload_max_filesize'), 'post' => ini_get('post_max_size'), 'memory' => ini_get('memory_limit'), 'privateBytes' => 40 * 1024 * 1024]]); return;
+                self::respond(Environment::inspect($store, $config)); return;
             }
             if ($method === 'GET' && $action === 'tree') {
                 self::respond($store->locked(function () use ($store, $config) {
@@ -140,9 +139,11 @@ final class Kernel {
         if (!is_string($key) || !hash_equals($config['activationHash'], hash('sha256', $key))) { $auth->limit('setup', true); throw new Problem('Неправильний ключ початкового налаштування.', 403); }
         $username = $input['username'] ?? ''; $password = $input['password'] ?? '';
         if (!is_string($username) || !preg_match('/^[A-Za-z0-9_-]{3,48}$/D', $username) || !is_string($password) || str_contains($password, "\0") || strlen($password) < 14 || strlen($password) > 72) throw new Problem('Логін: 3–48 латинських літер/цифр. Пароль: від 14 до 72 байтів, без нульових символів.');
-        return $store->locked(function () use ($store, $app, $username, $password) {
+        return $store->locked(function () use ($store, $app, $username, $password, $config) {
             if ($store->configured()) throw new Problem('Початкове налаштування вже завершене.', 409);
             if (!class_exists(\DOMDocument::class) || !class_exists(\finfo::class) || !function_exists('imagecreatefromstring')) throw new Problem('Для повного редактора й безпечних зображень потрібні PHP DOM, fileinfo та GD.', 503);
+            $environment = Environment::inspect($store, $config, true);
+            if (!$environment['read'] || !$environment['write']) throw new Problem('Немає доступу до всіх файлів або прав запису до публічних папок. Активацію зупинено.', 503);
             $seed = require $app . '/seed.php';
             if (!is_array($seed) || !isset($seed['index.html'])) throw new Problem('В архіві немає вихідних сторінок.', 503);
             $files = []; $size = 0;

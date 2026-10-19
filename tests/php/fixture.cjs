@@ -24,7 +24,7 @@ function extractRelease(site) {
 }
 const php = process.env.TCG_PHP || 'php';
 const listen = server => new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-async function fixture(t) {
+async function fixture(t, { ini = [] } = {}) {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-php-core-'));
     const site = path.join(directory, 'public');
     const { activationKey } = extractRelease(site);
@@ -42,7 +42,7 @@ async function fixture(t) {
         origin = 'https://localhost:' + tlsPort; plainOrigin = 'http://localhost:' + plainPort;
     } else {
         const secret = crypto.randomBytes(32).toString('hex'), backendPort = await port();
-        processPHP = spawn(php, ['-S', '127.0.0.1:' + backendPort, '-t', site, path.join(__dirname, 'router.php')], { env: { ...process.env, TCG_FIXTURE_SECRET: secret, SSL_CERT_FILE: cert }, stdio: ['ignore', 'pipe', 'pipe'] });
+        processPHP = spawn(php, [...ini.flatMap(value => ['-d', value]), '-S', '127.0.0.1:' + backendPort, '-t', site, path.join(__dirname, 'router.php')], { env: { ...process.env, TCG_FIXTURE_SECRET: secret, SSL_CERT_FILE: cert }, stdio: ['ignore', 'pipe', 'pipe'] });
         let log = ''; processPHP.stderr.on('data', chunk => { log += chunk; });
         await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('PHP did not start: ' + log)), 10000);

@@ -51,7 +51,7 @@ test('M1 real PHP: TLS, protected setup, sessions, authorization, CSRF and atomi
     assert.equal((await owner.call('save', { head: saved.data.head, changes: invalid })).status, 403);
     assert.match((await owner.call('read&path=index.html')).data.content, /Чернетка M1/, 'invalid batch makes no partial changes');
     assert.equal((await owner.call('save', { head: saved.data.head, changes: [{ ...changes[0], content: '<html><body><?php echo 1; ?></body></html>' }] })).status, 400);
-    const caps = await owner.call('capabilities'); assert.equal(caps.status, 200); assert.equal(caps.data.privateStorage, true); assert.ok(!JSON.stringify(caps.data).includes(f.privateRoot));
+    const caps = await owner.call('capabilities'); assert.equal(caps.status, 200); assert.equal(caps.data.privateStorage, true); assert.equal(caps.data.read, true); assert.equal(caps.data.write, true); assert.ok(!JSON.stringify(caps.data).includes(f.privateRoot));
     for (const rawPath of ['/.tcg-editor/index.html.json', '/admin/_app/release.php', '/admin/_app/seed.php', '/' + path.basename(f.privateRoot) + '/owner.json']) {
         const result = await attacker.call('', undefined, { rawPath });
         assert.ok((result.status >= 400 && result.status < 500) || (result.status === 200 && result.data.text === before), rawPath + ': unexpected HTTP ' + result.status);
@@ -80,6 +80,11 @@ test('M1 real PHP: TLS, protected setup, sessions, authorization, CSRF and atomi
     fs.chmodSync(f.privateRoot, 0o755);
     try { assert.equal((await owner.call('tree')).status, 503, 'world-accessible private storage disables administration'); }
     finally { fs.chmodSync(f.privateRoot, 0o700); }
+    const sessionDirectory = path.join(f.privateRoot, 'sessions'), synthetic = [];
+    const existingSessions = fs.readdirSync(sessionDirectory).filter(name => name.startsWith('sess_')).length;
+    for (let i = existingSessions; i < 512; i++) { const file = path.join(sessionDirectory, 'sess_fixture' + String(i).padStart(20, '0')); fs.writeFileSync(file, ''); synthetic.push(file); }
+    try { assert.equal((await f.client().session()).status, 429, 'anonymous sessions cannot grow without a bound'); assert.equal((await owner.call('tree')).status, 200, 'existing owner session remains usable'); }
+    finally { for (const file of synthetic) fs.unlinkSync(file); }
     assert.equal((await owner.call('logout', {})).status, 200); assert.equal((await owner.call('tree')).status, 401);
     await owner.session();
     for (let i = 0; i < 8; i++) await owner.call('login', { username: credentials.username, password: 'invalid' });

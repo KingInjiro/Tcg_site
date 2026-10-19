@@ -49,6 +49,8 @@ final class Publisher {
     }
     public function publish(array $state): array {
         $this->recover();
+        // A failed staging pass has no journal and may leave only disposable bytes.
+        $this->cleanStage();
         $build = (new Compiler($this->store, $this->config))->build($state); $files = $build['files'];
         $manifestPath = $this->store->root . '/published.json';
         $oldManifest = is_file($manifestPath) ? Files::json(Files::read($manifestPath)) : $this->config['managed'];
@@ -64,7 +66,7 @@ final class Publisher {
             if (isset($oldManifest[$name]) && $actual !== $oldManifest[$name]) throw new Problem('Сторінку змінено поза редактором: ' . $name, 409);
             if ($actual !== ($next[$name] ?? null)) $changes[$name] = $actual;
         }
-        if (!$changes) return ['ok' => true, 'published' => true, 'head' => $state['head'], 'version' => $build['version'], 'url' => '/'];
+        if (!$changes) { Files::atomic($this->store->root . '/published-state.json', Files::encode($state)); return ['ok' => true, 'published' => true, 'head' => $state['head'], 'version' => $build['version'], 'url' => '/']; }
         if (is_file($this->store->root . '/published-state.json')) {
             $previous = Files::json(Files::read($this->store->root . '/published-state.json'));
             if ($previous['head'] !== $state['head']) (new Pages($this->store))->remember($previous, 'Попередня опублікована версія');

@@ -36,6 +36,12 @@ test('M4 PHP compiler and transactional publication preserve existing documents,
     assert.ok(config.urls.includes('/contacts/')); assert.ok(!config.urls.some(url => /^\/(admin|api)\//.test(url)));
     for (const url of config.urls) assert.ok(fs.existsSync(path.join(f.site, decodeURI(url), url.endsWith('/') ? 'index.html' : '')), url);
     assert.equal((await owner.call('publish', { head })).data.version, config.version, 'unchanged publication is deterministic');
+    const metadata = await owner.call('save', { head, changes: [{ path: '.tcg-editor/index.html.json', encoding: 'utf-8', content: JSON.stringify({ version: 1, test: 'project-only update' }) }] });
+    assert.equal(metadata.status, 200); head = metadata.data.head;
+    assert.equal((await owner.call('publish', { head })).status, 200);
+    assert.equal((await owner.call('tree')).data.unpublished, false, 'project-only changes finish publication without unnecessary public writes');
+    const leftover = path.join(f.privateRoot, 'transaction', 'new'); fs.mkdirSync(leftover, { recursive: true, mode: 0o700 }); fs.writeFileSync(path.join(leftover, 'incomplete-staging'), 'disposable');
+    assert.equal((await owner.call('publish', { head })).status, 200); assert.equal(fs.existsSync(path.join(f.privateRoot, 'transaction')), false, 'uncommitted staging leftovers are reclaimed');
     const html = '<!doctype html><html lang="uk"><head><title>Публікація</title></head><body><h1>Живий PHP сайт</h1></body></html>';
     const changed = await owner.call('save', { head, changes: [{ path: 'php-publication.html', content: html, encoding: 'utf-8' }] }); assert.equal(changed.status, 200); head = changed.data.head;
     const next = await owner.call('publish', { head }); assert.equal(next.status, 200, next.data.error); assert.notEqual(next.data.version, config.version);

@@ -50,6 +50,13 @@
             }
             if (!versions.length) { const text = document.createElement('p'); text.textContent = 'Попередніх версій поки немає.'; d.body.append(text); }
         }), document.getElementById('preview'));
+        topbar.insertBefore(button('Стан сервера', 'php-environment-button', async () => {
+            const env = await repo.request('capabilities'), d = dialog('Сумісність сервера');
+            const rows = [['PHP', env.php], ['HTTPS', env.https ? 'так' : 'ні'], ['Приватне сховище поза вебкоренем', env.privateStorage ? 'так' : 'ні'], ['Читання файлів релізу', env.read ? 'так' : 'помилка'], ['Запис у публічні папки', env.write ? 'так' : 'немає прав'], ['Вільне місце файлової системи', env.freeSpaceKnown ? Math.floor(env.freeBytes / 1048576) + ' МБ' : 'сервер не дозволяє визначити']];
+            for (const [key, present] of Object.entries(env.extensions)) rows.push([key + (['dom', 'fileinfo', 'gd'].includes(key) ? ' (обов’язкове)' : ' (додаткове)'), present ? 'доступне' : 'відсутнє']);
+            for (const [title, value] of rows) { const p = document.createElement('p'); p.textContent = title + ': ' + value; d.body.append(p); }
+            const note = document.createElement('p'); note.textContent = env.note; d.body.append(note);
+        }), document.getElementById('preview'));
         topbar.insertBefore(button('Пошта', 'php-mail-button', async () => {
             const settings = await repo.request('mail-settings'), d = dialog('Контактні форми — SMTP'), form = document.createElement('form'), inputs = {};
             for (const [key, title, type] of [['host','SMTP-сервер','text'],['port','Порт','number'],['username','SMTP-логін','text'],['password','SMTP-пароль (порожнє поле зберігає чинний)','password'],['from','Адреса відправника','email'],['to','Адреса одержувача','email']]) {
