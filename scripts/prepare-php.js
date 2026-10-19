@@ -20,7 +20,7 @@ function preparePHP(destination, { activationKey = crypto.randomBytes(32).toStri
     fs.cpSync(path.join(root, 'php/runtime'), path.join(destination, 'admin/_app'), { recursive: true });
     fs.cpSync(path.join(root, 'php/vendor'), path.join(destination, 'admin/_app/vendor'), { recursive: true });
     for (const file of ['builder.css', 'builder.js', 'repository.js', 'document.js']) fs.copyFileSync(path.join(root, 'admin', file), path.join(destination, 'admin', file));
-    const editor = fs.readFileSync(path.join(root, 'admin/index.html'), 'utf8').replace('<html lang="uk">', '<html lang="uk" data-tcg-backend="php">').replace('<script defer src="/admin/builder.js"></script>', '<script defer src="/admin/php-repository.js"></script><script defer src="/admin/php-controls.js"></script><script defer src="/admin/builder.js"></script>');
+    const editor = fs.readFileSync(path.join(root, 'admin/index.html'), 'utf8').replace('<html lang="uk">', '<html lang="uk" data-tcg-backend="php">').replace('<script defer src="/admin/builder.js"></script>', '<script defer src="/admin/php-repository.js"></script><script defer src="/admin/php-controls.js"></script><script defer src="/admin/grapes-uk.js"></script><script defer src="/admin/builder.js"></script>');
     fs.writeFileSync(path.join(destination, 'admin/index.html'), editor);
     const grapes = path.dirname(require.resolve('grapesjs'));
     fs.mkdirSync(path.join(destination, 'admin/vendor'), { recursive: true });

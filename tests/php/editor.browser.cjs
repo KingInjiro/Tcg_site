@@ -17,6 +17,8 @@ test('GrapesJS on PHP: setup, text/image, publication, menu, rename/delete and r
     await page.locator('#php-login-form button').click();
     await page.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     assert.equal(await page.locator('#publish').innerText(), 'Опублікувати');
+    const language = await page.evaluate(() => { const editor = window.grapesjs.editors[0]; return { locale: editor.I18n.getLocale(), cell: editor.I18n.t('domComponents.names.cell') }; });
+    assert.deepEqual(language, { locale: 'uk', cell: 'Комірка таблиці' });
     assert.equal(await page.locator('#page-list [data-path]').count(), 51);
     const publicHome = fs.readFileSync(path.join(f.site, 'index.html'), 'utf8');
     await page.locator('#new-page').click(); await page.locator('#new-title').fill('PHP інтеграція'); await page.locator('#new-slug').fill('php-editor-test');

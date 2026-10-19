@@ -101,6 +101,7 @@
         for (const id of ['blocks', 'styles', 'traits', 'layers', 'editor']) $(id).replaceChildren();
         const editor = window.grapesjs.init({
             container: '#editor', height: '100%', width: 'auto', fromElement: false, storageManager: false,
+            i18n: php ? { locale: 'uk', localeFallback: 'uk', detectLocale: false, messages: { uk: window.TCGGrapesUK } } : undefined,
             telemetry: false, noticeOnUnload: false, allowScripts: false, nativeDnD: false,
             protectedCss: '', baseCss: '', canvasCss: '', keepUnusedStyles: true, avoidInlineStyle: false,
             panels: { defaults: [] }, selectorManager: { componentFirst: true },
