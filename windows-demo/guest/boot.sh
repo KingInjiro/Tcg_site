@@ -10,6 +10,7 @@ mount -t devpts devpts /dev/pts
 mount -t tmpfs tmpfs /dev/shm
 umask 077
 hostname tcg-local-demo
+modprobe virtio_net
 ip link set lo up
 ip link set eth0 up
 ip addr add 10.0.2.15/24 dev eth0

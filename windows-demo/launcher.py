@@ -164,11 +164,14 @@ def run_demo():
     boot.write_text(json.dumps({'activationKey': cfg['activationKey'], 'stopToken': stop_token}), 'utf-8')
     overlay = DATA / 'site.qcow2'
     if not overlay.exists():
-        subprocess.run([str(ROOT / 'runtime/qemu/qemu-img.exe'), 'create', '-f', 'qcow2', '-F', 'raw', '-b', str(ROOT / 'runtime/guest/base.raw'), str(overlay)], check=True, creationflags=CHILD_FLAGS, stdout=subprocess.DEVNULL)
+        # All QEMU file arguments are ASCII and relative: its Windows CRT does
+        # not reliably handle Unicode absolute paths. The backing path is
+        # relative to the overlay, so moving the extracted kit also works.
+        subprocess.run([str(ROOT / 'runtime/qemu/qemu-img.exe'), 'create', '-f', 'qcow2', '-F', 'raw', '-b', '../runtime/guest/base.raw', 'demo-data/site.qcow2'], check=True, creationflags=CHILD_FLAGS, stdout=subprocess.DEVNULL)
     console = DATA / 'guest.log'
     console.write_bytes(b'')
     log = console.open('ab', buffering=0)
-    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', ROOT / 'runtime/qemu', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', ROOT / 'runtime/guest/vmlinuz', '-initrd', ROOT / 'runtime/guest/initramfs', '-append', 'root=/dev/vda rw console=ttyS0 quiet panic=1', '-drive', f'file={overlay},format=qcow2,if=virtio', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', f'name=opt/tcg/boot,file={boot}'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
+    vm = start([ROOT / 'runtime/qemu/qemu-system-x86_64.exe', '-L', 'runtime/qemu', '-machine', 'pc,accel=tcg', '-cpu', 'max', '-smp', '2', '-m', '384M', '-display', 'none', '-no-reboot', '-monitor', 'none', '-kernel', 'runtime/guest/vmlinuz', '-initrd', 'runtime/guest/initramfs', '-append', 'root=/dev/vda rw console=ttyS0 quiet panic=1', '-drive', 'file=demo-data/site.qcow2,format=qcow2,if=virtio', '-netdev', f'user,id=n0,restrict=on,hostfwd=tcp:127.0.0.1:{port}-10.0.2.15:8443', '-device', 'virtio-net-pci,netdev=n0', '-serial', 'stdio', '-serial', f'tcp:127.0.0.1:{control_port},server=on,wait=off', '-fw_cfg', 'name=opt/tcg/boot,file=demo-data/boot.json'], stdout=log, stderr=log, stdin=subprocess.DEVNULL)
     print('Запуск ізольованого PHP-сервера. Перший запуск може тривати до двох хвилин…', flush=True)
     control = None
     try:

@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
+const os = require('node:os');
 const { spawn, execFileSync } = require('node:child_process');
 const { chromium } = require('playwright');
 const root = process.env.TCG_WINDOWS_DEMO;
@@ -123,6 +124,8 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await admin.getByRole('button', { name: 'Перейменувати', exact: true }).click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/');
     assert.equal((await api('publish', { head: stale })).status, 409);
+    await admin.locator('#publish').click(); await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
+    await visitor.goto(running.origin + '/windows-test.html'); await visitor.waitForURL(running.origin + '/windows-renamed/');
     await admin.locator('[data-path="windows-renamed.html"]').click();
     await admin.waitForFunction(() => document.getElementById('current-path').textContent === '/windows-renamed/');
     admin.once('dialog', dialog => dialog.accept()); await admin.locator('#php-delete-button').click();
@@ -140,6 +143,14 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     await visitor.evaluate(async () => { await navigator.serviceWorker.ready; });
     assert.ok(await visitor.evaluate(async () => (await caches.keys()).some(k => k.startsWith('tcg-'))));
     const network = await context.newPage(); await assert.rejects(network.goto('https://example.com/'), /ERR_PROXY_CONNECTION_FAILED/); await network.close();
+    const certDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tcg-untrusted-'));
+    const openssl = path.join(process.env.ProgramFiles, 'Git/usr/bin/openssl.exe');
+    execFileSync(openssl, ['req', '-new', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', path.join(certDir, 'key.pem'), '-out', path.join(certDir, 'cert.pem'), '-days', '1', '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1'], { stdio: 'ignore' });
+    const untrusted = https.createServer({ key: fs.readFileSync(path.join(certDir, 'key.pem')), cert: fs.readFileSync(path.join(certDir, 'cert.pem')) }, (_, res) => res.end('unexpected trust'));
+    await new Promise(resolve => untrusted.listen(0, '127.0.0.1', resolve));
+    const certificateProbe = await context.newPage();
+    try { await assert.rejects(certificateProbe.goto('https://127.0.0.1:' + untrusted.address().port), /ERR_CERT_AUTHORITY_INVALID/, 'the demo browser must reject other self-signed certificates'); }
+    finally { await certificateProbe.close(); untrusted.closeAllConnections(); await new Promise(resolve => untrusted.close(resolve)); fs.rmSync(certDir, { recursive: true, force: true }); }
     const listeners = JSON.parse(ps(`Get-NetTCPConnection -State Listen | Where-Object { $_.OwningProcess -in @(${running.vmPid},${running.browserPid}) } | Select-Object LocalAddress,LocalPort | ConvertTo-Json -Compress`));
     assert.ok([].concat(listeners).length >= 2);
     assert.ok([].concat(listeners).every(x => x.LocalAddress === '127.0.0.1'), 'all test listeners are loopback-only');
