@@ -18,6 +18,9 @@ import time
 import urllib.error
 import urllib.request
 
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+
 ROOT = Path(__file__).absolute().parent
 DATA = ROOT / 'demo-data'
 MARKER = 'TCG isolated Windows demo data v1'
@@ -236,6 +239,7 @@ def main():
     if sys.platform != 'win32' or ctypes.sizeof(ctypes.c_void_p) != 8:
         raise RuntimeError('Цей комплект призначений для 64-бітної Windows 10/11.')
     no_links(ROOT)
+    no_links(ROOT / 'demo.lock')
     lock = (ROOT / 'demo.lock').open('a+b')
     lock.seek(0)
     if lock.read(1) == b'':

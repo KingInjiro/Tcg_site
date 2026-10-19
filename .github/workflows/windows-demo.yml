@@ -1,7 +1,5 @@
 name: Portable Windows demo
 on:
-  push:
-    branches: ['feature/windows-test-kit']
   pull_request:
     paths: ['windows-demo/**', 'scripts/prepare-windows-demo.cjs', 'tests/windows-demo/**', '.github/workflows/windows-demo.yml']
 permissions:

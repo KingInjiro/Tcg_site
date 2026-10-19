@@ -97,6 +97,9 @@ test('actual portable Windows ZIP: clean setup, GrapesJS, PHP publication, resta
     if (!await admin.locator('#asset-dialog').isVisible()) await admin.locator('#choose-image').click();
     await admin.locator('#asset-upload').setInputFiles({ name: 'demo-logo.png', mimeType: 'image/png', buffer: fs.readFileSync(path.join(__dirname, '../../images/favicon-32.png')) });
     await admin.locator('#asset-dialog').waitFor({ state: 'hidden' });
+    const previewEvent = context.waitForEvent('page'); await admin.locator('#preview').click();
+    const preview = await previewEvent; await preview.waitForLoadState();
+    assert.equal(await preview.locator('h1').innerText(), 'Збережено у Windows'); await preview.close();
     await admin.locator('#publish').click();
     await admin.waitForFunction(() => document.getElementById('status').textContent.startsWith('Опубліковано.'), {}, { timeout: 180000 });
     let visitor = await context.newPage(); await visitor.goto(running.origin + '/windows-test/');

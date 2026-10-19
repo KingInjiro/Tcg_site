@@ -1,6 +1,6 @@
 FROM alpine:3.24.2
 # Build-time only. Docker is never installed or invoked on the tester's PC.
-RUN apk add --no-cache linux-virt mkinitfs apache2 apache2-ssl php85-apache2 php85-openssl php85-dom php85-fileinfo php85-gd php85-session openssl \
+RUN apk add --no-cache linux-virt mkinitfs apache2 apache2-ssl php85 php85-apache2 php85-openssl php85-dom php85-fileinfo php85-gd php85-session openssl \
     && adduser -D -u 1000 tcg \
     && mkdir -p /srv/tcg/public /opt/tcg /run/apache2 \
     && chown -R tcg:tcg /srv/tcg
