@@ -38,8 +38,14 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Real PHP API over verified TLS
         run: node --test tests/php/*.test.cjs
+      - name: Real PHP API with account-only open_basedir
+        env:
+          TCG_TEST_OPEN_BASEDIR: '1'
+        run: node --test tests/php/*.test.cjs
       - name: Real GrapesJS editor over PHP
         if: matrix.php == '8.3'
+        env:
+          TCG_TEST_OPEN_BASEDIR: '1'
         run: node --test tests/php/editor.browser.cjs
   apache:
     runs-on: ubuntu-24.04
@@ -72,6 +78,7 @@ jobs:
           export TCG_PHP_ZIP=$(node -p 'require("/tmp/tcg-test-package.json").archivePath')
           export TCG_ACTIVATION_KEY_FILE=$(node -p 'require("/tmp/tcg-test-package.json").activationPath')
           node --test tests/php/*.test.cjs
+          TCG_TEST_OPEN_BASEDIR=1 node --test tests/php/*.test.cjs
       - name: Browser runtime
         if: matrix.php == '8.3'
         run: npx playwright install --with-deps chromium
@@ -79,6 +86,7 @@ jobs:
         if: matrix.php == '8.3'
         env:
           TCG_APACHE_IMAGE: tcg-apache-test
+          TCG_TEST_OPEN_BASEDIR: '1'
         run: node --test tests/php/editor.browser.cjs tests/php/visitor.browser.cjs
   old-diagnostic:
     runs-on: ubuntu-24.04

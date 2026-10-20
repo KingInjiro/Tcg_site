@@ -18,13 +18,28 @@ final class Files {
         return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
     public static function noLinks(string $path): void {
-        if ($path === '' || str_contains($path, "\0")) throw new Problem('Недозволений шлях.');
-        $current = DIRECTORY_SEPARATOR;
-        foreach (explode(DIRECTORY_SEPARATOR, ltrim($path, DIRECTORY_SEPARATOR)) as $part) {
+        if ($path === '' || $path[0] !== DIRECTORY_SEPARATOR || str_contains($path, "\0")) throw new Problem('Недозволений шлях.');
+        foreach (explode(DIRECTORY_SEPARATOR, substr($path, 1)) as $part) {
             if ($part === '' || $part === '.' || $part === '..') throw new Problem('Недозволений шлях.');
-            $current = rtrim($current, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $part;
-            clearstatcache(true, $current);
+        }
+        // Inspect from the leaf: probing /, /home, etc. can violate open_basedir
+        // even though the complete account path is accessible. Canonical equality
+        // verifies all existing ancestors without probing them individually.
+        $current = $path;
+        while (true) {
+            // Invalidate ancestor realpaths too if a directory was replaced.
+            clearstatcache(true);
             if (is_link($current)) throw new Problem('Символічні посилання заборонені.', 403);
+            $resolved = realpath($current);
+            if ($resolved !== false) {
+                if ($resolved !== $current) throw new Problem('Символічні посилання заборонені.', 403);
+                return;
+            }
+            // New files/directories have no realpath yet. Check every missing
+            // component (including dangling links) up to a verified ancestor.
+            $parent = dirname($current);
+            if ($parent === $current) throw new Problem('Не вдалося безпечно перевірити шлях.', 403);
+            $current = $parent;
         }
     }
     public static function directory(string $path): void {
