@@ -39,7 +39,7 @@ async function fixture(t, { ini = [], openBasedir = process.env.TCG_TEST_OPEN_BA
     if (process.env.TCG_APACHE_IMAGE) {
         const tlsPort = await port(), plainPort = await port(), name = 'tcg-test-' + crypto.randomBytes(8).toString('hex');
         execFileSync('docker', ['run', '-d', '--rm', '--name', name, '--network', 'host', '-v', directory + ':' + directory,
-            '-e', 'TCG_PUBLIC_ROOT=' + site, '-e', 'TCG_OPEN_BASEDIR=' + (openBasedir ? directory : ''), '-e', 'TCG_TLS_CERT=' + cert, '-e', 'TCG_TLS_KEY=' + key,
+            '-e', 'TCG_PUBLIC_ROOT=' + site, '-e', 'TCG_OPEN_BASEDIR=' + (openBasedir ? directory : 'none'), '-e', 'TCG_TLS_CERT=' + cert, '-e', 'TCG_TLS_KEY=' + key,
             '-e', 'TCG_HTTP_PORT=' + plainPort, '-e', 'TCG_HTTPS_PORT=' + tlsPort, '-e', 'SSL_CERT_FILE=' + cert, process.env.TCG_APACHE_IMAGE], { stdio: 'pipe' });
         t.after(() => { execFileSync('docker', ['stop', '-t', '2', name], { stdio: 'pipe' }); fs.rmSync(directory, { recursive: true, force: true }); });
         await new Promise((resolve, reject) => { const deadline = Date.now() + 10000; const attempt = () => { const socket = net.connect(tlsPort, '127.0.0.1'); socket.on('connect', () => { socket.destroy(); resolve(); }); socket.on('error', () => Date.now() > deadline ? reject(new Error('Apache did not start: ' + execFileSync('docker', ['logs', name]))) : setTimeout(attempt, 50)); }; attempt(); });
